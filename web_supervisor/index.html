@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CMOC — Painel do Supervisor | Infraestrutura Subterrânea</title>
+  <meta name="description" content="Painel de acompanhamento em tempo real das atividades e relatórios de campo da CMOC Infraestrutura Subterrânea." />
+  <link rel="icon" type="image/svg+xml" href="assets/CMOC_bilingual_logo.svg" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ── Header ──────────────────────────────────────────── -->
+  <header class="header" role="banner">
+    <div class="header-brand">
+      <img src="assets/CMOC_bilingual_logo.svg" alt="CMOC Logo" class="header-logo" />
+      <div class="header-titles">
+        <h1>Painel do Supervisor</h1>
+        <p>Infraestrutura Subterrânea — Acompanhamento em Tempo Real</p>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="live-badge" aria-label="Conexão ao vivo com Firebase">
+        <span class="live-dot"></span>
+        <span>Ao Vivo</span>
+      </div>
+      <span class="header-time" id="header-clock" aria-live="polite"></span>
+    </div>
+  </header>
+
+  <!-- ── Main ────────────────────────────────────────────── -->
+  <main class="main-container" role="main">
+
+    <!-- KPI Cards -->
+    <p class="section-title">Resumo Operacional — Hoje</p>
+    <div class="kpi-grid" id="kpi-grid" role="region" aria-label="Indicadores de desempenho">
+      <div class="kpi-card blue">
+        <div class="kpi-icon">📋</div>
+        <div class="kpi-body">
+          <div class="kpi-value" id="kpi-total">—</div>
+          <div class="kpi-label">Relatórios Registrados Hoje</div>
+        </div>
+      </div>
+      <div class="kpi-card green">
+        <div class="kpi-icon">🛠️</div>
+        <div class="kpi-body">
+          <div class="kpi-value" id="kpi-os">—</div>
+          <div class="kpi-label">Ordens de Serviço Concluídas</div>
+        </div>
+      </div>
+      <div class="kpi-card yellow">
+        <div class="kpi-icon">🚜</div>
+        <div class="kpi-body">
+          <div class="kpi-value" id="kpi-equipamentos">—</div>
+          <div class="kpi-label">Equipamentos em Operação</div>
+        </div>
+      </div>
+      <div class="kpi-card teal">
+        <div class="kpi-icon">👷</div>
+        <div class="kpi-body">
+          <div class="kpi-value" id="kpi-colaboradores">—</div>
+          <div class="kpi-label">Colaboradores Ativos</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filters-bar" role="search" aria-label="Filtros de relatórios">
+      <input
+        type="text"
+        id="filter-search"
+        class="filter-input"
+        placeholder="🔍  Buscar por executante, matrícula, OS, equipamento…"
+        aria-label="Buscar relatório"
+      />
+      <select id="filter-turno" class="filter-select" aria-label="Filtrar por turno">
+        <option value="">Todos os Turnos</option>
+        <option value="A">Turno A</option>
+        <option value="B">Turno B</option>
+        <option value="C">Turno C</option>
+      </select>
+      <select id="filter-data" class="filter-select" aria-label="Filtrar por período">
+        <option value="today">Hoje</option>
+        <option value="7">Últimos 7 dias</option>
+        <option value="30">Últimos 30 dias</option>
+        <option value="all">Todos</option>
+      </select>
+      <button id="btn-clear-filters" class="filter-btn secondary" aria-label="Limpar filtros">
+        ✕ Limpar
+      </button>
+    </div>
+
+    <!-- Table -->
+    <div class="table-wrapper" role="region" aria-label="Lista de relatórios">
+      <div class="table-header">
+        <div class="table-title">
+          📄 Relatórios de Campo
+          <span class="count-badge" id="count-badge">0</span>
+        </div>
+      </div>
+
+      <div id="table-container">
+        <!-- Loading state -->
+        <div class="loading-spinner" id="loading-state">
+          <div class="spinner-ring"></div>
+          <span>Conectando ao Firebase…</span>
+        </div>
+
+        <!-- Table (hidden until data loads) -->
+        <div id="table-section" style="display:none; overflow-x:auto;">
+          <table aria-label="Tabela de relatórios">
+            <thead>
+              <tr>
+                <th>Data / Hora</th>
+                <th>Área / Mina</th>
+                <th>Turno</th>
+                <th>Turma</th>
+                <th>Equipamento</th>
+                <th>Executantes</th>
+                <th>OSs</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="reports-tbody"></tbody>
+          </table>
+        </div>
+
+        <!-- Empty state -->
+        <div class="empty-state" id="empty-state" style="display:none;">
+          <div class="empty-icon">📭</div>
+          <p>Nenhum relatório encontrado para o filtro selecionado.</p>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ── Modal de Detalhes ────────────────────────────────── -->
+  <div class="modal-overlay" id="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal">
+      <div class="modal-header">
+        <div>
+          <div class="modal-header-title" id="modal-title">Detalhes do Relatório</div>
+          <div class="modal-header-meta" id="modal-meta"></div>
+        </div>
+        <button class="modal-close" id="modal-close-btn" aria-label="Fechar modal">✕</button>
+      </div>
+      <div class="modal-body" id="modal-body">
+        <!-- Content injected by JS -->
+      </div>
+      <div class="modal-footer">
+        <button class="btn-close-modal" id="modal-footer-close">Fechar</button>
+        <button class="btn-print" id="btn-print-modal">🖨️ Imprimir Relatório</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Lightbox ─────────────────────────────────────────── -->
+  <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Visualizador de foto">
+    <button class="lightbox-close" id="lightbox-close" aria-label="Fechar foto">✕</button>
+    <img id="lightbox-img" src="" alt="Foto ampliada" />
+  </div>
+
+  <!-- ── Toasts ───────────────────────────────────────────── -->
+  <div class="toast-container" id="toast-container" aria-live="polite"></div>
+
+  <!-- ── Firebase SDK (CDN) ──────────────────────────────── -->
+  <script type="module" src="app.js"></script>
+
+</body>
+</html>
