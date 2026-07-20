@@ -28,7 +28,7 @@
  */
 
 import { initializeApp }        from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-import { getFirestore, collection, onSnapshot, query, orderBy }
+import { getFirestore, collection, onSnapshot, query, orderBy, addDoc, serverTimestamp }
                                  from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
 /* ── Firebase config (projeto cmoc-relatorio) ────────────── */
@@ -307,12 +307,12 @@ function openModal(report) {
                 <label>Local</label>
                 <p>${safeText(os.location)}</p>
               </div>
-              <div class="os-field">
-                <label>Descrição das Atividades</label>
-                <p>${safeText(os.description)}</p>
+              <div class="os-field description-field">
+                <label><i data-lucide="align-left" style="width:14px; height:14px; margin-right:4px; vertical-align:middle;"></i> Descrição das Atividades</label>
+                <div class="desc-content">${safeText(os.description)}</div>
               </div>
               <div class="os-field">
-                <label>Materiais / Peças Utilizados</label>
+                <label><i data-lucide="package" style="width:14px; height:14px; margin-right:4px; vertical-align:middle;"></i> Materiais / Peças Utilizados</label>
                 <p>${safeText(os.materials)}</p>
               </div>
             </div>
@@ -427,3 +427,112 @@ function startRealtimeSync() {
 
 /* ── Init ────────────────────────────────────────────────── */
 startRealtimeSync();
+
+/* ── Actions / Creation Modal ────────────────────────────── */
+window.openCreateModal = function(type) {
+  const overlay = document.getElementById('create-modal-overlay');
+  const title = document.getElementById('create-modal-title');
+  const input1 = document.getElementById('create-input-1');
+  const input2 = document.getElementById('create-input-2');
+  
+  overlay.style.display = 'flex';
+  overlay.dataset.type = type;
+  
+  input1.value = '';
+  input2.value = '';
+  
+  switch(type) {
+    case 'relatorio':
+      title.textContent = 'Adicionar Novo Relatório';
+      break;
+    case 'os':
+      title.textContent = 'Adicionar Nova OS';
+      break;
+    case 'equipamento':
+      title.textContent = 'Adicionar Novo Equipamento';
+      break;
+    case 'colaborador':
+      title.textContent = 'Adicionar Novo Colaborador';
+      break;
+  }
+};
+
+window.closeCreateModal = function() {
+  document.getElementById('create-modal-overlay').style.display = 'none';
+};
+
+window.saveCreateModal = async function() {
+  const type = document.getElementById('create-modal-overlay').dataset.type;
+  const input1 = document.getElementById('create-input-1').value.trim();
+  const input2 = document.getElementById('create-input-2').value.trim();
+
+  if (!input1) {
+    showToast('O primeiro campo (Nome/Identificação) é obrigatório.', 'error');
+    return;
+  }
+
+  let collectionName = 'reports';
+  let entity = 'Item';
+  let dataToSave = {};
+
+  if (type === 'relatorio') {
+    entity = 'Relatório';
+    collectionName = 'reports';
+    dataToSave = {
+      mineLocation: input1,
+      description: input2, // Added custom description field for quick reports
+      status: 'synced',
+      shift: 'A', // default
+      createdAt: serverTimestamp(),
+      syncedAt: serverTimestamp(),
+      executors: [],
+      workOrders: []
+    };
+  } else if (type === 'os') {
+    entity = 'Ordem de Serviço';
+    collectionName = 'orders';
+    dataToSave = {
+      number: input1,
+      description: input2,
+      createdAt: serverTimestamp()
+    };
+  } else if (type === 'equipamento') {
+    entity = 'Equipamento';
+    collectionName = 'equipments';
+    dataToSave = {
+      name: input1,
+      details: input2,
+      createdAt: serverTimestamp()
+    };
+  } else if (type === 'colaborador') {
+    entity = 'Colaborador';
+    collectionName = 'collaborators';
+    dataToSave = {
+      name: input1,
+      registration: input2,
+      createdAt: serverTimestamp()
+    };
+  }
+  
+  try {
+    const saveBtn = document.querySelector('#create-modal-overlay .btn-print');
+    const oldText = saveBtn.textContent;
+    saveBtn.textContent = 'Salvando...';
+    saveBtn.disabled = true;
+
+    await addDoc(collection(db, collectionName), dataToSave);
+    
+    saveBtn.textContent = oldText;
+    saveBtn.disabled = false;
+    window.closeCreateModal();
+    showToast(`${entity} adicionado com sucesso!`, 'success');
+  } catch (error) {
+    console.error('Error adding document: ', error);
+    showToast(`Erro ao salvar: ${error.message}`, 'error');
+    const saveBtn = document.querySelector('#create-modal-overlay .btn-print');
+    if(saveBtn) {
+       saveBtn.textContent = 'Salvar Dados';
+       saveBtn.disabled = false;
+    }
+  }
+};
