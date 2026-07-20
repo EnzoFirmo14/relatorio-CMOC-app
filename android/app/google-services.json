@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "279433346974",
-    "project_id": "cmoc-relatorio",
-    "storage_bucket": "cmoc-relatorio.firebasestorage.app"
+    "project_number": "949758188674",
+    "project_id": "cmoc-relatorio-13c4f",
+    "storage_bucket": "cmoc-relatorio-13c4f.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:279433346974:android:fb05389a58d0d4f45ae08f",
+        "mobilesdk_app_id": "1:949758188674:android:ee7628598e8de7e7b0689b",
         "android_client_info": {
           "package_name": "com.cmoc.relatorio"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyBkEzrbkGFq8jEutYvQvOd6nOST0Vh9siw"
+          "current_key": "AIzaSyAuc9fN8yZPPpbvL3tuIeRj4rn0nbXbpxQ"
         }
       ],
       "services": {
