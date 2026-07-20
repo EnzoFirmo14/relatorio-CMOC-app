@@ -34,6 +34,8 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'CMOC Relatório',
       theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: ThemeMode.system,
       initialRoute: AppRoutes.initial,
       onGenerateRoute: AppRoutes.onGenerateRoute,
       debugShowCheckedModeBanner: false,

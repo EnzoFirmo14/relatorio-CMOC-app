@@ -7,26 +7,27 @@
 
 /* ── Tokens ─────────────────────────────────────────────── */
 :root {
-  --cmoc-blue:       #0F4C81;
-  --cmoc-blue-dark:  #093460;
-  --cmoc-blue-mid:   #1A6BBF;
-  --cmoc-blue-light: #E8F1FB;
-  --cmoc-green:      #00A859;
-  --cmoc-green-dark: #007A3F;
-  --cmoc-green-light:#E6F7EE;
+  --cmoc-blue:       #23005B;
+  --cmoc-blue-dark:  #18003A;
+  --cmoc-blue-mid:   #5C3FA3;
+  --cmoc-blue-light: #F5F7FA;
+  --cmoc-green:      #74BE45;
+  --cmoc-green-dark: #589A31;
+  --cmoc-green-light:#EBF5E5;
+  --cmoc-purple:     #5C3FA3;
   --cmoc-white:      #FFFFFF;
-  --bg:              #F0F4FA;
+  --bg:              #F5F7FA;
   --surface:         #FFFFFF;
-  --surface-alt:     #F7F9FC;
-  --border:          #DDE4EE;
-  --text-primary:    #0D1B2A;
-  --text-secondary:  #4A5568;
-  --text-muted:      #8FA3B1;
+  --surface-alt:     #F0F4F8;
+  --border:          #E2E8F0;
+  --text-primary:    #1F2937;
+  --text-secondary:  #4B5563;
+  --text-muted:      #9CA3AF;
   --danger:          #DC3545;
   --warning:         #F59E0B;
-  --shadow-sm:       0 1px 4px rgba(15,76,129,.08);
-  --shadow-md:       0 4px 16px rgba(15,76,129,.12);
-  --shadow-lg:       0 8px 32px rgba(15,76,129,.16);
+  --shadow-sm:       0 1px 4px rgba(35,0,91,.08);
+  --shadow-md:       0 4px 16px rgba(35,0,91,.12);
+  --shadow-lg:       0 8px 32px rgba(35,0,91,.16);
   --radius:          12px;
   --radius-lg:       18px;
   --transition:      0.2s ease;
@@ -704,6 +705,65 @@ td.muted { color: var(--text-secondary); }
   from { opacity: 0; transform: translateY(16px) scale(.9); }
   to   { opacity: 1; transform: translateY(0) scale(1); }
 }
+
+/* ── KPI Action Buttons ──────────────────────────────────── */
+.kpi-card {
+  position: relative;
+}
+.kpi-action-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: #fff;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  z-index: 10;
+}
+.kpi-action-btn:hover {
+  background: rgba(255, 255, 255, 0.4);
+  transform: scale(1.1);
+}
+.kpi-action-btn i {
+  width: 16px;
+  height: 16px;
+}
+
+/* ── Form Inputs ─────────────────────────────────────────── */
+.form-group label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--cmoc-purple);
+  margin-bottom: 6px;
+}
+
+/* ── Custom Modal Fields ─────────────────────────────────── */
+.description-field .desc-content {
+  background: var(--surface-alt);
+  border-left: 4px solid var(--cmoc-purple);
+  padding: 12px 16px;
+  border-radius: 4px 8px 8px 4px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  line-height: 1.6;
+  margin-top: 6px;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
+}
+.os-field label i {
+  color: var(--cmoc-purple);
+}
+
 
 /* ── Print ───────────────────────────────────────────────── */
 @media print {
