@@ -1,61 +1,19 @@
 import { useEffect, useState, useRef } from 'react';
 import { db, doc, getDoc, updateDoc } from '../services/firebase';
+import { normalizeReport } from '../services/dataNormalization';
+import type { NormalizedReport } from '../services/dataNormalization';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { 
   ChevronLeft, Printer, Share2, Edit3, Clock, MapPin, 
   User, Building2, Wrench, CheckSquare, Users,
-  Image as ImageIcon, MessageSquare, FileText, CheckCircle2, PenTool
+  Image as ImageIcon, MessageSquare, FileText, CheckCircle2, PenTool, Flame
 } from 'lucide-react';
 import { motion } from 'framer-motion';
-
-interface Executor {
-  name: string;
-  registration: string;
-}
-
-interface WorkOrder {
-  number: string;
-  location?: string;
-  description?: string;
-  startTime?: string;
-  endTime?: string;
-  materials?: string;
-}
-
-interface Report {
-  uuid: string;
-  mineLocation: string;
-  shift: string;
-  team: string;
-  equipment: string;
-  supervisorName?: string;
-  responsibleCompany?: string;
-  activityType?: string;
-  description: string;
-  objective?: string;
-  materials?: string;
-  toolsUsed?: string;
-  priority?: string;
-  riskLevel?: string;
-  workPermit?: string;
-  weatherCondition?: string;
-  gpsCoordinates?: string;
-  observations?: string;
-  problemsFound?: string;
-  correctiveActions?: string;
-  nextActivities?: string;
-  status: string;
-  createdAt: any;
-  executors?: Executor[];
-  workOrders?: WorkOrder[];
-  comments?: Array<{author: string, date: string, text: string}>;
-  signature?: { signedBy: string, signedAt: string, dataUrl: string };
-}
 
 export default function ReportDetails() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [report, setReport] = useState<Report | null>(null);
+  const [report, setReport] = useState<NormalizedReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeSubTab, setActiveSubTab] = useState<'geral' | 'timeline' | 'checklist' | 'fotos' | 'comentarios' | 'assinatura'>('geral');
   const [commentText, setCommentText] = useState('');
@@ -128,6 +86,7 @@ export default function ReportDetails() {
       const docRef = doc(db, 'reports', id);
       await updateDoc(docRef, {
         status: 'synced',
+        syncStatus: 'synced',
         signature: { signedBy: signedByVal, signedAt: signedAtVal, dataUrl }
       });
       
@@ -148,7 +107,7 @@ export default function ReportDetails() {
           const docRef = doc(db, 'reports', id);
           const docSnap = await getDoc(docRef);
           if (docSnap.exists()) {
-            const data = { uuid: docSnap.id, ...docSnap.data() } as Report;
+            const data = normalizeReport({ uuid: docSnap.id, ...docSnap.data() });
             setReport(data);
             if (data.signature) {
               setSignedBy(data.signature.signedBy);
@@ -363,19 +322,32 @@ export default function ReportDetails() {
               <h3 className="text-sm font-bold text-cmoc-blue dark:text-white font-outfit uppercase tracking-wider text-xs">Atividades Executadas</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="md:col-span-2 space-y-3">
-                  <div className="text-xs font-bold text-cmoc-purple uppercase">Descrição Detalhada</div>
+                  <div className="text-xs font-bold text-cmoc-purple uppercase">Descrição Detalhada / Observações</div>
                   <p className="text-slate-700 dark:text-slate-300 text-sm leading-relaxed whitespace-pre-wrap">
-                    {report.description}
+                    {report.description || report.observations || 'Nenhuma descrição fornecida.'}
                   </p>
                 </div>
                 <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-xl space-y-3 border border-slate-200/20">
                   <div className="text-xs font-bold text-cmoc-purple uppercase">Metas & Recursos</div>
                   <div className="space-y-2 text-xs font-semibold text-slate-600 dark:text-slate-400">
-                    <div>Atividade: <span className="text-slate-850 dark:text-white">{report.activityType || 'Lavra'}</span></div>
-                    <div>Objetivo: <span className="text-slate-850 dark:text-white">{report.objective || 'N/A'}</span></div>
-                    <div>Equipamento: <span className="text-slate-850 dark:text-white">{report.equipment || 'N/A'}</span></div>
-                    <div>Materiais: <span className="text-slate-850 dark:text-white">{report.materials || 'N/A'}</span></div>
-                    <div>Ferramentas: <span className="text-slate-850 dark:text-white">{report.toolsUsed || 'N/A'}</span></div>
+                    <div>Atividade: <span className="text-slate-800 dark:text-white">{report.activityType || 'Lavra'}</span></div>
+                    <div>Objetivo: <span className="text-slate-800 dark:text-white">{report.objective || 'N/A'}</span></div>
+                    <div>Equipamento: <span className="text-slate-800 dark:text-white">{report.equipment || 'N/A'}</span></div>
+                    {report.fuelLevel > 0 && (
+                      <div className="flex items-center gap-1">
+                        Combustível: <Flame size={12} className="text-orange-500 shrink-0" />
+                        <span className="text-slate-800 dark:text-white">
+                          {report.fuelLevel <= 1.0 ? Math.round(report.fuelLevel * 100) : Math.round(report.fuelLevel)}%
+                        </span>
+                      </div>
+                    )}
+                    {report.availableMaterials && (
+                      <div>Materiais Disp.: <span className="text-slate-800 dark:text-white">{report.availableMaterials}</span></div>
+                    )}
+                    {report.materials && (
+                      <div>Materiais: <span className="text-slate-800 dark:text-white">{report.materials}</span></div>
+                    )}
+                    <div>Ferramentas: <span className="text-slate-800 dark:text-white">{report.toolsUsed || 'N/A'}</span></div>
                   </div>
                 </div>
               </div>
@@ -388,7 +360,7 @@ export default function ReportDetails() {
                 <h3 className="text-sm font-bold text-cmoc-blue dark:text-white font-outfit uppercase tracking-wider text-xs flex items-center gap-2">
                   <Users size={16} /> Equipe em Campo ({report.executors?.length || 0})
                 </h3>
-                <div className="divide-y divide-slate-100 dark:divide-slate-800/80">
+                <div className="divide-y divide-slate-100 dark:divide-slate-800/85">
                   {report.executors && report.executors.length > 0 ? (
                     report.executors.map((e, idx) => (
                       <div key={idx} className="py-2.5 flex justify-between items-center text-xs font-semibold">
@@ -407,15 +379,71 @@ export default function ReportDetails() {
                 <h3 className="text-sm font-bold text-cmoc-blue dark:text-white font-outfit uppercase tracking-wider text-xs flex items-center gap-2">
                   <Wrench size={16} /> Ordens de Serviço Associadas ({report.workOrders?.length || 0})
                 </h3>
-                <div className="space-y-3">
+                <div className="space-y-4 max-h-[350px] overflow-y-auto pr-1">
                   {report.workOrders && report.workOrders.length > 0 ? (
                     report.workOrders.map((os, idx) => (
-                      <div key={idx} className="p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200/50 dark:border-slate-850 rounded-xl text-xs">
-                        <div className="flex justify-between items-center font-bold text-cmoc-blue dark:text-white">
-                          <span>OS {os.number}</span>
-                          <span className="text-[10px] text-slate-400">{os.startTime} - {os.endTime}</span>
+                      <div key={idx} className="p-4 bg-slate-50 dark:bg-slate-900 border border-slate-200/50 dark:border-slate-800 rounded-xl text-xs space-y-3">
+                        <div className="flex justify-between items-center font-bold text-cmoc-blue dark:text-white border-b border-slate-200/30 pb-2">
+                          <span className="text-xs font-extrabold font-outfit">OS #{os.number || 'N/A'}</span>
+                          <span className="px-2 py-0.5 bg-slate-200 dark:bg-slate-800 rounded text-[10px] text-slate-500 font-mono">
+                            {os.startTime || '--:--'} - {os.endTime || '--:--'}
+                          </span>
                         </div>
-                        <p className="text-slate-500 mt-1">{os.description || 'Sem descrição cadastrada.'}</p>
+                        <div className="grid grid-cols-2 gap-2 text-slate-600 dark:text-slate-350">
+                          {os.location && (
+                            <div>
+                              <span className="text-[10px] uppercase text-slate-400 font-bold block">Local</span>
+                              <span className="font-bold text-slate-800 dark:text-white">{os.location}</span>
+                            </div>
+                          )}
+                          {os.maintenanceType && (
+                            <div>
+                              <span className="text-[10px] uppercase text-slate-400 font-bold block">Manutenção</span>
+                              <span className="px-1.5 py-0.5 bg-cmoc-purple/10 text-cmoc-purple rounded font-bold inline-block mt-0.5">{os.maintenanceType}</span>
+                            </div>
+                          )}
+                          {os.quantityMeters && os.quantityMeters !== '0' && os.quantityMeters !== '' && (
+                            <div>
+                              <span className="text-[10px] uppercase text-slate-400 font-bold block">Metros Planejados</span>
+                              <span className="font-bold text-slate-800 dark:text-white">{os.quantityMeters}m</span>
+                            </div>
+                          )}
+                          {os.quantityPieces && os.quantityPieces !== '0' && os.quantityPieces !== '' && (
+                            <div>
+                              <span className="text-[10px] uppercase text-slate-400 font-bold block">Peças Substituídas</span>
+                              <span className="font-bold text-slate-800 dark:text-white">{os.quantityPieces} un</span>
+                            </div>
+                          )}
+                        </div>
+                        {os.cause && (
+                          <div>
+                            <span className="text-[10px] uppercase text-slate-400 font-bold block">Causa / Diagnóstico</span>
+                            <p className="text-slate-700 dark:text-slate-300 font-semibold">{os.cause}</p>
+                          </div>
+                        )}
+                        <div>
+                          <span className="text-[10px] uppercase text-slate-400 font-bold block">Atividades Executadas</span>
+                          <p className="text-slate-700 dark:text-slate-300 font-medium whitespace-pre-wrap">{os.activities}</p>
+                        </div>
+                        {os.materialsUsed && os.materialsUsed.length > 0 && (
+                          <div>
+                            <span className="text-[10px] uppercase text-slate-400 font-bold block mb-1">Materiais Utilizados</span>
+                            <div className="flex gap-1 flex-wrap">
+                              {os.materialsUsed.map((mat, mIdx) => (
+                                <span key={mIdx} className="px-2 py-0.5 bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded border border-slate-300/30">
+                                  {mat}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {os.osStatus && (
+                          <div className="flex justify-end pt-1">
+                            <span className={`px-2 py-0.5 rounded text-[9px] font-bold ${
+                              os.osStatus === 'Concluída' || os.osStatus === 'Finished' ? 'bg-green-100 text-cmoc-green' : 'bg-yellow-100 text-yellow-600'
+                            }`}>{os.osStatus}</span>
+                          </div>
+                        )}
                       </div>
                     ))
                   ) : (
@@ -479,9 +507,9 @@ export default function ReportDetails() {
               {report.workOrders?.map((os, idx) => (
                 <div key={idx} className="relative pl-6">
                   <span className="absolute -left-[9px] top-1.5 w-4 h-4 rounded-full bg-cmoc-green ring-4 ring-white dark:ring-cmoc-dark-card" />
-                  <span className="text-xs font-semibold text-slate-400">OS {os.number} | {os.startTime || '08:00'}</span>
-                  <h4 className="text-sm font-bold text-cmoc-blue dark:text-white mt-0.5">{os.description || 'Execução Operacional'}</h4>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Atividade registrada e vinculada ao supervisor.</p>
+                  <span className="text-xs font-semibold text-slate-400">OS #{os.number || idx} | {os.startTime || '08:00'}</span>
+                  <h4 className="text-sm font-bold text-cmoc-blue dark:text-white mt-0.5">{os.maintenanceType || 'Atividade Operacional'}</h4>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{os.activities}</p>
                 </div>
               ))}
 
@@ -526,16 +554,32 @@ export default function ReportDetails() {
           >
             <h3 className="text-sm font-bold text-cmoc-blue dark:text-white font-outfit uppercase tracking-wider text-xs">Anexo Fotográfico da Frente de Trabalho</h3>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Placeholder Foto */}
-              <div className="col-span-1 md:col-span-3 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-2xl p-10 flex flex-col items-center justify-center text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer">
-                <div className="w-12 h-12 bg-slate-100 dark:bg-slate-900 rounded-full flex items-center justify-center mb-3">
-                  <ImageIcon size={24} className="text-cmoc-purple" />
-                </div>
-                <h4 className="font-bold text-slate-700 dark:text-slate-300">Adicionar Fotos da Atividade</h4>
-                <p className="text-xs mt-1 text-center max-w-xs">Faça upload de fotos do antes, durante e depois (suporta JPG, PNG. Max 5MB)</p>
+            {report.workOrders?.some(os => os.photoPaths && os.photoPaths.length > 0) ? (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {report.workOrders.flatMap(os => 
+                  (os.photoPaths || []).map((path, pIdx) => (
+                    <div key={`${os.number}-${pIdx}`} className="group relative rounded-xl overflow-hidden border border-slate-250 dark:border-slate-800 bg-slate-100 dark:bg-slate-900 aspect-video hover:shadow-lg transition-all cursor-pointer" onClick={() => window.open(path, '_blank')}>
+                      <img 
+                        src={path} 
+                        alt={`Foto da OS ${os.number}`} 
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1578328819058-b69f3a3b0f6b?auto=format&fit=crop&w=600&q=80';
+                        }}
+                      />
+                      <div className="absolute bottom-0 inset-x-0 p-2 bg-gradient-to-t from-black/80 to-transparent text-[9px] text-white font-bold">
+                        OS #{os.number} - Foto {pIdx + 1}
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
-            </div>
+            ) : (
+              <div className="text-center py-12 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-2xl text-slate-400">
+                <ImageIcon className="mx-auto text-slate-350 dark:text-slate-650 mb-2" size={32} />
+                <p className="text-xs">Nenhuma foto anexada a este relatório pelas equipes de campo.</p>
+              </div>
+            )}
           </motion.div>
         )}
 

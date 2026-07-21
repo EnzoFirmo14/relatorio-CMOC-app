@@ -87,6 +87,7 @@ export default function Login() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
             className="text-4xl font-extrabold tracking-tight leading-tight mb-4 font-outfit"
+            style={{ color: '#FFFFFF' }}
           >
             Acompanhamento em Tempo Real das Operações de Infraestrutura Subterrânea
           </motion.h2>
@@ -133,7 +134,7 @@ export default function Login() {
               alt="CMOC Logo" 
               className="h-14 mb-4 object-contain transition-opacity duration-300"
             />
-            <h1 className="text-xl font-bold tracking-tight text-primary dark:text-white font-outfit text-center">
+            <h1 className="text-xl font-bold tracking-tight font-outfit text-center">
               Painel de Infraestrutura Subterrânea
             </h1>
             <p className="text-sm text-text-secondary mt-1 text-center">

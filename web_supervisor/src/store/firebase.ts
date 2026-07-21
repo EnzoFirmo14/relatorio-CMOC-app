@@ -2,7 +2,7 @@ import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyA874D2efFSlWDRasRMTOnC19fFloG5vvo",
+  apiKey: "AIzaSyBkEzrbkGFq8jEutYvQvOd6nOST0Vh9siw",
   authDomain: "cmoc-relatorio.firebaseapp.com",
   projectId: "cmoc-relatorio",
   storageBucket: "cmoc-relatorio.firebasestorage.app",

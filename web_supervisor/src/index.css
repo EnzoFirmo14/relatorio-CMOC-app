@@ -23,6 +23,7 @@
   --text-secondary: #475569; /* Slate 600 */
   --text-tertiary: #94A3B8; /* Slate 400 */
   --text-placeholder: #94A3B8;
+  --text-title: var(--cmoc-blue); /* Title color for light mode */
   
   /* Shared values */
   --radius-sm: 0.25rem;
@@ -39,14 +40,15 @@
   --card: #111827;
   --border: #1F2937; /* Gray 800 */
   
-  --primary: var(--cmoc-blue); /* Can be tweaked if needed for contrast, but user wants brand colors */
-  --primary-hover: var(--cmoc-purple);
+  --primary: var(--cmoc-purple); /* Brand Roxo CMOC for contrast */
+  --primary-hover: #7353C4;
   --success: var(--cmoc-green);
   
   --text-primary: #F8FAFC; /* Slate 50 */
   --text-secondary: #94A3B8; /* Slate 400 */
   --text-tertiary: #475569; /* Slate 600 */
   --text-placeholder: #475569;
+  --text-title: #F8FAFC; /* Title color for dark mode (Slate 50) */
 }
 
 @theme {
@@ -82,6 +84,7 @@
   --color-text-secondary: var(--text-secondary);
   --color-text-tertiary: var(--text-tertiary);
   --color-text-placeholder: var(--text-placeholder);
+  --color-text-title: var(--text-title);
 }
 
 @layer base {
@@ -95,8 +98,49 @@
     transition-duration: 300ms;
   }
 
-  input, select, textarea {
-    color: var(--text-primary);
+  /* Style headings to use the theme title color variable automatically */
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--text-title);
+  }
+
+  /* Definitively style text-like inputs, select, and textarea to guarantee high contrast and visible cursor */
+  input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="range"]):not([type="image"]),
+  select,
+  textarea {
+    color: var(--text-primary) !important;
+    background-color: var(--background) !important;
+    border-color: var(--border) !important;
+    caret-color: var(--cmoc-purple) !important; /* Visible cursor matching theme */
+  }
+
+  /* Legible placeholders in both modes */
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--text-placeholder) !important;
+    opacity: 1 !important;
+  }
+
+  /* Modern focus state */
+  input:focus,
+  select:focus,
+  textarea:focus {
+    border-color: var(--cmoc-purple) !important;
+    outline: none !important;
+    box-shadow: 0 0 0 2px rgba(92, 63, 163, 0.35) !important;
+  }
+
+  /* Select options readability in dark mode */
+  select option {
+    background-color: var(--surface) !important;
+    color: var(--text-primary) !important;
+  }
+
+  /* Labels legíveis em ambos os modos */
+  form label,
+  label.text-xs,
+  .form-label {
+    color: var(--text-primary) !important;
+    opacity: 0.85 !important;
   }
 }
 
@@ -136,14 +180,14 @@ input:-webkit-autofill:active {
   -webkit-background-clip: text;
   -webkit-text-fill-color: var(--text-primary) !important;
   transition: background-color 5000s ease-in-out 0s;
-  box-shadow: inset 0 0 20px 20px var(--surface);
+  box-shadow: inset 0 0 20px 20px var(--background) !important;
 }
 
 .dark input:-webkit-autofill,
 .dark input:-webkit-autofill:hover, 
 .dark input:-webkit-autofill:focus, 
 .dark input:-webkit-autofill:active {
-  box-shadow: inset 0 0 20px 20px var(--surface);
+  box-shadow: inset 0 0 20px 20px var(--background) !important;
   -webkit-text-fill-color: var(--text-primary) !important;
 }
 

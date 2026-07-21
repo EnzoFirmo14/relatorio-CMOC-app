@@ -18,29 +18,29 @@ class SyncStatusBadge extends ConsumerWidget {
     String label;
 
     if (syncState.isSyncing) {
-      bg = AppTheme.primaryPurple.withOpacity(0.15);
+      bg = AppTheme.primaryPurple.withValues(alpha: 0.15);
       fg = AppTheme.primaryPurple;
       icon = Icons.sync;
       label = 'Enviando...';
     } else if (!syncState.isOnline) {
-      bg = Colors.grey.withOpacity(0.15);
+      bg = Colors.grey.withValues(alpha: 0.15);
       fg = AppTheme.textMuted;
       icon = Icons.cloud_off_rounded;
       label = syncState.pendingCount > 0
           ? 'Offline (${syncState.pendingCount})'
           : 'Offline';
     } else if (syncState.hasError) {
-      bg = AppTheme.redAlert.withOpacity(0.15);
+      bg = AppTheme.redAlert.withValues(alpha: 0.15);
       fg = AppTheme.redAlert;
       icon = Icons.cloud_sync_rounded;
       label = 'Reenviar (${syncState.pendingCount})';
     } else if (syncState.pendingCount > 0) {
-      bg = Colors.amber.withOpacity(0.2);
+      bg = Colors.amber.withValues(alpha: 0.2);
       fg = Colors.amber.shade900;
       icon = Icons.cloud_upload_rounded;
       label = 'Pendente (${syncState.pendingCount})';
     } else {
-      bg = AppTheme.greenSuccess.withOpacity(0.15);
+      bg = AppTheme.greenSuccess.withValues(alpha: 0.15);
       fg = AppTheme.greenSuccess;
       icon = Icons.cloud_done_rounded;
       label = 'Sincronizado';
@@ -57,7 +57,7 @@ class SyncStatusBadge extends ConsumerWidget {
         decoration: BoxDecoration(
           color: bg,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: fg.withOpacity(0.3)),
+          border: Border.all(color: fg.withValues(alpha: 0.3)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,

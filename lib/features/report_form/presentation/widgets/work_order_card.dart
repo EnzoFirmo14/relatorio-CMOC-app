@@ -121,7 +121,7 @@ class WorkOrderCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 10.0),
             decoration: BoxDecoration(
-              color: AppTheme.primaryPurple.withOpacity(0.07),
+              color: AppTheme.primaryPurple.withValues(alpha: 0.07),
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(14.0),
                 topRight: Radius.circular(14.0),
@@ -205,7 +205,7 @@ class WorkOrderCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 DropdownButtonFormField<String>(
-                  value: os.maintenanceType.isEmpty ? null : os.maintenanceType,
+                  initialValue: os.maintenanceType.isEmpty ? null : os.maintenanceType,
                   decoration: const InputDecoration(hintText: '— Selecione —'),
                   items: AppConstants.manutOptions.map((opt) {
                     return DropdownMenuItem(value: opt, child: Text(opt));
@@ -233,7 +233,7 @@ class WorkOrderCard extends StatelessWidget {
                 const SizedBox(height: 4),
                 DropdownButtonFormField<String>(
                   key: ValueKey(os.maintenanceType), // Forca recriacao quando tipo muda
-                  value: (os.cause.isEmpty || !causas.contains(os.cause)) ? null : os.cause,
+                  initialValue: (os.cause.isEmpty || !causas.contains(os.cause)) ? null : os.cause,
                   decoration: InputDecoration(
                     hintText: os.maintenanceType.isEmpty 
                         ? '— Selecione o Tipo primeiro —' 
@@ -291,7 +291,7 @@ class WorkOrderCard extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 10.0),
                     decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.04),
+                      color: Colors.black.withValues(alpha: 0.04),
                       borderRadius: BorderRadius.circular(8.0),
                     ),
                     child: os.materialsUsed.isEmpty
@@ -306,8 +306,8 @@ class WorkOrderCard extends StatelessWidget {
                               return Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                 decoration: BoxDecoration(
-                                  color: AppTheme.primaryPurple.withOpacity(0.15),
-                                  border: Border.all(color: AppTheme.primaryPurple.withOpacity(0.3)),
+                                  color: AppTheme.primaryPurple.withValues(alpha: 0.15),
+                                  border: Border.all(color: AppTheme.primaryPurple.withValues(alpha: 0.3)),
                                   borderRadius: BorderRadius.circular(4.0),
                                 ),
                                 child: Row(
@@ -433,8 +433,8 @@ class WorkOrderCard extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                         decoration: BoxDecoration(
-                          color: AppTheme.primaryPurple.withOpacity(0.12),
-                          border: Border.all(color: AppTheme.primaryPurple.withOpacity(0.3)),
+                          color: AppTheme.primaryPurple.withValues(alpha: 0.12),
+                          border: Border.all(color: AppTheme.primaryPurple.withValues(alpha: 0.3)),
                           borderRadius: BorderRadius.circular(6.0),
                         ),
                         child: Text(
@@ -477,7 +477,7 @@ class WorkOrderCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 DropdownButtonFormField<String>(
-                  value: os.status.isEmpty ? null : os.status,
+                  initialValue: os.status.isEmpty ? null : os.status,
                   decoration: const InputDecoration(hintText: '— Selecione —'),
                   items: AppConstants.statusOptions.map((opt) {
                     return DropdownMenuItem(value: opt, child: Text(opt));
@@ -524,21 +524,21 @@ class WorkOrderCard extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: ['Rascunho', 'Em Andamento', 'Finalizada'].map((st) {
                           final isSel = os.osStatus == st;
-                          Color bg = Colors.black.withOpacity(0.03);
+                          Color bg = Colors.black.withValues(alpha: 0.03);
                           Color txt = AppTheme.textMuted;
                           Color bdr = AppTheme.borderLight;
 
                           if (isSel) {
                             if (st == 'Rascunho') {
-                              bg = AppTheme.textMuted.withOpacity(0.12);
+                              bg = AppTheme.textMuted.withValues(alpha: 0.12);
                               txt = AppTheme.textMuted;
                               bdr = AppTheme.textMuted;
                             } else if (st == 'Em Andamento') {
-                              bg = AppTheme.primaryPurple.withOpacity(0.15);
+                              bg = AppTheme.primaryPurple.withValues(alpha: 0.15);
                               txt = AppTheme.primaryPurple;
                               bdr = AppTheme.primaryPurple;
                             } else {
-                              bg = AppTheme.greenSuccess.withOpacity(0.14);
+                              bg = AppTheme.greenSuccess.withValues(alpha: 0.14);
                               txt = AppTheme.greenSuccess;
                               bdr = AppTheme.greenSuccess;
                             }
@@ -593,7 +593,7 @@ class WorkOrderCard extends StatelessWidget {
                     width: 90,
                     margin: const EdgeInsets.only(right: 8.0),
                     decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.04),
+                      color: Colors.black.withValues(alpha: 0.04),
                       borderRadius: BorderRadius.circular(8.0),
                     ),
                     child: const Center(
@@ -682,10 +682,10 @@ class WorkOrderCard extends StatelessWidget {
               width: 90,
               height: 90,
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.02),
+                color: Colors.black.withValues(alpha: 0.02),
                 borderRadius: BorderRadius.circular(8.0),
                 border: Border.all(
-                  color: AppTheme.primaryPurple.withOpacity(0.4),
+                  color: AppTheme.primaryPurple.withValues(alpha: 0.4),
                   style: BorderStyle.solid, // Dotted style isn't native, solid purple looks very clean here
                 ),
               ),

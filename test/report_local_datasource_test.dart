@@ -4,7 +4,6 @@ import 'package:isar/isar.dart';
 import 'package:flutter_teste_1/features/report_form/data/datasources/report_local_datasource.dart';
 import 'package:flutter_teste_1/features/report_form/data/models/collaborator_model.dart';
 import 'package:flutter_teste_1/features/report_form/data/models/report_model.dart';
-import 'package:flutter_teste_1/features/report_form/data/models/work_order_model.dart';
 import 'package:flutter_teste_1/features/report_form/domain/entities/collaborator_entity.dart';
 import 'package:flutter_teste_1/features/report_form/domain/entities/report_entity.dart';
 import 'package:flutter_teste_1/features/report_form/domain/entities/work_order_entity.dart';

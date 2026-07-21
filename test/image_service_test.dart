@@ -2,7 +2,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 import 'package:flutter_teste_1/core/services/image_service.dart';
 import 'package:path/path.dart' as p;
-import 'dart:io';
 
 class FakePathProviderPlatform extends PathProviderPlatform {
   @override

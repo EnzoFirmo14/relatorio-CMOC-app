@@ -75,7 +75,7 @@ class ReportFormController extends Notifier<ReportFormState> {
     final now = DateTime.now();
     // Clona o relatório com nova identidade e data
     final cloned = report.copyWith(
-      uuid: Uuid().v4(),
+      uuid: const Uuid().v4(),
       date: now,
       syncStatus: ReportSyncStatus.draft,
       createdAt: now,

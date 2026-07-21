@@ -140,7 +140,7 @@ void main() {
 
   group('HistoryController Tests', () {
     test('Deve carregar a lista inicial completa', () {
-      final state = controller.debugState;
+      final state = controller.state;
       expect(state.allReports.length, equals(3));
       expect(state.filteredReports.length, equals(3));
       // Verifica ordenação por data decrescente (mais recente primeiro)
@@ -151,21 +151,21 @@ void main() {
 
     test('Deve filtrar por busca textual (Nome)', () {
       controller.setSearchQuery('Acacio');
-      final state = controller.debugState;
+      final state = controller.state;
       expect(state.filteredReports.length, equals(1));
       expect(state.filteredReports.first.uuid, equals('uuid-1'));
     });
 
     test('Deve filtrar por busca de matrícula', () {
       controller.setSearchQuery('9930');
-      final state = controller.debugState;
+      final state = controller.state;
       expect(state.filteredReports.length, equals(1));
       expect(state.filteredReports.first.uuid, equals('uuid-2'));
     });
 
     test('Deve filtrar por busca de equipamento', () {
       controller.setSearchQuery('PT302');
-      final state = controller.debugState;
+      final state = controller.state;
       // Duas ordens de serviço têm PT302
       expect(state.filteredReports.length, equals(2));
       expect(state.filteredReports[0].uuid, equals('uuid-3'));
@@ -174,39 +174,39 @@ void main() {
 
     test('Deve filtrar por busca de número de OS', () {
       controller.setSearchQuery('OS-002');
-      final state = controller.debugState;
+      final state = controller.state;
       expect(state.filteredReports.length, equals(1));
       expect(state.filteredReports.first.uuid, equals('uuid-2'));
     });
 
     test('Deve filtrar por Status (Rascunho)', () {
       controller.setStatusFilter('Rascunho');
-      var state = controller.debugState;
+      var state = controller.state;
       expect(state.filteredReports.length, equals(1));
       expect(state.filteredReports.first.uuid, equals('uuid-1'));
 
       controller.setStatusFilter('Em Andamento');
-      state = controller.debugState;
+      state = controller.state;
       expect(state.filteredReports.length, equals(1));
       expect(state.filteredReports.first.uuid, equals('uuid-2'));
 
       controller.setStatusFilter('Finalizada');
-      state = controller.debugState;
+      state = controller.state;
       expect(state.filteredReports.length, equals(1));
       expect(state.filteredReports.first.uuid, equals('uuid-3'));
     });
 
     test('Deve limpar filtros ao selecionar "Todos"', () {
       controller.setStatusFilter('Rascunho');
-      expect(controller.debugState.filteredReports.length, equals(1));
+      expect(controller.state.filteredReports.length, equals(1));
 
       controller.setStatusFilter('Todos');
-      expect(controller.debugState.filteredReports.length, equals(3));
+      expect(controller.state.filteredReports.length, equals(3));
     });
 
     test('Deve deletar um relatório e atualizar lista', () async {
       await controller.deleteReport('uuid-2');
-      final state = controller.debugState;
+      final state = controller.state;
       expect(state.allReports.length, equals(2));
       expect(state.filteredReports.length, equals(2));
       expect(state.allReports.any((r) => r.uuid == 'uuid-2'), isFalse);

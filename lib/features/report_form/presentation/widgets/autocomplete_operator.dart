@@ -126,7 +126,7 @@ class AutocompleteOperator extends StatelessWidget {
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                     decoration: BoxDecoration(
-                                      color: AppTheme.redAlert.withOpacity(0.1),
+                                      color: AppTheme.redAlert.withValues(alpha: 0.1),
                                       borderRadius: BorderRadius.circular(4),
                                     ),
                                     child: const Text(
@@ -143,7 +143,7 @@ class AutocompleteOperator extends StatelessWidget {
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                     decoration: BoxDecoration(
-                                      color: AppTheme.primaryPurple.withOpacity(0.1),
+                                      color: AppTheme.primaryPurple.withValues(alpha: 0.1),
                                       borderRadius: BorderRadius.circular(4),
                                     ),
                                     child: Text(

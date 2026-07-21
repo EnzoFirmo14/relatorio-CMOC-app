@@ -39,10 +39,10 @@ class ExportOptionsDialog extends ConsumerWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
+              const Row(
                 children: [
-                  const Icon(Icons.picture_as_pdf, color: AppTheme.primaryBlue, size: 24),
-                  const SizedBox(width: 8),
+                  Icon(Icons.picture_as_pdf, color: AppTheme.primaryBlue, size: 24),
+                  SizedBox(width: 8),
                   Text(
                     'Exportar Relatório',
                     style: TextStyle(
@@ -60,7 +60,7 @@ class ExportOptionsDialog extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 6),
-          Text(
+          const Text(
             'Escolha a forma como deseja emitir e compartilhar o relatório:',
             style: TextStyle(fontSize: 13, color: AppTheme.textMuted),
           ),

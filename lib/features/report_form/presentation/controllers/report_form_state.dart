@@ -166,7 +166,7 @@ class ReportFormState {
     this.osCounter = 0,
     this.customCollaborators = const [],
     this.autosaveStatus = AutosaveStatus.idle,
-  }) : uuid = uuid ?? Uuid().v4();
+  }) : uuid = uuid ?? const Uuid().v4();
 
   ReportFormState copyWith({
     String? uuid,

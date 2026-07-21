@@ -69,12 +69,10 @@ class AppTheme {
         primary: primaryBlue,
         secondary: cmocGreen,
         tertiary: accentBlue,
-        background: backgroundLight,
         surface: cardColorLight,
         error: redAlert,
         onPrimary: Colors.white,
         onSecondary: Colors.white,
-        onBackground: textDark,
         onSurface: textDark,
       ),
       appBarTheme: AppBarTheme(
@@ -94,7 +92,7 @@ class AppTheme {
       cardTheme: CardThemeData(
         color: cardColorLight,
         elevation: 4,
-        shadowColor: primaryBlue.withOpacity(0.08),
+        shadowColor: primaryBlue.withValues(alpha: 0.08),
         margin: const EdgeInsets.symmetric(vertical: 6.0, horizontal: 0.0),
         shape: RoundedRectangleBorder(
           side: const BorderSide(color: borderLight, width: 1.0),
@@ -103,7 +101,7 @@ class AppTheme {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: primaryBlue.withOpacity(0.03),
+        fillColor: primaryBlue.withValues(alpha: 0.03),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12.0),
           borderSide: BorderSide.none,
@@ -206,12 +204,10 @@ class AppTheme {
         primary: primaryBlue,
         secondary: cmocGreen,
         tertiary: accentBlue,
-        background: backgroundDark,
         surface: cardColorDark,
         error: redAlert,
         onPrimary: Colors.white,
         onSecondary: Colors.white,
-        onBackground: textLight,
         onSurface: textLight,
       ),
       appBarTheme: AppBarTheme(
@@ -231,7 +227,7 @@ class AppTheme {
       cardTheme: CardThemeData(
         color: cardColorDark,
         elevation: 4,
-        shadowColor: Colors.black.withOpacity(0.3),
+        shadowColor: Colors.black.withValues(alpha: 0.3),
         margin: const EdgeInsets.symmetric(vertical: 6.0, horizontal: 0.0),
         shape: RoundedRectangleBorder(
           side: const BorderSide(color: borderDark, width: 1.0),
@@ -240,7 +236,7 @@ class AppTheme {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: Colors.white.withOpacity(0.05),
+        fillColor: Colors.white.withValues(alpha: 0.05),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12.0),
           borderSide: BorderSide.none,

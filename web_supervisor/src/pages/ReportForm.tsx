@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { db, collection, addDoc, doc, getDoc, updateDoc, serverTimestamp } from '../services/firebase';
+import { normalizeReport } from '../services/dataNormalization';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -101,8 +102,39 @@ export default function ReportForm() {
           const docRef = doc(db, 'reports', id);
           const docSnap = await getDoc(docRef);
           if (docSnap.exists()) {
-            const data = docSnap.data();
-            reset(data as ReportFormFields);
+            const rawData = docSnap.data();
+            const normalized = normalizeReport({ uuid: docSnap.id, ...rawData });
+            reset({
+              mineLocation: normalized.mineLocation,
+              shift: normalized.shift,
+              team: normalized.team,
+              equipment: normalized.equipment,
+              supervisorName: normalized.supervisorName,
+              responsibleCompany: normalized.responsibleCompany,
+              activityType: normalized.activityType,
+              description: normalized.description || normalized.observations,
+              objective: normalized.objective,
+              materials: normalized.materials,
+              toolsUsed: normalized.toolsUsed,
+              priority: normalized.priority,
+              riskLevel: normalized.riskLevel,
+              workPermit: normalized.workPermit,
+              weatherCondition: normalized.weatherCondition,
+              gpsCoordinates: normalized.gpsCoordinates,
+              observations: normalized.observations || normalized.description,
+              problemsFound: normalized.problemsFound,
+              correctiveActions: normalized.correctiveActions,
+              nextActivities: normalized.nextActivities,
+              status: normalized.status,
+              executors: normalized.executors.map(e => ({ name: e.name, registration: e.registration })),
+              workOrders: normalized.workOrders.map(os => ({
+                number: os.number,
+                location: os.location,
+                description: os.activities || '',
+                startTime: os.startTime,
+                endTime: os.endTime
+              }))
+            });
           } else {
             alert('Relatório não encontrado');
             navigate('/reports');
@@ -120,14 +152,64 @@ export default function ReportForm() {
   const onSubmit = async (data: ReportFormFields) => {
     setLoading(true);
     try {
+      const payload = {
+        // Form fields (Web format)
+        mineLocation: data.mineLocation,
+        shift: data.shift,
+        team: data.team,
+        equipment: data.equipment,
+        supervisorName: data.supervisorName,
+        responsibleCompany: data.responsibleCompany,
+        activityType: data.activityType,
+        description: data.description,
+        objective: data.objective,
+        materials: data.materials,
+        toolsUsed: data.toolsUsed,
+        priority: data.priority,
+        riskLevel: data.riskLevel,
+        workPermit: data.workPermit,
+        weatherCondition: data.weatherCondition,
+        gpsCoordinates: data.gpsCoordinates,
+        observations: data.observations || data.description,
+        problemsFound: data.problemsFound,
+        correctiveActions: data.correctiveActions,
+        nextActivities: data.nextActivities,
+        status: data.status,
+        executors: data.executors,
+        
+        // Mobile app format compatibility
+        globalLocation: data.mineLocation,
+        globalEquipment: data.equipment,
+        syncStatus: data.status,
+        operators: data.executors.map((e, index) => ({
+          id: String(index + 1),
+          name: e.name,
+          registration: e.registration
+        })),
+        workOrders: data.workOrders.map((os, index) => ({
+          id: String(index + 1),
+          number: os.number,
+          location: os.location,
+          activities: os.description, // mobile uses activities
+          materialsUsed: os.description ? [os.description] : [], // mobile uses materialsUsed List
+          quantityMeters: '',
+          quantityPieces: '',
+          startTime: os.startTime,
+          endTime: os.endTime,
+          status: 'Finished',
+          osStatus: 'Finished',
+          photoPaths: []
+        }))
+      };
+
       if (isEdit && id) {
         await updateDoc(doc(db, 'reports', id), {
-          ...data,
+          ...payload,
           updatedAt: serverTimestamp()
         });
       } else {
         await addDoc(collection(db, 'reports'), {
-          ...data,
+          ...payload,
           createdAt: serverTimestamp(),
           syncedAt: serverTimestamp()
         });

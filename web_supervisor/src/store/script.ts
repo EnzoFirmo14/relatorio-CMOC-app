@@ -1,24 +1,24 @@
-import { auth } from "./firebase.js";
+import { auth } from "./firebase";
+import { createUserWithEmailAndPassword } from "firebase/auth";
 
-import {
-    createUserWithEmailAndPassword,
-    signInWithEmailAndPassword,
-    signOut
-} from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
+const btnCadastrar = document.getElementById("cadastrar") as HTMLButtonElement | null;
 
-const btnCadastrar = document.getElementById("cadastrar");
+if (btnCadastrar) {
+  btnCadastrar.addEventListener("click", () => {
+    const emailInput = document.getElementById("email") as HTMLInputElement | null;
+    const passwordInput = document.getElementById("senha") as HTMLInputElement | null;
 
-btnCadastrar.addEventListener("click", () => {
+    if (emailInput && passwordInput) {
+      const email = emailInput.value;
+      const senha = passwordInput.value;
 
-    const email = document.getElementById("email").value;
-    const senha = document.getElementById("senha").value;
-
-    createUserWithEmailAndPassword(auth, email, senha)
-        .then((userCredential) => {
-            alert("Usuário cadastrado com sucesso!");
+      createUserWithEmailAndPassword(auth, email, senha)
+        .then(() => {
+          alert("Usuário cadastrado com sucesso!");
         })
-        .catch((error) => {
-            alert(error.message);
+        .catch((error: any) => {
+          alert(error.message);
         });
-
-});
+    }
+  });
+}

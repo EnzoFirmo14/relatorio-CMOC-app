@@ -1,7 +1,6 @@
 import 'package:isar/isar.dart';
 import '../../domain/entities/collaborator_entity.dart';
 import '../../domain/entities/report_entity.dart';
-import '../../domain/entities/work_order_entity.dart';
 import 'work_order_model.dart';
 
 part 'report_model.g.dart';

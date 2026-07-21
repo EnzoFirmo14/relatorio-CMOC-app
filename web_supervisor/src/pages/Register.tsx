@@ -82,7 +82,10 @@ export default function Register() {
             </span>
           </motion.div>
           
-          <h2 className="text-4xl font-extrabold tracking-tight leading-tight mb-4 font-outfit">
+          <h2 
+            className="text-4xl font-extrabold tracking-tight leading-tight mb-4 font-outfit"
+            style={{ color: '#FFFFFF' }}
+          >
             Cadastro de Novo Supervisor e Acesso ao Centro de Controle
           </h2>
           
@@ -126,7 +129,7 @@ export default function Register() {
               alt="CMOC Logo" 
               className="h-12 mb-4 object-contain transition-opacity duration-300"
             />
-            <h1 className="text-xl font-bold tracking-tight text-primary dark:text-white font-outfit text-center">
+            <h1 className="text-xl font-bold tracking-tight font-outfit text-center">
               Cadastrar Supervisor
             </h1>
             <p className="text-xs text-text-secondary mt-1 text-center">

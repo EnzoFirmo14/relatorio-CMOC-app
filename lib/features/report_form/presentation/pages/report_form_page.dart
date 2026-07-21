@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../controllers/report_form_controller.dart';
-import '../controllers/report_form_state.dart';
 import '../widgets/add_colab_dialog.dart';
 import '../widgets/autocomplete_operator.dart';
 import '../widgets/chips_selector.dart';
@@ -12,7 +11,6 @@ import '../widgets/whatsapp_preview_dialog.dart';
 import '../widgets/work_order_card.dart';
 import '../../../sync/presentation/widgets/sync_status_badge.dart';
 import '../../../sync/presentation/controllers/sync_controller.dart';
-import '../../../export/presentation/widgets/export_options_dialog.dart';
 import '../../../../core/widgets/cmoc_logo.dart';
 
 class ReportFormPage extends ConsumerWidget {
@@ -260,7 +258,7 @@ class ReportFormPage extends ConsumerWidget {
                                               height: 48,
                                               alignment: Alignment.center,
                                               decoration: BoxDecoration(
-                                                color: AppTheme.primaryPurple.withOpacity(0.08),
+                                                color: AppTheme.primaryPurple.withValues(alpha: 0.08),
                                                 borderRadius: BorderRadius.circular(8),
                                                 border: Border.all(color: AppTheme.borderLight),
                                               ),
@@ -412,7 +410,7 @@ class ReportFormPage extends ConsumerWidget {
                               ),
                               const SizedBox(height: 4),
                               DropdownButtonFormField<String>(
-                                value: state.globalEquipment.isEmpty ? null : state.globalEquipment,
+                                initialValue: state.globalEquipment.isEmpty ? null : state.globalEquipment,
                                 decoration: const InputDecoration(hintText: '— Selecione —'),
                                 items: AppConstants.equipOptions.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
                                 onChanged: (val) => controller.setGlobalEquipment(val ?? ''),
@@ -450,7 +448,7 @@ class ReportFormPage extends ConsumerWidget {
                                 max: 100,
                                 divisions: 20, // passos de 5% em 5%
                                 activeColor: AppTheme.primaryPurple,
-                                inactiveColor: Colors.black.withOpacity(0.1),
+                                inactiveColor: Colors.black.withValues(alpha: 0.1),
                                 onChanged: controller.setFuelLevel,
                               ),
                               const SizedBox(height: 12),

@@ -123,7 +123,7 @@ class HistoryPage extends ConsumerWidget {
     return ChoiceChip(
       label: Text(label),
       selected: isSelected,
-      selectedColor: activeColor.withOpacity(0.15),
+      selectedColor: activeColor.withValues(alpha: 0.15),
       disabledColor: Colors.transparent,
       side: BorderSide(
         color: isSelected ? activeColor : AppTheme.borderLight,
@@ -203,7 +203,7 @@ class HistoryPage extends ConsumerWidget {
                         const Icon(Icons.calendar_today, size: 14, color: AppTheme.textMuted),
                         const SizedBox(width: 6),
                         Text(
-                          '$dateStr',
+                          dateStr,
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 13,
@@ -226,9 +226,9 @@ class HistoryPage extends ConsumerWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: statusColor.withOpacity(0.08),
+                      color: statusColor.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: statusColor.withOpacity(0.3), width: 1),
+                      border: Border.all(color: statusColor.withValues(alpha: 0.3), width: 1),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -261,9 +261,9 @@ class HistoryPage extends ConsumerWidget {
                     return Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: Colors.grey.withOpacity(0.05),
+                        color: Colors.grey.withValues(alpha: 0.05),
                         borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: AppTheme.borderLight.withOpacity(0.5)),
+                        border: Border.all(color: AppTheme.borderLight.withValues(alpha: 0.5)),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -279,7 +279,7 @@ class HistoryPage extends ConsumerWidget {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0.5),
                               decoration: BoxDecoration(
-                                color: AppTheme.primaryPurple.withOpacity(0.1),
+                                color: AppTheme.primaryPurple.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: Text(
@@ -371,7 +371,7 @@ class HistoryPage extends ConsumerWidget {
                   height: 4,
                   margin: const EdgeInsets.only(bottom: 12),
                   decoration: BoxDecoration(
-                    color: Colors.grey.withOpacity(0.3),
+                    color: Colors.grey.withValues(alpha: 0.3),
                     borderRadius: BorderRadius.circular(20),
                   ),
                 ),
@@ -400,6 +400,7 @@ class HistoryPage extends ConsumerWidget {
                   subtitle: const Text('Copia executantes, OSs e campos com data de hoje'),
                   onTap: () async {
                     await formController.duplicateReport(report);
+                    if (!context.mounted) return;
                     Navigator.pop(context); // fecha bottom sheet
                     Navigator.pop(context); // volta ao formulário
                   },
@@ -441,6 +442,7 @@ class HistoryPage extends ConsumerWidget {
           ElevatedButton(
             onPressed: () async {
               await historyController.deleteReport(report.uuid);
+              if (!context.mounted) return;
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('🗑 Relatório removido com sucesso')),

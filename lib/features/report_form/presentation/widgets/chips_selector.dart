@@ -27,7 +27,7 @@ class ChipsSelector<T> extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 16.0),
             decoration: BoxDecoration(
-              color: isSel ? AppTheme.primaryPurple.withOpacity(0.15) : Colors.transparent,
+              color: isSel ? AppTheme.primaryPurple.withValues(alpha: 0.15) : Colors.transparent,
               border: Border.all(
                 color: isSel ? AppTheme.primaryPurple : AppTheme.borderLight,
                 width: 1.5,

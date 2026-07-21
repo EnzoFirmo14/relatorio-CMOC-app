@@ -77,37 +77,34 @@ final syncControllerProvider =
 // ─── Controller ──────────────────────────────────────────────────────────────
 
 class SyncController extends StateNotifier<SyncState> {
-  final IReportRepository _repository;
-  final SyncService _syncService;
-  final ConnectivityService _connectivityService;
+  final IReportRepository repository;
+  final SyncService syncService;
+  final ConnectivityService connectivityService;
   StreamSubscription<bool>? _netSub;
 
   SyncController({
-    required IReportRepository repository,
-    required SyncService syncService,
-    required ConnectivityService connectivityService,
-  })  : _repository = repository,
-        _syncService = syncService,
-        _connectivityService = connectivityService,
-        super(const SyncState()) {
+    required this.repository,
+    required this.syncService,
+    required this.connectivityService,
+  }) : super(const SyncState()) {
     _init();
   }
 
   void _init() async {
     // Escuta alterações de rede
-    _netSub = _connectivityService.onConnectivityChanged.listen((online) {
+    _netSub = connectivityService.onConnectivityChanged.listen((online) {
       state = state.copyWith(isOnline: online);
       if (online) {
         triggerSync();
       }
     });
 
-    final online = await _connectivityService.checkHasInternet();
+    final online = await connectivityService.checkHasInternet();
     state = state.copyWith(isOnline: online);
     refreshPendingCount();
 
     // Inicia escuta automática
-    _syncService.initAutoSyncListener(onSyncCompleted: (_) {
+    syncService.initAutoSyncListener(onSyncCompleted: (_) {
       refreshPendingCount();
     });
   }
@@ -115,14 +112,14 @@ class SyncController extends StateNotifier<SyncState> {
   @override
   void dispose() {
     _netSub?.cancel();
-    _syncService.dispose();
+    syncService.dispose();
     super.dispose();
   }
 
   /// Recarrega a contagem de relatórios pendentes de envio.
   Future<void> refreshPendingCount() async {
     try {
-      final pending = await _repository.getPendingReports();
+      final pending = await repository.getPendingReports();
       state = state.copyWith(
         pendingCount: pending.length,
         hasError: pending.any((r) => r.syncStatus.name == 'error'),
@@ -136,8 +133,8 @@ class SyncController extends StateNotifier<SyncState> {
 
     state = state.copyWith(isSyncing: true, hasError: false);
     try {
-      final synced = await _syncService.syncPendingReports();
-      final pending = await _repository.getPendingReports();
+      final synced = await syncService.syncPendingReports();
+      final pending = await repository.getPendingReports();
 
       state = state.copyWith(
         isSyncing: false,

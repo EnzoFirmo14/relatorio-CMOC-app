@@ -61,7 +61,7 @@ class PdfExportService {
                       children: [
                         pw.Text(
                           'CMOC BRASIL',
-                          style: pw.TextStyle(
+                          style: const pw.TextStyle(
                             fontSize: 16,
                             fontWeight: pw.FontWeight.bold,
                             color: primaryBlue,
@@ -83,7 +83,7 @@ class PdfExportService {
                   children: [
                     pw.Text(
                       'RELATÓRIO DIÁRIO DE CAMPO',
-                      style: pw.TextStyle(
+                      style: const pw.TextStyle(
                         fontSize: 12,
                         fontWeight: pw.FontWeight.bold,
                         color: primaryBlue,
@@ -115,7 +115,7 @@ class PdfExportService {
                 ),
                 pw.Text(
                   'Página ${context.pageNumber} de ${context.pagesCount}',
-                  style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold, color: primaryBlue),
+                  style: const pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold, color: primaryBlue),
                 ),
               ],
             ),
@@ -145,7 +145,7 @@ class PdfExportService {
           // ─── 2. EXECUTANTES DA EQUIPE ─────────────────────────────────────
           pw.Text(
             'EXECUTANTES DA EQUIPE',
-            style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold, color: primaryBlue),
+            style: const pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold, color: primaryBlue),
           ),
           pw.SizedBox(height: 6),
           pw.TableHelper.fromTextArray(
@@ -157,7 +157,7 @@ class PdfExportService {
                 return ['${index + 1}', op.name, op.registration];
               },
             ),
-            headerStyle: pw.TextStyle(color: PdfColors.white, fontWeight: pw.FontWeight.bold, fontSize: 9),
+            headerStyle: const pw.TextStyle(color: PdfColors.white, fontWeight: pw.FontWeight.bold, fontSize: 9),
             headerDecoration: const pw.BoxDecoration(color: primaryBlue),
             cellHeight: 20,
             cellStyle: const pw.TextStyle(fontSize: 9),
@@ -167,7 +167,7 @@ class PdfExportService {
           // ─── 3. ORDENS DE SERVIÇO (OS) ────────────────────────────────────
           pw.Text(
             'ORDENS DE SERVIÇO REALIZADAS',
-            style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold, color: primaryBlue),
+            style: const pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold, color: primaryBlue),
           ),
           pw.SizedBox(height: 6),
           ...report.workOrders.map((os) {
@@ -186,7 +186,7 @@ class PdfExportService {
                     children: [
                       pw.Text(
                         'OS Nº: ${os.number.isNotEmpty ? os.number : "S/N"} - Local: ${os.location.isNotEmpty ? os.location : "N/A"}',
-                        style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: primaryBlue),
+                        style: const pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: primaryBlue),
                       ),
                       pw.Text(
                         'Horário: ${os.startTime} às ${os.endTime}',
@@ -197,7 +197,7 @@ class PdfExportService {
                   pw.SizedBox(height: 4),
                   pw.Text(
                     'Atividades Realizadas:',
-                    style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold, color: cmocGreen),
+                    style: const pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold, color: cmocGreen),
                   ),
                   pw.Text(
                     os.activities.isNotEmpty ? os.activities : 'Nenhuma descrição fornecida.',
@@ -207,7 +207,7 @@ class PdfExportService {
                     pw.SizedBox(height: 6),
                     pw.Text(
                       'Materiais Utilizados: ${os.materialsUsed.join(", ")}',
-                      style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold, color: darkText),
+                      style: const pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold, color: darkText),
                     ),
                   ],
                 ],
@@ -220,7 +220,7 @@ class PdfExportService {
             pw.SizedBox(height: 12),
             pw.Text(
               'ANEXO FOTOGRÁFICO DE CAMPO',
-              style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold, color: primaryBlue),
+              style: const pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold, color: primaryBlue),
             ),
             pw.SizedBox(height: 8),
             pw.Wrap(
@@ -273,7 +273,7 @@ class PdfExportService {
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
         pw.Text(label, style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey700)),
-        pw.Text(value, style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold)),
+        pw.Text(value, style: const pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold)),
       ],
     );
   }

@@ -3,7 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_teste_1/features/report_form/domain/entities/report_entity.dart';
 import 'package:flutter_teste_1/features/report_form/domain/repositories/report_repository.dart';
 import 'package:flutter_teste_1/features/report_form/presentation/controllers/report_form_controller.dart';
-import 'package:flutter_teste_1/features/report_form/presentation/controllers/report_form_state.dart';
 
 /// Implementação stub do repositório para uso em testes unitários.
 /// Não depende de Isar ou qualquer persistência real.

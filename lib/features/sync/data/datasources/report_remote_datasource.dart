@@ -16,8 +16,7 @@ class ReportFirestoreDataSource implements IReportRemoteDataSource {
   final FirebaseFirestore? _firestore;
   final Map<String, ReportEntity> _inMemoryMockStore = {};
 
-  ReportFirestoreDataSource({FirebaseFirestore? firestore})
-      : _firestore = firestore;
+  ReportFirestoreDataSource({this._firestore});
 
   bool get _isFirebaseAvailable {
     try {

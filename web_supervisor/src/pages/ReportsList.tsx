@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { db, collection, onSnapshot, query, orderBy, deleteDoc, doc } from '../services/firebase';
+import { normalizeReport } from '../services/dataNormalization';
+import type { NormalizedReport } from '../services/dataNormalization';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
   Search, Plus, Eye, Edit2, Trash2, MapPin, ClipboardList,
@@ -8,39 +10,10 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import * as XLSX from 'xlsx';
 
-interface Executor {
-  name: string;
-  registration: string;
-}
-
-interface WorkOrder {
-  number: string;
-  location: string;
-  startTime: string;
-  endTime: string;
-  description: string;
-  materials: string;
-}
-
-interface Report {
-  uuid: string;
-  mineLocation: string;
-  shift: string;
-  team: string;
-  equipment: string;
-  status: string;
-  createdAt: any;
-  supervisorName?: string;
-  activityType?: string;
-  priority?: string;
-  executors?: Executor[];
-  workOrders?: WorkOrder[];
-}
-
 export default function ReportsList() {
   const navigate = useNavigate();
-  const [reports, setReports] = useState<Report[]>([]);
-  const [filteredReports, setFilteredReports] = useState<Report[]>([]);
+  const [reports, setReports] = useState<NormalizedReport[]>([]);
+  const [filteredReports, setFilteredReports] = useState<NormalizedReport[]>([]);
   const [loading, setLoading] = useState(true);
   
   // Search & Filter state
@@ -53,7 +26,7 @@ export default function ReportsList() {
   
   // Pagination & Sorting state
   const [currentPage, setCurrentPage] = useState(1);
-  const [sortField, setSortField] = useState<keyof Report>('createdAt');
+  const [sortField, setSortField] = useState<keyof NormalizedReport>('createdAt');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const itemsPerPage = 8;
 
@@ -63,7 +36,7 @@ export default function ReportsList() {
   useEffect(() => {
     const q = query(collection(db, 'reports'), orderBy('createdAt', 'desc'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const docs = snapshot.docs.map(d => ({ uuid: d.id, ...d.data() } as Report));
+      const docs = snapshot.docs.map(d => normalizeReport({ uuid: d.id, ...d.data() }));
       setReports(docs);
       setLoading(false);
     }, (error) => {
@@ -88,7 +61,7 @@ export default function ReportsList() {
         (r.equipment?.toLowerCase().includes(term)) ||
         (r.supervisorName?.toLowerCase().includes(term)) ||
         (r.executors?.some(e => e.name.toLowerCase().includes(term) || e.registration.toLowerCase().includes(term))) ||
-        (r.workOrders?.some(o => o.number.toLowerCase().includes(term) || o.description.toLowerCase().includes(term)))
+        (r.workOrders?.some(o => o.number.toLowerCase().includes(term) || o.activities.toLowerCase().includes(term)))
       );
     }
 
@@ -147,7 +120,7 @@ export default function ReportsList() {
   }, [reports, searchTerm, selectedShift, selectedStatus, selectedPriority, selectedArea, selectedPeriod, sortField, sortOrder]);
 
   // Handle Sort Toggle
-  const handleSort = (field: keyof Report) => {
+  const handleSort = (field: keyof NormalizedReport) => {
     if (sortField === field) {
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
     } else {
