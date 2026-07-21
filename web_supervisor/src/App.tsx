@@ -2,7 +2,9 @@ import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import type { RootState } from './store';
-import { initTheme } from './store';
+import { initTheme, setFirebaseUser } from './store';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from './services/firebase';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
@@ -17,7 +19,15 @@ import DashboardLayout from './layouts/DashboardLayout';
 
 // Component to protect routes requiring authentication
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const isAuthenticated = useSelector((state: RootState) => state.auth.isAuthenticated);
+  const { isAuthenticated, loading } = useSelector((state: RootState) => state.auth);
+  
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      </div>
+    );
+  }
   
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
@@ -28,7 +38,15 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
 // Component to redirect logged in users away from login page
 function PublicRoute({ children }: { children: React.ReactNode }) {
-  const isAuthenticated = useSelector((state: RootState) => state.auth.isAuthenticated);
+  const { isAuthenticated, loading } = useSelector((state: RootState) => state.auth);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      </div>
+    );
+  }
 
   if (isAuthenticated) {
     return <Navigate to="/dashboard" replace />;
@@ -43,6 +61,17 @@ function App() {
   useEffect(() => {
     // Initial theme set from Redux/LocalStorage
     dispatch(initTheme());
+
+    // Listen to Firebase Auth state
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        dispatch(setFirebaseUser({ uid: user.uid, email: user.email }));
+      } else {
+        dispatch(setFirebaseUser(null));
+      }
+    });
+
+    return () => unsubscribe();
   }, [dispatch]);
 
   return (

@@ -51,3 +51,7 @@ app.*.map.json
 
 # Local temporary analysis files
 /analyze_output.txt
+
+# Node and web
+node_modules/
+.env

@@ -1,13 +1,14 @@
 import { useState } from 'react';
-import { useDispatch } from 'react-redux';
-import { login } from '../store';
+import { useDispatch, useSelector } from 'react-redux';
+import { login, toggleTheme } from '../store';
+import type { RootState } from '../store';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as zod from 'zod';
 import { motion } from 'framer-motion';
-import { Lock, User } from 'lucide-react';
+import { Lock, User, Sun, Moon } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { db, collection, query, where, getDocs } from '../services/firebase';
+import { loginWithEmail } from '../services/authService';
 
 const loginSchema = zod.object({
   username: zod.string().min(3, { message: 'O usuário deve ter pelo menos 3 caracteres' }),
@@ -19,6 +20,7 @@ type LoginFields = zod.infer<typeof loginSchema>;
 
 export default function Login() {
   const dispatch = useDispatch();
+  const themeMode = useSelector((state: RootState) => state.theme.mode);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   
@@ -30,22 +32,18 @@ export default function Login() {
     setLoading(true);
     setErrorMsg('');
     try {
-      const q = query(
-        collection(db, 'supervisors'),
-        where('username', '==', data.username.toLowerCase().trim()),
-        where('password', '==', data.password)
-      );
-      const querySnapshot = await getDocs(q);
-
-      if (!querySnapshot.empty) {
-        const userDoc = querySnapshot.docs[0].data();
-        dispatch(login({ 
-          username: userDoc.username,
-          name: userDoc.name,
-          role: userDoc.role
-        }));
+      // Firebase Auth requires email. If user provides username, append domain.
+      const emailToUse = data.username.includes('@') ? data.username : `${data.username}@cmoc.com`;
+      await loginWithEmail(emailToUse, data.password);
+      // We don't need to dispatch login here because App.tsx has an onAuthStateChanged listener
+      // that will dispatch setFirebaseUser and redirect the user automatically.
+    } catch (e: any) {
+      console.error(e);
+      // Check for specific Firebase auth errors if desired, or show generic message
+      if (e.code === 'auth/invalid-credential' || e.code === 'auth/user-not-found' || e.code === 'auth/wrong-password') {
+        setErrorMsg('Usuário ou senha incorretos.');
       } else {
-        // Fallback for default admin access
+        // Fallback for default admin access if they haven't set up users in Firebase Auth yet
         if (data.username.toLowerCase().trim() === 'pedro.santos' && data.password === '1234') {
           dispatch(login({ 
             username: 'pedro.santos',
@@ -53,20 +51,8 @@ export default function Login() {
             role: 'Supervisor de Mina'
           }));
         } else {
-          setErrorMsg('Usuário ou senha incorretos.');
+          setErrorMsg('Erro de conexão ou credenciais inválidas.');
         }
-      }
-    } catch (e: any) {
-      console.error(e);
-      // Failover fallback in case of Firestore offline/permission limits
-      if (data.username.toLowerCase().trim() === 'pedro.santos') {
-        dispatch(login({ 
-          username: 'pedro.santos',
-          name: 'Eng. Pedro Santos',
-          role: 'Supervisor de Mina'
-        }));
-      } else {
-        setErrorMsg('Erro de conexão ou credenciais inválidas.');
       }
     } finally {
       setLoading(false);
@@ -74,15 +60,15 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex bg-cmoc-gray-light dark:bg-cmoc-dark-bg text-cmoc-gray-dark dark:text-cmoc-white">
+    <div className="min-h-screen flex bg-background text-text-primary transition-colors duration-300">
       {/* Lado Esquerdo - Mensagem Institucional e Fundo */}
       <div 
         className="hidden lg:flex lg:w-1/2 relative bg-cover bg-center items-center justify-center"
         style={{ 
-          backgroundImage: `linear-gradient(to right, rgba(35, 0, 91, 0.95), rgba(92, 63, 163, 0.85)), url('https://images.unsplash.com/photo-1519452635265-7b1fbfd1e4e0?q=80&w=1920')` 
+          backgroundImage: `linear-gradient(to right, rgba(35, 0, 91, 0.70), rgba(92, 63, 163, 0.45)), url('/image.png')` 
         }}
       >
-        <div className="absolute inset-0 bg-radial-at-t from-cmoc-purple/30 via-transparent to-transparent pointer-events-none" />
+        <div className="absolute inset-0 bg-radial-at-t from-primary/30 via-transparent to-transparent pointer-events-none" />
         <div className="max-w-md p-12 text-white relative z-10">
           <motion.div 
             initial={{ opacity: 0, y: -20 }}
@@ -91,7 +77,7 @@ export default function Login() {
             className="mb-8 flex items-center gap-4"
           >
             <img src="/logo.svg" alt="CMOC Logo" className="h-10 object-contain brightness-0 invert" />
-            <span className="bg-cmoc-green px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider text-cmoc-blue">
+            <span className="bg-success px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider text-background">
               CMOC Group
             </span>
           </motion.div>
@@ -120,24 +106,37 @@ export default function Login() {
       </div>
 
       {/* Lado Direito - Form de Login */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12">
+      <div className="w-full lg:w-1/2 flex flex-col items-center justify-center p-6 sm:p-12 relative">
+        
+        {/* Controles do Topo (Tema) */}
+        <div className="absolute top-6 right-6 flex justify-end">
+          <button 
+            type="button"
+            onClick={() => dispatch(toggleTheme())}
+            className="p-2.5 rounded-xl bg-surface border border-border text-text-secondary hover:text-primary hover:bg-background shadow-sm transition-all duration-300"
+            title={themeMode === 'light' ? 'Ativar Modo Escuro' : 'Ativar Modo Claro'}
+          >
+            {themeMode === 'light' ? <Moon size={18} /> : <Sun size={18} />}
+          </button>
+        </div>
+
         <motion.div 
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.4 }}
-          className="w-full max-w-md glass p-8 sm:p-10 rounded-2xl shadow-xl dark:shadow-cmoc-blue/5 border border-white/20 dark:border-white/5"
+          className="w-full max-w-md glass p-8 sm:p-10 rounded-2xl shadow-xl border border-border mt-16"
         >
           {/* Brand Header */}
           <div className="flex flex-col items-center mb-8">
             <img 
-              src="/logo.svg" 
+              src={themeMode === 'light' ? '/logo.svg' : '/logowhite.png'} 
               alt="CMOC Logo" 
-              className="h-14 mb-4 object-contain dark:brightness-200"
+              className="h-14 mb-4 object-contain transition-opacity duration-300"
             />
-            <h1 className="text-xl font-bold tracking-tight text-cmoc-blue dark:text-white font-outfit text-center">
+            <h1 className="text-xl font-bold tracking-tight text-primary dark:text-white font-outfit text-center">
               Painel de Infraestrutura Subterrânea
             </h1>
-            <p className="text-sm text-cmoc-gray-dark/60 dark:text-cmoc-white/60 mt-1">
+            <p className="text-sm text-text-secondary mt-1 text-center">
               Controle de Relatórios e Supervisão
             </p>
           </div>
@@ -151,18 +150,18 @@ export default function Login() {
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             {/* Campo Usuário */}
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold uppercase tracking-wider text-cmoc-blue dark:text-cmoc-white/70">
+              <label className="text-xs font-semibold uppercase tracking-wider text-primary dark:text-text-secondary">
                 Usuário
               </label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-cmoc-blue/40 dark:text-white/40">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-primary/40 dark:text-white/40">
                   <User size={18} />
                 </div>
                 <input 
                   type="text" 
                   {...register('username')}
                   placeholder="ex: pedro.santos"
-                  className="w-full pl-10 pr-4 py-2.5 bg-white/50 dark:bg-white/5 border border-slate-300 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-cmoc-purple focus:border-transparent transition-all dark:text-white"
+                  className="w-full pl-10 pr-4 py-2.5 bg-background border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all dark:text-white dark:placeholder-text-placeholder"
                 />
               </div>
               {errors.username && (
@@ -172,18 +171,18 @@ export default function Login() {
 
             {/* Campo Senha */}
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold uppercase tracking-wider text-cmoc-blue dark:text-cmoc-white/70">
+              <label className="text-xs font-semibold uppercase tracking-wider text-primary dark:text-text-secondary">
                 Senha
               </label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-cmoc-blue/40 dark:text-white/40">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-primary/40 dark:text-white/40">
                   <Lock size={18} />
                 </div>
                 <input 
                   type="password" 
                   {...register('password')}
                   placeholder="••••••••"
-                  className="w-full pl-10 pr-4 py-2.5 bg-white/50 dark:bg-white/5 border border-slate-300 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-cmoc-purple focus:border-transparent transition-all dark:text-white"
+                  className="w-full pl-10 pr-4 py-2.5 bg-background border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all dark:text-white dark:placeholder-text-placeholder"
                 />
               </div>
               {errors.password && (
@@ -197,14 +196,14 @@ export default function Login() {
                 <input 
                   type="checkbox" 
                   {...register('remember')}
-                  className="rounded border-slate-300 dark:border-slate-700 text-cmoc-blue focus:ring-cmoc-purple focus:ring-offset-0 bg-white/50 dark:bg-white/5"
+                  className="rounded border-border text-primary focus:ring-primary focus:ring-offset-0 bg-background"
                 />
-                <span className="text-cmoc-gray-dark/70 dark:text-cmoc-white/70 text-xs">Lembrar acesso</span>
+                <span className="text-text-secondary text-xs">Lembrar acesso</span>
               </label>
               <a 
                 href="#forgot" 
                 onClick={(e) => { e.preventDefault(); alert('Contate o Administrador de TI da CMOC para redefinir sua senha.'); }}
-                className="text-xs font-semibold text-cmoc-purple dark:text-cmoc-purple/80 hover:underline"
+                className="text-xs font-semibold text-primary hover:text-primary-hover hover:underline transition-colors"
               >
                 Esqueci minha senha
               </a>
@@ -214,7 +213,7 @@ export default function Login() {
             <button 
               type="submit"
               disabled={loading}
-              className="w-full py-3 bg-cmoc-blue hover:bg-cmoc-purple text-white font-bold rounded-xl shadow-lg hover:shadow-cmoc-purple/10 active:scale-[0.98] transition-all duration-205 disabled:opacity-50 mt-2 cursor-pointer"
+              className="w-full py-3 bg-primary hover:bg-primary-hover text-white font-bold rounded-xl shadow-lg shadow-primary/10 active:scale-[0.98] transition-all duration-200 disabled:opacity-50 mt-2 cursor-pointer"
             >
               {loading ? 'Entrando...' : 'Entrar'}
             </button>
@@ -222,10 +221,10 @@ export default function Login() {
 
           {/* Link voltar para cadastro */}
           <div className="mt-5 text-center text-xs">
-            <span className="text-cmoc-gray-dark/60 dark:text-cmoc-white/60">Não tem uma conta? </span>
+            <span className="text-text-secondary">Não tem uma conta? </span>
             <Link 
               to="/register"
-              className="font-bold text-cmoc-purple hover:underline"
+              className="font-bold text-primary hover:text-primary-hover hover:underline transition-colors"
             >
               Cadastre-se
             </Link>

@@ -1,4 +1,5 @@
 import { initializeApp } from 'firebase/app';
+import { getAuth } from 'firebase/auth';
 import { 
   getFirestore, 
   collection, 
@@ -16,19 +17,21 @@ import {
 } from 'firebase/firestore';
 
 const firebaseConfig = {
-  apiKey: 'AIzaSyBkEzrbkGFq8jEutYvQvOd6nOST0Vh9siw',
-  authDomain: 'cmoc-relatorio.firebaseapp.com',
-  projectId: 'cmoc-relatorio',
-  storageBucket: 'cmoc-relatorio.firebasestorage.app',
-  messagingSenderId: '279433346974',
-  appId: '1:279433346974:android:fb05389a58d0d4f45ae08f',
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const auth = getAuth(app);
 
 export { 
   app, 
+  auth,
   db, 
   collection, 
   onSnapshot, 

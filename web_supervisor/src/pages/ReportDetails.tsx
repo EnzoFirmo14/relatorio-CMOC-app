@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { db, doc, getDoc } from '../services/firebase';
+import { db, doc, getDoc, updateDoc } from '../services/firebase';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { 
   ChevronLeft, Printer, Share2, Edit3, Clock, MapPin, 
@@ -48,6 +48,8 @@ interface Report {
   createdAt: any;
   executors?: Executor[];
   workOrders?: WorkOrder[];
+  comments?: Array<{author: string, date: string, text: string}>;
+  signature?: { signedBy: string, signedAt: string, dataUrl: string };
 }
 
 export default function ReportDetails() {
@@ -57,9 +59,6 @@ export default function ReportDetails() {
   const [loading, setLoading] = useState(true);
   const [activeSubTab, setActiveSubTab] = useState<'geral' | 'timeline' | 'checklist' | 'fotos' | 'comentarios' | 'assinatura'>('geral');
   const [commentText, setCommentText] = useState('');
-  const [comments, setComments] = useState<Array<{author: string, date: string, text: string}>>([
-    { author: 'Eng. Carlos Andrade (Gerente de Mina)', date: 'Hoje às 09:30', text: 'Atividade concluída com êxito. Parabéns à equipe pela eficiência.' }
-  ]);
 
   // Digital Signature State
   const [signaturePin, setSignaturePin] = useState('');
@@ -110,8 +109,8 @@ export default function ReportDetails() {
     setSignedAt('');
   };
 
-  const handleSign = () => {
-    if (!hasSignature) {
+  const handleSign = async () => {
+    if (!hasSignature || !id) {
       alert('Desenhe sua assinatura no campo acima.');
       return;
     }
@@ -119,9 +118,27 @@ export default function ReportDetails() {
       alert('O PIN de segurança deve ter pelo menos 4 dígitos.');
       return;
     }
-    setSignedBy('Eng. Pedro Santos');
-    setSignedAt(new Date().toLocaleString('pt-BR'));
-    alert('✅ Relatório assinado digitalmente com sucesso! Você pode gerar o PDF clicando em "Imprimir / PDF".');
+    
+    const canvas = canvasRef.current;
+    const dataUrl = canvas?.toDataURL('image/png') || '';
+    const signedByVal = 'Eng. Pedro Santos';
+    const signedAtVal = new Date().toLocaleString('pt-BR');
+
+    try {
+      const docRef = doc(db, 'reports', id);
+      await updateDoc(docRef, {
+        status: 'synced',
+        signature: { signedBy: signedByVal, signedAt: signedAtVal, dataUrl }
+      });
+      
+      setSignedBy(signedByVal);
+      setSignedAt(signedAtVal);
+      setReport(prev => prev ? { ...prev, status: 'synced', signature: { signedBy: signedByVal, signedAt: signedAtVal, dataUrl } } : null);
+      alert('✅ Relatório assinado e sincronizado digitalmente com sucesso!');
+    } catch (e) {
+      console.error(e);
+      alert('Erro ao salvar assinatura.');
+    }
   };
 
   useEffect(() => {
@@ -131,7 +148,13 @@ export default function ReportDetails() {
           const docRef = doc(db, 'reports', id);
           const docSnap = await getDoc(docRef);
           if (docSnap.exists()) {
-            setReport({ uuid: docSnap.id, ...docSnap.data() } as Report);
+            const data = { uuid: docSnap.id, ...docSnap.data() } as Report;
+            setReport(data);
+            if (data.signature) {
+              setSignedBy(data.signature.signedBy);
+              setSignedAt(data.signature.signedAt);
+              setHasSignature(true);
+            }
           } else {
             alert('Relatório não encontrado');
             navigate('/reports');
@@ -163,14 +186,27 @@ export default function ReportDetails() {
     }
   };
 
-  const handleAddComment = (e: React.FormEvent) => {
+  const handleAddComment = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!commentText.trim()) return;
-    setComments([
-      ...comments,
-      { author: 'Eng. Pedro Santos (Você)', date: 'Agora mesmo', text: commentText }
-    ]);
-    setCommentText('');
+    if (!commentText.trim() || !id) return;
+    
+    const newComment = { 
+      author: 'Eng. Pedro Santos (Você)', 
+      date: new Date().toLocaleString('pt-BR'), 
+      text: commentText 
+    };
+    
+    try {
+      const docRef = doc(db, 'reports', id);
+      await updateDoc(docRef, {
+        comments: report?.comments ? [...report.comments, newComment] : [newComment]
+      });
+      setReport(prev => prev ? { ...prev, comments: prev.comments ? [...prev.comments, newComment] : [newComment] } : null);
+      setCommentText('');
+    } catch (e) {
+      console.error(e);
+      alert('Erro ao salvar comentário.');
+    }
   };
 
   if (loading) {
@@ -204,10 +240,15 @@ export default function ReportDetails() {
           >
             <ChevronLeft size={18} />
           </Link>
-          <div>
+          <div className="flex items-center gap-3">
             <h1 className="text-2xl font-extrabold text-cmoc-blue dark:text-white font-outfit">
-              Relatório {report.uuid.slice(0, 8).toUpperCase()}
+              Relatório de Campo
             </h1>
+            {report.status === 'synced' && <span className="px-2.5 py-1 bg-green-100 dark:bg-green-950/20 text-cmoc-green text-xs font-bold rounded-full border border-cmoc-green/20">Sincronizado</span>}
+            {report.status === 'pending' && <span className="px-2.5 py-1 bg-yellow-100 dark:bg-yellow-950/20 text-yellow-500 text-xs font-bold rounded-full border border-yellow-500/20">Pendente</span>}
+            {report.status === 'draft' && <span className="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 text-slate-500 text-xs font-bold rounded-full border border-slate-300 dark:border-slate-700">Rascunho</span>}
+          </div>
+          <div>
             <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5">
               Criado em {date.toLocaleDateString('pt-BR')} às {date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
             </p>
@@ -486,37 +527,13 @@ export default function ReportDetails() {
             <h3 className="text-sm font-bold text-cmoc-blue dark:text-white font-outfit uppercase tracking-wider text-xs">Anexo Fotográfico da Frente de Trabalho</h3>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Foto Antes */}
-              <div className="space-y-2 border border-slate-200/50 dark:border-slate-800 rounded-xl p-3">
-                <span className="text-[10px] uppercase font-bold text-slate-400">Antes da Atividade</span>
-                <img 
-                  src="https://images.unsplash.com/photo-1578328819058-b69f3a3b0f6b?q=80&w=600" 
-                  alt="Antes" 
-                  className="w-full h-40 object-cover rounded-lg border border-slate-100"
-                />
-                <p className="text-[10px] text-slate-500">Galeria subterrânea antes da limpeza hidráulica.</p>
-              </div>
-
-              {/* Foto Durante */}
-              <div className="space-y-2 border border-slate-200/50 dark:border-slate-800 rounded-xl p-3">
-                <span className="text-[10px] uppercase font-bold text-slate-400">Durante a Atividade</span>
-                <img 
-                  src="https://images.unsplash.com/photo-1519452635265-7b1fbfd1e4e0?q=80&w=600" 
-                  alt="Durante" 
-                  className="w-full h-40 object-cover rounded-lg border border-slate-100"
-                />
-                <p className="text-[10px] text-slate-500">Operador manuseando perfuratriz de galeria.</p>
-              </div>
-
-              {/* Foto Depois */}
-              <div className="space-y-2 border border-slate-200/50 dark:border-slate-800 rounded-xl p-3">
-                <span className="text-[10px] uppercase font-bold text-slate-400">Depois da Atividade</span>
-                <img 
-                  src="https://images.unsplash.com/photo-1504307651254-35680f356dfd?q=80&w=600" 
-                  alt="Depois" 
-                  className="w-full h-40 object-cover rounded-lg border border-slate-100"
-                />
-                <p className="text-[10px] text-slate-500">Frente de lavra limpa e escoramento concluído.</p>
+              {/* Placeholder Foto */}
+              <div className="col-span-1 md:col-span-3 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-2xl p-10 flex flex-col items-center justify-center text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer">
+                <div className="w-12 h-12 bg-slate-100 dark:bg-slate-900 rounded-full flex items-center justify-center mb-3">
+                  <ImageIcon size={24} className="text-cmoc-purple" />
+                </div>
+                <h4 className="font-bold text-slate-700 dark:text-slate-300">Adicionar Fotos da Atividade</h4>
+                <p className="text-xs mt-1 text-center max-w-xs">Faça upload de fotos do antes, durante e depois (suporta JPG, PNG. Max 5MB)</p>
               </div>
             </div>
           </motion.div>
@@ -534,15 +551,19 @@ export default function ReportDetails() {
               <h3 className="text-sm font-bold text-cmoc-blue dark:text-white font-outfit uppercase tracking-wider text-xs">Comentários e Feedbacks</h3>
               
               <div className="space-y-3">
-                {comments.map((comm, idx) => (
-                  <div key={idx} className="p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200/50 dark:border-slate-850 rounded-xl text-xs">
-                    <div className="flex justify-between items-center font-bold text-slate-700 dark:text-slate-350">
-                      <span>{comm.author}</span>
-                      <span className="text-[10px] text-slate-400 font-normal">{comm.date}</span>
+                {(report.comments || []).length === 0 ? (
+                  <div className="text-xs text-slate-400 italic">Nenhum comentário adicionado.</div>
+                ) : (
+                  (report.comments || []).map((comm, idx) => (
+                    <div key={idx} className="p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200/50 dark:border-slate-850 rounded-xl text-xs">
+                      <div className="flex justify-between items-center font-bold text-slate-700 dark:text-slate-350">
+                        <span>{comm.author}</span>
+                        <span className="text-[10px] text-slate-400 font-normal">{comm.date}</span>
+                      </div>
+                      <p className="text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">{comm.text}</p>
                     </div>
-                    <p className="text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">{comm.text}</p>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
 
               {/* Novo comentário input */}
@@ -611,11 +632,19 @@ export default function ReportDetails() {
                     <p><strong>Método:</strong> Assinatura manuscrita digital + PIN</p>
                   </div>
                 </div>
-                <canvas 
-                  ref={canvasRef}
-                  width={400} height={150}
-                  className="border border-slate-200 dark:border-slate-700 rounded-xl bg-white pointer-events-none"
-                />
+                {report.signature?.dataUrl ? (
+                  <img 
+                    src={report.signature.dataUrl} 
+                    alt="Signature" 
+                    className="border border-slate-200 dark:border-slate-700 rounded-xl bg-white pointer-events-none" 
+                  />
+                ) : (
+                  <canvas 
+                    ref={canvasRef}
+                    width={400} height={150}
+                    className="border border-slate-200 dark:border-slate-700 rounded-xl bg-white pointer-events-none"
+                  />
+                )}
               </div>
             ) : (
               <div className="space-y-4">

@@ -2,10 +2,13 @@ import { useState } from 'react';
 import { db, collection, addDoc, serverTimestamp } from '../services/firebase';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
+import { useDispatch, useSelector } from 'react-redux';
+import { toggleTheme } from '../store';
+import type { RootState } from '../store';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as zod from 'zod';
 import { motion } from 'framer-motion';
-import { User, Lock, Briefcase, KeyRound } from 'lucide-react';
+import { User, Lock, Briefcase, KeyRound, Sun, Moon } from 'lucide-react';
 
 const registerSchema = zod.object({
   name: zod.string().min(3, 'O nome deve ter pelo menos 3 caracteres'),
@@ -23,6 +26,8 @@ type RegisterFields = zod.infer<typeof registerSchema>;
 
 export default function Register() {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const themeMode = useSelector((state: RootState) => state.theme.mode);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -55,15 +60,15 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen flex bg-cmoc-gray-light dark:bg-cmoc-dark-bg text-cmoc-gray-dark dark:text-cmoc-white">
+    <div className="min-h-screen flex bg-background text-text-primary transition-colors duration-300">
       {/* Lado Esquerdo - Mensagem e Background */}
       <div 
         className="hidden lg:flex lg:w-1/2 relative bg-cover bg-center items-center justify-center"
         style={{ 
-          backgroundImage: `linear-gradient(to right, rgba(35, 0, 91, 0.95), rgba(92, 63, 163, 0.85)), url('https://images.unsplash.com/photo-1504307651254-35680f356dfd?q=80&w=1920')` 
+          backgroundImage: `linear-gradient(to right, rgba(35, 0, 91, 0.70), rgba(92, 63, 163, 0.45)), url('/sampinho.png')` 
         }}
       >
-        <div className="absolute inset-0 bg-radial-at-t from-cmoc-purple/30 via-transparent to-transparent pointer-events-none" />
+        <div className="absolute inset-0 bg-radial-at-t from-primary/30 via-transparent to-transparent pointer-events-none" />
         <div className="max-w-md p-12 text-white relative z-10">
           <motion.div 
             initial={{ opacity: 0, y: -20 }}
@@ -72,7 +77,7 @@ export default function Register() {
             className="mb-8 flex items-center gap-4"
           >
             <img src="/logo.svg" alt="CMOC Logo" className="h-10 object-contain brightness-0 invert" />
-            <span className="bg-cmoc-green px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider text-cmoc-blue">
+            <span className="bg-success px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider text-background">
               CMOC Group
             </span>
           </motion.div>
@@ -88,24 +93,43 @@ export default function Register() {
       </div>
 
       {/* Lado Direito - Form de Cadastro */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12 overflow-y-auto max-h-screen">
+      <div className="w-full lg:w-1/2 flex flex-col items-center justify-center p-6 sm:p-12 relative overflow-y-auto max-h-screen">
+        
+        {/* Controles do Topo (Logo e Tema) */}
+        <div className="absolute top-6 left-6 right-6 flex items-center justify-between">
+          <img 
+            src="/logo.svg" 
+            alt="CMOC Logo" 
+            className="h-10 md:h-12 object-contain hidden md:block opacity-0"
+          />
+          
+          <button 
+            type="button"
+            onClick={() => dispatch(toggleTheme())}
+            className="p-2.5 rounded-xl bg-surface border border-border text-text-secondary hover:text-primary hover:bg-background shadow-sm transition-all duration-300 ml-auto"
+            title={themeMode === 'light' ? 'Ativar Modo Escuro' : 'Ativar Modo Claro'}
+          >
+            {themeMode === 'light' ? <Moon size={18} /> : <Sun size={18} />}
+          </button>
+        </div>
+
         <motion.div 
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.4 }}
-          className="w-full max-w-md glass p-8 sm:p-10 rounded-2xl shadow-xl dark:shadow-cmoc-blue/5 border border-white/20 dark:border-white/5 my-8"
+          className="w-full max-w-md glass p-8 sm:p-10 rounded-2xl shadow-xl border border-border mt-16 sm:mt-8"
         >
           {/* Header */}
           <div className="flex flex-col items-center mb-6">
             <img 
-              src="/logo.svg" 
+              src={themeMode === 'light' ? '/logo.svg' : '/logowhite.png'} 
               alt="CMOC Logo" 
-              className="h-12 mb-4 object-contain dark:brightness-200"
+              className="h-12 mb-4 object-contain transition-opacity duration-300"
             />
-            <h1 className="text-xl font-bold tracking-tight text-cmoc-blue dark:text-white font-outfit text-center">
+            <h1 className="text-xl font-bold tracking-tight text-primary dark:text-white font-outfit text-center">
               Cadastrar Supervisor
             </h1>
-            <p className="text-xs text-cmoc-gray-dark/60 dark:text-cmoc-white/60 mt-1">
+            <p className="text-xs text-text-secondary mt-1 text-center">
               Centro de Controle Integrado CMOC
             </p>
           </div>
@@ -119,18 +143,18 @@ export default function Register() {
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             {/* Nome Completo */}
             <div className="space-y-1">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-cmoc-blue dark:text-cmoc-white/70">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-primary dark:text-text-secondary">
                 Nome Completo
               </label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-primary/40 dark:text-white/40">
                   <User size={16} />
                 </div>
                 <input 
                   type="text" 
                   {...register('name')}
                   placeholder="Nome do Engenheiro / Supervisor"
-                  className="w-full pl-9 pr-4 py-2 bg-white/50 dark:bg-white/5 border border-slate-300 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-cmoc-purple focus:border-transparent transition-all dark:text-white text-sm"
+                  className="w-full pl-9 pr-4 py-2 bg-background border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all dark:text-white dark:placeholder-text-placeholder text-sm"
                 />
               </div>
               {errors.name && (
@@ -141,18 +165,18 @@ export default function Register() {
             {/* Cargo e Matrícula */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-cmoc-blue dark:text-cmoc-white/70">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-primary dark:text-text-secondary">
                   Cargo
                 </label>
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-primary/40 dark:text-white/40">
                     <Briefcase size={16} />
                   </div>
                   <input 
                     type="text" 
                     {...register('role')}
                     placeholder="ex: Supervisor"
-                    className="w-full pl-9 pr-4 py-2 bg-white/50 dark:bg-white/5 border border-slate-300 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-cmoc-purple focus:border-transparent transition-all dark:text-white text-sm"
+                    className="w-full pl-9 pr-4 py-2 bg-background border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all dark:text-white dark:placeholder-text-placeholder text-sm"
                   />
                 </div>
                 {errors.role && (
@@ -161,18 +185,18 @@ export default function Register() {
               </div>
 
               <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-cmoc-blue dark:text-cmoc-white/70">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-primary dark:text-text-secondary">
                   Matrícula
                 </label>
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-primary/40 dark:text-white/40">
                     <KeyRound size={16} />
                   </div>
                   <input 
                     type="text" 
                     {...register('registration')}
                     placeholder="Matrícula CMOC"
-                    className="w-full pl-9 pr-4 py-2 bg-white/50 dark:bg-white/5 border border-slate-300 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-cmoc-purple focus:border-transparent transition-all dark:text-white text-sm"
+                    className="w-full pl-9 pr-4 py-2 bg-background border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all dark:text-white dark:placeholder-text-placeholder text-sm"
                   />
                 </div>
                 {errors.registration && (
@@ -183,18 +207,18 @@ export default function Register() {
 
             {/* Usuário */}
             <div className="space-y-1">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-cmoc-blue dark:text-cmoc-white/70">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-primary dark:text-text-secondary">
                 Usuário / Acesso
               </label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-primary/40 dark:text-white/40">
                   <User size={16} />
                 </div>
                 <input 
                   type="text" 
                   {...register('username')}
                   placeholder="ex: pedro.santos"
-                  className="w-full pl-9 pr-4 py-2 bg-white/50 dark:bg-white/5 border border-slate-300 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-cmoc-purple focus:border-transparent transition-all dark:text-white text-sm"
+                  className="w-full pl-9 pr-4 py-2 bg-background border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all dark:text-white dark:placeholder-text-placeholder text-sm"
                 />
               </div>
               {errors.username && (
@@ -205,18 +229,18 @@ export default function Register() {
             {/* Senhas */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-cmoc-blue dark:text-cmoc-white/70">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-primary dark:text-text-secondary">
                   Senha
                 </label>
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-primary/40 dark:text-white/40">
                     <Lock size={16} />
                   </div>
                   <input 
                     type="password" 
                     {...register('password')}
                     placeholder="••••"
-                    className="w-full pl-9 pr-4 py-2 bg-white/50 dark:bg-white/5 border border-slate-300 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-cmoc-purple focus:border-transparent transition-all dark:text-white text-sm"
+                    className="w-full pl-9 pr-4 py-2 bg-background border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all dark:text-white dark:placeholder-text-placeholder text-sm"
                   />
                 </div>
                 {errors.password && (
@@ -225,18 +249,18 @@ export default function Register() {
               </div>
 
               <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-cmoc-blue dark:text-cmoc-white/70">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-primary dark:text-text-secondary">
                   Confirmar
                 </label>
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-primary/40 dark:text-white/40">
                     <Lock size={16} />
                   </div>
                   <input 
                     type="password" 
                     {...register('confirmPassword')}
                     placeholder="••••"
-                    className="w-full pl-9 pr-4 py-2 bg-white/50 dark:bg-white/5 border border-slate-300 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-cmoc-purple focus:border-transparent transition-all dark:text-white text-sm"
+                    className="w-full pl-9 pr-4 py-2 bg-background border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all dark:text-white dark:placeholder-text-placeholder text-sm"
                   />
                 </div>
                 {errors.confirmPassword && (
@@ -249,7 +273,7 @@ export default function Register() {
             <button 
               type="submit"
               disabled={loading}
-              className="w-full py-2.5 bg-cmoc-blue hover:bg-cmoc-purple text-white font-bold rounded-xl shadow-lg hover:shadow-cmoc-purple/10 transition-all duration-200 disabled:opacity-50 mt-2 text-sm cursor-pointer"
+              className="w-full py-2.5 bg-primary hover:bg-primary-hover text-white font-bold rounded-xl shadow-lg hover:shadow-primary/10 transition-all duration-200 disabled:opacity-50 mt-2 text-sm cursor-pointer"
             >
               {loading ? 'Cadastrando...' : 'Criar Conta'}
             </button>
@@ -257,10 +281,10 @@ export default function Register() {
 
           {/* Link voltar para login */}
           <div className="mt-5 text-center text-xs">
-            <span className="text-cmoc-gray-dark/60 dark:text-cmoc-white/60">Já tem uma conta? </span>
+            <span className="text-text-secondary">Já tem uma conta? </span>
             <Link 
               to="/login"
-              className="font-bold text-cmoc-purple hover:underline"
+              className="font-bold text-primary hover:text-primary-hover hover:underline transition-colors"
             >
               Fazer Login
             </Link>

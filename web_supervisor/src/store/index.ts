@@ -4,10 +4,13 @@ import type { PayloadAction } from '@reduxjs/toolkit';
 interface AuthState {
   isAuthenticated: boolean;
   user: {
+    uid?: string;
+    email?: string | null;
     name: string;
     role: string;
     username: string;
   } | null;
+  loading: boolean;
 }
 
 const initialAuth: AuthState = {
@@ -16,22 +19,51 @@ const initialAuth: AuthState = {
     name: 'Eng. Pedro Santos',
     role: 'Supervisor de Mina',
     username: 'pedro.santos'
-  } : null)
+  } : null),
+  loading: true,
 };
 
 const authSlice = createSlice({
   name: 'auth',
   initialState: initialAuth,
   reducers: {
-    login: (state, action: PayloadAction<{ username: string; name: string; role: string }>) => {
+    login: (state, action: PayloadAction<{ uid?: string; email?: string | null; username?: string; name?: string; role?: string }>) => {
       state.isAuthenticated = true;
       state.user = {
-        name: action.payload.name,
-        role: action.payload.role,
-        username: action.payload.username
+        uid: action.payload.uid,
+        email: action.payload.email,
+        name: action.payload.name || 'Usuário Autenticado',
+        role: action.payload.role || 'Operador',
+        username: action.payload.username || (action.payload.email ? action.payload.email.split('@')[0] : 'user')
       };
+      state.loading = false;
       localStorage.setItem('cmoc_auth', 'true');
       localStorage.setItem('cmoc_user', JSON.stringify(state.user));
+    },
+    setFirebaseUser: (state, action: PayloadAction<{ uid: string; email: string | null } | null>) => {
+      if (action.payload) {
+        state.isAuthenticated = true;
+        // Keep existing user data if available to not break UI, or provide fallback
+        state.user = {
+          ...state.user,
+          uid: action.payload.uid,
+          email: action.payload.email,
+          name: state.user?.name || 'Usuário Autenticado',
+          role: state.user?.role || 'Operador',
+          username: state.user?.username || (action.payload.email ? action.payload.email.split('@')[0] : 'user')
+        };
+        localStorage.setItem('cmoc_auth', 'true');
+        localStorage.setItem('cmoc_user', JSON.stringify(state.user));
+      } else {
+        state.isAuthenticated = false;
+        state.user = null;
+        localStorage.removeItem('cmoc_auth');
+        localStorage.removeItem('cmoc_user');
+      }
+      state.loading = false;
+    },
+    setLoading: (state, action: PayloadAction<boolean>) => {
+      state.loading = action.payload;
     },
     logout: (state) => {
       state.isAuthenticated = false;
@@ -99,7 +131,7 @@ export const store = configureStore({
   }
 });
 
-export const { login, logout } = authSlice.actions;
+export const { login, logout, setFirebaseUser, setLoading } = authSlice.actions;
 export const { toggleTheme, initTheme } = themeSlice.actions;
 export const { toggleSidebar } = uiSlice.actions;
 

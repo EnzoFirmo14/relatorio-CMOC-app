@@ -2,9 +2,11 @@ import { useEffect, useState } from 'react';
 import { db, collection, onSnapshot, query, orderBy, deleteDoc, doc } from '../services/firebase';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
-  Search, Plus, Eye, Edit2, Trash2, MapPin, ClipboardList
+  Search, Plus, Eye, Edit2, Trash2, MapPin, ClipboardList,
+  Download, X, CheckCircle2, FileText, AlertTriangle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import * as XLSX from 'xlsx';
 
 interface Executor {
   name: string;
@@ -29,6 +31,7 @@ interface Report {
   status: string;
   createdAt: any;
   supervisorName?: string;
+  activityType?: string;
   priority?: string;
   executors?: Executor[];
   workOrders?: WorkOrder[];
@@ -169,6 +172,47 @@ export default function ReportsList() {
     }
   };
 
+  const handleExportExcel = () => {
+    if (filteredReports.length === 0) {
+      alert('Nenhum relatório para exportar.');
+      return;
+    }
+    
+    const dataToExport = filteredReports.map(r => {
+      const date = r.createdAt?.toDate ? r.createdAt.toDate() : new Date(r.createdAt || Date.now());
+      return {
+        'Data/Hora': `${date.toLocaleDateString('pt-BR')} ${date.toLocaleTimeString('pt-BR')}`,
+        'Mina/Local': r.mineLocation || '',
+        'Turno': r.shift || '',
+        'Equipe': r.team || '',
+        'Equipamento': r.equipment || '',
+        'Supervisor': r.supervisorName || '',
+        'Atividade': r.activityType || '',
+        'Prioridade': r.priority || 'Baixa',
+        'Status': r.status === 'synced' ? 'Sincronizado' : r.status === 'pending' ? 'Pendente' : 'Rascunho'
+      };
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Relatórios');
+
+    // Autoajuste básico de largura das colunas
+    const maxWidths = [20, 25, 10, 20, 20, 25, 30, 12, 15];
+    worksheet['!cols'] = maxWidths.map(w => ({ wch: w }));
+
+    XLSX.writeFile(workbook, `relatorios_cmoc_${new Date().toISOString().split('T')[0]}.xlsx`);
+  };
+
+  const handleClearFilters = () => {
+    setSearchTerm('');
+    setSelectedShift('');
+    setSelectedStatus('');
+    setSelectedPriority('');
+    setSelectedArea('');
+    setSelectedPeriod('all');
+  };
+
   const getStatusBadge = (status?: string) => {
     switch (status) {
       case 'synced':
@@ -188,33 +232,80 @@ export default function ReportsList() {
     return <span className="text-cmoc-green text-xs font-bold">🟢 Baixa</span>;
   };
 
+  // KPI computation
+  const totalCount = reports.length;
+  const syncedCount = reports.filter(r => r.status === 'synced').length;
+  const pendingCount = reports.filter(r => r.status === 'pending').length;
+  const draftCount = reports.filter(r => r.status === 'draft').length;
+
   return (
     <div className="space-y-6 animate-in fade-in duration-200 relative">
+      {/* Mini KPIs */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="glass p-4 rounded-2xl flex items-center gap-4 hover:shadow-lg transition-shadow">
+          <div className="p-3 bg-primary/10 text-primary rounded-xl"><FileText size={20} /></div>
+          <div>
+            <div className="text-2xl font-bold text-text-primary leading-none">{totalCount}</div>
+            <div className="text-xs text-text-secondary font-semibold mt-1">Total Registros</div>
+          </div>
+        </div>
+        <div className="glass p-4 rounded-2xl flex items-center gap-4 hover:shadow-lg transition-shadow">
+          <div className="p-3 bg-success/10 text-success rounded-xl"><CheckCircle2 size={20} /></div>
+          <div>
+            <div className="text-2xl font-bold text-text-primary leading-none">{syncedCount}</div>
+            <div className="text-xs text-text-secondary font-semibold mt-1">Sincronizados</div>
+          </div>
+        </div>
+        <div className="glass p-4 rounded-2xl flex items-center gap-4 hover:shadow-lg transition-shadow">
+          <div className="p-3 bg-warning/10 text-warning rounded-xl"><AlertTriangle size={20} /></div>
+          <div>
+            <div className="text-2xl font-bold text-text-primary leading-none">{pendingCount}</div>
+            <div className="text-xs text-text-secondary font-semibold mt-1">Pendentes</div>
+          </div>
+        </div>
+        <div className="glass p-4 rounded-2xl flex items-center gap-4 hover:shadow-lg transition-shadow">
+          <div className="p-3 bg-slate-500/10 text-slate-500 rounded-xl"><Edit2 size={20} /></div>
+          <div>
+            <div className="text-2xl font-bold text-text-primary leading-none">{draftCount}</div>
+            <div className="text-xs text-text-secondary font-semibold mt-1">Rascunhos</div>
+          </div>
+        </div>
+      </div>
+
       {/* Title / Action bar */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-extrabold text-cmoc-blue dark:text-white font-outfit">
+          <h1 className="text-3xl font-extrabold text-primary font-outfit">
             Módulo de Relatórios de Campo
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 text-sm">
+          <p className="text-text-secondary text-sm">
             Gerenciamento, auditoria e exportação de diários subterrâneos.
           </p>
         </div>
-        <Link 
-          to="/reports/new"
-          className="flex items-center gap-2 px-5 py-3 bg-cmoc-blue hover:bg-cmoc-purple text-white font-bold rounded-xl shadow-lg transition-all duration-200 active:scale-95"
-        >
-          <Plus size={18} />
-          Adicionar Relatório
-        </Link>
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={handleExportExcel}
+            className="flex items-center gap-2 px-4 py-3 bg-surface border border-border text-text-primary font-bold rounded-xl shadow-sm transition-all hover:bg-background"
+          >
+            <Download size={18} />
+            <span className="hidden sm:inline">Exportar Excel</span>
+          </button>
+          <Link 
+            to="/reports/new"
+            className="flex items-center gap-2 px-5 py-3 bg-primary hover:bg-primary-hover text-white font-bold rounded-xl shadow-lg transition-all duration-200 active:scale-95"
+          >
+            <Plus size={18} />
+            <span className="hidden sm:inline">Adicionar</span> Relatório
+          </Link>
+        </div>
       </div>
 
       {/* Advanced Filter Bar */}
-      <div className="glass rounded-2xl p-5 border border-slate-200/50 dark:border-slate-800/80 shadow-md space-y-4">
+      <div className="glass rounded-2xl p-5 shadow-md space-y-4">
         <div className="flex flex-col md:flex-row gap-4">
           {/* Smart Search */}
           <div className="relative flex-1">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-text-tertiary">
               <Search size={18} />
             </div>
             <input 
@@ -222,7 +313,7 @@ export default function ReportsList() {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Buscar por OS, Supervisor, Executante, Equipamento, Área, etc..."
-              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-cmoc-purple focus:border-transparent transition-all text-sm"
+              className="w-full pl-10 pr-4 py-2.5 bg-background border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all text-sm text-text-primary"
             />
           </div>
           
@@ -247,6 +338,15 @@ export default function ReportsList() {
                 {p.label}
               </button>
             ))}
+            {(searchTerm || selectedShift || selectedStatus || selectedPriority || selectedArea || selectedPeriod !== 'all') && (
+              <button
+                onClick={handleClearFilters}
+                className="px-4 py-2 text-xs font-bold rounded-xl transition-all bg-red-100 text-red-500 hover:bg-red-200 dark:bg-red-950/20"
+                title="Limpar Filtros"
+              >
+                <X size={14} className="inline-block mr-1" /> Limpar
+              </button>
+            )}
           </div>
         </div>
 
@@ -296,7 +396,7 @@ export default function ReportsList() {
       </div>
 
       {/* Table Section */}
-      <div className="glass rounded-2xl border border-slate-200/50 dark:border-slate-800/80 shadow-md overflow-hidden">
+      <div className="glass rounded-2xl shadow-md overflow-hidden">
         {loading ? (
           /* Skeleton loading */
           <div className="p-6 space-y-4">
@@ -316,11 +416,11 @@ export default function ReportsList() {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-slate-50 dark:bg-slate-900/50 text-slate-400 text-xs uppercase font-extrabold border-b border-slate-150 dark:border-slate-800">
-                  <th className="px-6 py-4 cursor-pointer select-none hover:text-cmoc-purple" onClick={() => handleSort('createdAt')}>
+                <tr className="bg-background text-text-tertiary text-xs uppercase font-extrabold border-b border-border">
+                  <th className="px-6 py-4 cursor-pointer select-none hover:text-primary" onClick={() => handleSort('createdAt')}>
                     Data / Hora {sortField === 'createdAt' && (sortOrder === 'asc' ? '▲' : '▼')}
                   </th>
-                  <th className="px-6 py-4 cursor-pointer select-none hover:text-cmoc-purple" onClick={() => handleSort('mineLocation')}>
+                  <th className="px-6 py-4 cursor-pointer select-none hover:text-primary" onClick={() => handleSort('mineLocation')}>
                     Mina / Local {sortField === 'mineLocation' && (sortOrder === 'asc' ? '▲' : '▼')}
                   </th>
                   <th className="px-6 py-4">Turno</th>
@@ -331,7 +431,7 @@ export default function ReportsList() {
                   <th className="px-6 py-4 text-right">Ações</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80 text-sm font-semibold">
+              <tbody className="divide-y divide-border text-sm font-semibold">
                 {currentItems.map((report) => {
                   const date = report.createdAt?.toDate 
                     ? report.createdAt.toDate() 
@@ -341,17 +441,17 @@ export default function ReportsList() {
                     <tr key={report.uuid} className="hover:bg-slate-50/40 dark:hover:bg-slate-900/10 transition-colors">
                       <td className="px-6 py-4">
                         <div className="flex flex-col">
-                          <span className="text-cmoc-blue dark:text-white font-bold">
+                          <span className="text-primary font-bold">
                             {date.toLocaleDateString('pt-BR')}
                           </span>
-                          <span className="text-slate-400 text-xs">
+                          <span className="text-text-tertiary text-xs">
                             {date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                           </span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-slate-700 dark:text-slate-300">
+                      <td className="px-6 py-4 text-text-primary">
                         <div className="flex items-center gap-1.5">
-                          <MapPin size={14} className="text-cmoc-purple shrink-0" />
+                          <MapPin size={14} className="text-primary-hover shrink-0" />
                           <span>{report.mineLocation}</span>
                         </div>
                       </td>
@@ -365,12 +465,12 @@ export default function ReportsList() {
                         <div className="flex gap-1 flex-wrap">
                           {report.workOrders && report.workOrders.length > 0 ? (
                             report.workOrders.map((os, idx) => (
-                              <span key={idx} className="px-2 py-0.5 bg-cmoc-blue/5 dark:bg-cmoc-blue/20 text-cmoc-blue dark:text-white text-xs rounded border border-cmoc-blue/10">
+                              <span key={idx} className="px-2 py-0.5 bg-primary/10 text-primary text-xs rounded border border-primary/20">
                                 {os.number}
                               </span>
                             ))
                           ) : (
-                            <span className="text-slate-400 text-xs">—</span>
+                            <span className="text-text-tertiary text-xs">—</span>
                           )}
                         </div>
                       </td>
@@ -380,14 +480,14 @@ export default function ReportsList() {
                         <div className="flex justify-end gap-2">
                           <button 
                             onClick={() => navigate(`/reports/${report.uuid}`)}
-                            className="p-1.5 text-cmoc-blue dark:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                            className="p-1.5 text-primary hover:bg-background rounded-lg transition-colors"
                             title="Visualizar Página do Relatório"
                           >
                             <Eye size={16} />
                           </button>
                           <button 
                             onClick={() => navigate(`/reports/edit/${report.uuid}`)}
-                            className="p-1.5 text-cmoc-purple hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                            className="p-1.5 text-primary-hover hover:bg-background rounded-lg transition-colors"
                             title="Editar Relatório"
                           >
                             <Edit2 size={16} />
@@ -423,19 +523,35 @@ export default function ReportsList() {
               >
                 Anterior
               </button>
-              {[...Array(totalPages)].map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => setCurrentPage(i + 1)}
-                  className={`w-8 h-8 rounded-lg ${
-                    currentPage === i + 1 
-                      ? 'bg-cmoc-blue text-white' 
-                      : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 text-slate-500'
-                  }`}
-                >
-                  {i + 1}
-                </button>
-              ))}
+              {[...Array(totalPages)].map((_, i) => {
+                const pageNum = i + 1;
+                // Only show first, last, current and neighbors
+                if (
+                  pageNum === 1 || 
+                  pageNum === totalPages || 
+                  (pageNum >= currentPage - 1 && pageNum <= currentPage + 1)
+                ) {
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => setCurrentPage(pageNum)}
+                      className={`w-8 h-8 rounded-lg ${
+                        currentPage === pageNum 
+                          ? 'bg-primary text-white' 
+                          : 'bg-surface border border-border hover:bg-background text-text-secondary'
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                } else if (
+                  pageNum === currentPage - 2 || 
+                  pageNum === currentPage + 2
+                ) {
+                  return <span key={i} className="px-1 py-1 text-slate-400">...</span>;
+                }
+                return null;
+              })}
               <button 
                 onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                 disabled={currentPage === totalPages}
