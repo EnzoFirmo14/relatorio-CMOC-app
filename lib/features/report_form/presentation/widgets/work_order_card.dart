@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -630,15 +631,25 @@ class WorkOrderCard extends StatelessWidget {
                           borderRadius: BorderRadius.circular(7.0),
                           child: Hero(
                             tag: absolutePath,
-                            child: Image.file(
-                              File(absolutePath),
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                return const Center(
-                                  child: Icon(Icons.broken_image, color: AppTheme.textFaint),
-                                );
-                              },
-                            ),
+                            child: kIsWeb
+                                ? Image.network(
+                                    absolutePath,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return const Center(
+                                        child: Icon(Icons.broken_image, color: AppTheme.textFaint),
+                                      );
+                                    },
+                                  )
+                                : Image.file(
+                                    File(absolutePath),
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return const Center(
+                                        child: Icon(Icons.broken_image, color: AppTheme.textFaint),
+                                      );
+                                    },
+                                  ),
                           ),
                         ),
                       ),

@@ -1,5 +1,7 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
@@ -21,9 +23,23 @@ class PdfExportService {
     for (final os in report.workOrders) {
       for (final path in os.photoPaths) {
         try {
-          final file = File(path);
-          if (file.existsSync()) {
-            final bytes = await file.readAsBytes();
+          Uint8List? bytes;
+          if (kIsWeb || path.startsWith('blob:') || path.startsWith('http')) {
+            final data = await NetworkAssetBundle(Uri.parse(path)).load(path);
+            bytes = data.buffer.asUint8List();
+          } else {
+            String absolutePath = path;
+            if (!path.startsWith('/') && !path.contains(':')) {
+              // É um caminho relativo
+              final docDir = await getApplicationDocumentsDirectory();
+              absolutePath = '${docDir.path}/$path';
+            }
+            final file = File(absolutePath);
+            if (file.existsSync()) {
+              bytes = await file.readAsBytes();
+            }
+          }
+          if (bytes != null) {
             photoImages.add(pw.MemoryImage(bytes));
           }
         } catch (_) {}

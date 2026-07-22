@@ -85,15 +85,23 @@ class ExportController extends StateNotifier<ExportState> {
     try {
       final bytes = await generatePdf(report);
       if (bytes != null) {
-        final dir = await getApplicationDocumentsDirectory();
-        final fileName = 'Relatorio_CMOC_${report.date.toString().split(' ')[0]}_${report.shift}.pdf';
-        final file = File('${dir.path}/$fileName');
-        await file.writeAsBytes(bytes);
-        
-        await Share.shareXFiles(
-          [XFile(file.path)],
-          subject: 'Relatório PDF CMOC',
-        );
+        if (kIsWeb) {
+          // Na Web, compartilhamos o PDF (o plugin printing cuidará do download/compartilhamento)
+          await Printing.sharePdf(
+            bytes: bytes,
+            filename: 'Relatorio_CMOC_${report.date.toString().split(' ')[0]}_${report.shift}.pdf',
+          );
+        } else {
+          final dir = await getApplicationDocumentsDirectory();
+          final fileName = 'Relatorio_CMOC_${report.date.toString().split(' ')[0]}_${report.shift}.pdf';
+          final file = File('${dir.path}/$fileName');
+          await file.writeAsBytes(bytes);
+          
+          await Share.shareXFiles(
+            [XFile(file.path)],
+            subject: 'Relatório PDF CMOC',
+          );
+        }
       }
       state = state.copyWith(isGenerating: false);
     } catch (e) {

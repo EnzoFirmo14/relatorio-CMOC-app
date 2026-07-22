@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 class PhotoPreviewPage extends StatelessWidget {
@@ -25,18 +26,31 @@ class PhotoPreviewPage extends StatelessWidget {
           maxScale: 4.0,
           child: Hero(
             tag: imagePath,
-            child: Image.file(
-              File(imagePath),
-              fit: BoxFit.contain,
-              errorBuilder: (context, error, stackTrace) {
-                return const Center(
-                  child: Text(
-                    'Não foi possível carregar a imagem.',
-                    style: TextStyle(color: Colors.white),
+            child: kIsWeb
+                ? Image.network(
+                    imagePath,
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) {
+                      return const Center(
+                        child: Text(
+                          'Não foi possível carregar a imagem.',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                      );
+                    },
+                  )
+                : Image.file(
+                    File(imagePath),
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) {
+                      return const Center(
+                        child: Text(
+                          'Não foi possível carregar a imagem.',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                      );
+                    },
                   ),
-                );
-              },
-            ),
           ),
         ),
       ),

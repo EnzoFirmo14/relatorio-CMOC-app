@@ -37,9 +37,14 @@ class IsarService {
   /// Se o banco existente tiver schema incompatível (ex: após troca de pacote
   /// ou alteração de modelo), deleta o arquivo antigo e recria do zero.
   Future<void> init() async {
+    if (kIsWeb) return;
     if (isInitialized) return;
 
-    final dir = await getApplicationDocumentsDirectory();
+    String? dirPath;
+    if (!kIsWeb) {
+      final dir = await getApplicationDocumentsDirectory();
+      dirPath = dir.path;
+    }
     const dbName = 'cmoc_db';
 
     try {
@@ -48,20 +53,22 @@ class IsarService {
           ReportModelSchema,
           CollaboratorModelSchema,
         ],
-        directory: dir.path,
+        directory: dirPath ?? '',
         name: dbName,
       );
     } catch (e) {
       // Schema incompatível ou arquivo corrompido — apaga e recria do zero.
       // Dados locais não sincronizados serão perdidos, mas o app não crasha.
       debugPrint('[IsarService] Falha ao abrir DB ($e) — recriando do zero.');
-      await _deleteIsarFiles(dir.path, dbName);
+      if (!kIsWeb && dirPath != null) {
+        await _deleteIsarFiles(dirPath, dbName);
+      }
       _isar = await Isar.open(
         [
           ReportModelSchema,
           CollaboratorModelSchema,
         ],
-        directory: dir.path,
+        directory: dirPath ?? '',
         name: dbName,
       );
     }
@@ -69,6 +76,7 @@ class IsarService {
 
   /// Deleta os arquivos físicos do banco Isar com o nome dado.
   Future<void> _deleteIsarFiles(String dirPath, String dbName) async {
+    if (kIsWeb) return;
     for (final fileName in ['$dbName.isar', '$dbName.isar.lock']) {
       final file = File('$dirPath/$fileName');
       try {

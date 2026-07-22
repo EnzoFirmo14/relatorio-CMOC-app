@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -44,16 +45,30 @@ class WhatsAppExportService {
     final text = formatWhatsAppText(report);
     final pdfBytes = await _pdfService.generateReportPdf(report);
 
-    final tempDir = await getTemporaryDirectory();
-    final fileName = 'Relatorio_CMOC_${report.date.toString().split(' ')[0]}_${report.shift}.pdf';
-    final filePath = '${tempDir.path}/$fileName';
-    final file = File(filePath);
-    await file.writeAsBytes(pdfBytes);
+    if (kIsWeb) {
+      await Share.shareXFiles(
+        [
+          XFile.fromData(
+            pdfBytes,
+            mimeType: 'application/pdf',
+            name: 'Relatorio_CMOC_${report.date.toString().split(' ')[0]}_${report.shift}.pdf',
+          ),
+        ],
+        text: text,
+        subject: 'Relatório Diário de Infraestrutura CMOC',
+      );
+    } else {
+      final tempDir = await getTemporaryDirectory();
+      final fileName = 'Relatorio_CMOC_${report.date.toString().split(' ')[0]}_${report.shift}.pdf';
+      final filePath = '${tempDir.path}/$fileName';
+      final file = File(filePath);
+      await file.writeAsBytes(pdfBytes);
 
-    await Share.shareXFiles(
-      [XFile(filePath)],
-      text: text,
-      subject: 'Relatório Diário de Infraestrutura CMOC',
-    );
+      await Share.shareXFiles(
+        [XFile(filePath)],
+        text: text,
+        subject: 'Relatório Diário de Infraestrutura CMOC',
+      );
+    }
   }
 }

@@ -1,9 +1,11 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/services/isar_service.dart';
 import '../../data/datasources/report_local_datasource.dart';
 import '../../data/repositories/report_repository_impl.dart';
+import '../../data/repositories/in_memory_report_repository.dart';
 import '../../domain/entities/collaborator_entity.dart';
 import '../../domain/entities/report_entity.dart';
 import '../../domain/entities/work_order_entity.dart';
@@ -15,6 +17,9 @@ import 'report_form_state.dart';
 
 /// Provider do repositório local — pode ser sobrescrito em testes com mock.
 final reportRepositoryProvider = Provider<IReportRepository>((ref) {
+  if (kIsWeb) {
+    return InMemoryReportRepository();
+  }
   final dataSource = ReportLocalDataSource(IsarService.instance.isar);
   return ReportRepositoryImpl(dataSource);
 });

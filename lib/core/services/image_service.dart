@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as p;
@@ -20,6 +21,11 @@ class ImageService {
       );
 
       if (pickedFile == null) return null;
+
+      if (kIsWeb) {
+        // Na Web, não gravamos arquivos no sistema local. Retornamos diretamente a URL blob.
+        return pickedFile.path;
+      }
 
       // Cria a pasta /photos na pasta de documentos do app
       final docDir = await getApplicationDocumentsDirectory();
@@ -55,12 +61,16 @@ class ImageService {
 
   /// Converte o caminho relativo armazenado no Isar em um caminho absoluto para a UI.
   static Future<String> getAbsolutePath(String relativePath) async {
+    if (kIsWeb || relativePath.startsWith('blob:') || relativePath.startsWith('http')) {
+      return relativePath;
+    }
     final docDir = await getApplicationDocumentsDirectory();
     return p.join(docDir.path, relativePath);
   }
 
   /// Exclui o arquivo físico de imagem do disco.
   static Future<void> deleteImageFile(String relativePath) async {
+    if (kIsWeb) return;
     try {
       final docDir = await getApplicationDocumentsDirectory();
       final fullPath = p.join(docDir.path, relativePath);
