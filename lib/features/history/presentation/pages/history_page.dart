@@ -198,10 +198,12 @@ class HistoryPage extends ConsumerWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Expanded(
-                    child: Row(
+                    child: Wrap(
+                      spacing: 6,
+                      runSpacing: 4,
+                      crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
                         const Icon(Icons.calendar_today, size: 14, color: AppTheme.textMuted),
-                        const SizedBox(width: 6),
                         Text(
                           dateStr,
                           style: const TextStyle(
@@ -210,8 +212,7 @@ class HistoryPage extends ConsumerWidget {
                             color: AppTheme.textDark,
                           ),
                         ),
-                        if (report.shift.isNotEmpty || report.team.isNotEmpty) ...[
-                          const SizedBox(width: 8),
+                        if (report.shift.isNotEmpty || report.team.isNotEmpty)
                           Text(
                             '•  Turno ${report.shift} • Turma ${report.team}',
                             style: const TextStyle(
@@ -219,7 +220,6 @@ class HistoryPage extends ConsumerWidget {
                               color: AppTheme.textMuted,
                             ),
                           ),
-                        ],
                       ],
                     ),
                   ),
@@ -304,33 +304,50 @@ class HistoryPage extends ConsumerWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.assignment_outlined, size: 14, color: AppTheme.textMuted),
-                      const SizedBox(width: 6),
-                      Text(
-                        '$osCount OS${osCount != 1 ? 's' : ''} registrada${osCount != 1 ? 's' : ''}',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: AppTheme.textMuted,
-                          fontWeight: FontWeight.w500,
+                  Expanded(
+                    child: Wrap(
+                      spacing: 12,
+                      runSpacing: 4,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.assignment_outlined, size: 14, color: AppTheme.textMuted),
+                            const SizedBox(width: 6),
+                            Text(
+                              '$osCount OS${osCount != 1 ? 's' : ''} registrada${osCount != 1 ? 's' : ''}',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: AppTheme.textMuted,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                      if (report.globalEquipment.isNotEmpty) ...[
-                        const SizedBox(width: 12),
-                        const Icon(Icons.build_circle_outlined, size: 14, color: AppTheme.textMuted),
-                        const SizedBox(width: 4),
-                        Text(
-                          report.globalEquipment,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: AppTheme.textMuted,
-                            fontWeight: FontWeight.w500,
+                        if (report.globalEquipment.isNotEmpty)
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.build_circle_outlined, size: 14, color: AppTheme.textMuted),
+                              const SizedBox(width: 4),
+                              Flexible(
+                                child: Text(
+                                  report.globalEquipment,
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: AppTheme.textMuted,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
                       ],
-                    ],
+                    ),
                   ),
+                  const SizedBox(width: 8),
                   // Botão de deletar na lateral direita
                   IconButton(
                     icon: const Icon(Icons.delete_outline, size: 20, color: AppTheme.textFaint),

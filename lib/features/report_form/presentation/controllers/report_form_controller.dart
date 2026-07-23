@@ -441,6 +441,55 @@ class ReportFormController extends Notifier<ReportFormState> {
     _autosave();
   }
 
+  void fillMockData() {
+    state = state.copyWith(
+      date: DateTime.now(),
+      shift: AppConstants.shiftOptions.isNotEmpty ? AppConstants.shiftOptions.first : 'T1',
+      team: AppConstants.teamOptions.isNotEmpty ? AppConstants.teamOptions.first : 'A',
+      globalEquipment: AppConstants.equipOptions.isNotEmpty ? AppConstants.equipOptions.first : 'PT302',
+      globalLocation: 'Frente de Lavra 01',
+      fuelLevel: 75.0,
+      availableMaterials: 'Duto de 800, Abraçadeira de 110',
+      observations: 'Operação realizada com sucesso. Sem intercorrências.',
+      operators: [
+        const OperatorState(name: 'Acacio Oliveira Souza', registration: '4786'),
+        const OperatorState(name: 'Adailton Silva Santos', registration: '99300599'),
+      ],
+      workOrders: [
+        const WorkOrderState(
+          id: 'os-1',
+          number: 'OS-001',
+          location: 'Galeria Norte',
+          maintenanceType: 'Avanço',
+          cause: 'Avanço de Tubulação',
+          activities: 'Instalação de 3 tubos de ventilação adicionais.',
+          materialsUsed: ['Duto de 800', 'Abraçadeira Comum'],
+          quantityMeters: '18',
+          quantityPieces: '3',
+          startTime: '08:00',
+          endTime: '10:30',
+          status: 'Liberado',
+        ),
+        const WorkOrderState(
+          id: 'os-2',
+          number: 'OS-002',
+          location: 'Poço 3',
+          maintenanceType: 'Corretiva',
+          cause: 'Tubo Danificado',
+          activities: 'Substituição de duto rasgado por um novo.',
+          materialsUsed: ['Duto de 1000', 'Corrente'],
+          quantityMeters: '6',
+          quantityPieces: '1',
+          startTime: '13:00',
+          endTime: '14:15',
+          status: 'Corrigido',
+        ),
+      ],
+      osCounter: 2,
+    );
+    _autosave();
+  }
+
   // ─── Photo Management ──────────────────────────────────────────────────
 
   /// Adiciona o caminho de uma foto a uma OS específica.

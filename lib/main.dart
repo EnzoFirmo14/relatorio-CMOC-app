@@ -1,9 +1,11 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'core/navigation/app_routes.dart';
 import 'core/services/isar_service.dart';
 import 'core/theme/app_theme.dart';
+import 'firebase_options.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -13,7 +15,13 @@ Future<void> main() async {
 
   // Inicializa o Firebase
   try {
-    await Firebase.initializeApp();
+    debugPrint('Plataforma Web? $kIsWeb');
+    debugPrint('Firebase Options Web apiKey: ${DefaultFirebaseOptions.web.apiKey}');
+    final options = DefaultFirebaseOptions.currentPlatform;
+    debugPrint('Current Platform Options: $options');
+    await Firebase.initializeApp(
+      options: options,
+    );
   } catch (e) {
     debugPrint('Firebase init fallback: $e');
   }

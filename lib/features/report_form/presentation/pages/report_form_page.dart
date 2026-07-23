@@ -124,6 +124,19 @@ class ReportFormPage extends ConsumerWidget {
           const SyncStatusBadge(),
           const SizedBox(width: 4),
           IconButton(
+            icon: const Icon(Icons.bolt, color: AppTheme.accentPurple),
+            tooltip: 'Preencher Automático (Testes)',
+            onPressed: () {
+              controller.fillMockData();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Formulário preenchido com dados de teste!'),
+                  duration: Duration(seconds: 2),
+                ),
+              );
+            },
+          ),
+          IconButton(
             icon: const Icon(Icons.history_rounded),
             onPressed: () {
               Navigator.pushNamed(context, '/history');

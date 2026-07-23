@@ -23,10 +23,7 @@ class ConnectivityService {
   }
 
   bool _hasConnection(List<ConnectivityResult> results) {
-    return results.any((result) =>
-        result == ConnectivityResult.wifi ||
-        result == ConnectivityResult.mobile ||
-        result == ConnectivityResult.ethernet ||
-        result == ConnectivityResult.vpn);
+    if (results.isEmpty) return false;
+    return results.any((result) => result != ConnectivityResult.none);
   }
 }
