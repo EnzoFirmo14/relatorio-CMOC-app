@@ -631,7 +631,7 @@ class WorkOrderCard extends StatelessWidget {
                           borderRadius: BorderRadius.circular(7.0),
                           child: Hero(
                             tag: absolutePath,
-                            child: kIsWeb
+                            child: (kIsWeb || absolutePath.startsWith('http'))
                                 ? Image.network(
                                     absolutePath,
                                     fit: BoxFit.cover,

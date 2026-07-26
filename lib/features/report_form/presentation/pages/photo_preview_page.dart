@@ -26,7 +26,7 @@ class PhotoPreviewPage extends StatelessWidget {
           maxScale: 4.0,
           child: Hero(
             tag: imagePath,
-            child: kIsWeb
+            child: (kIsWeb || imagePath.startsWith('http'))
                 ? Image.network(
                     imagePath,
                     fit: BoxFit.contain,

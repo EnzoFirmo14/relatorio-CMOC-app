@@ -5,6 +5,7 @@ import 'package:flutter_teste_1/features/report_form/domain/entities/report_enti
 import 'package:flutter_teste_1/features/report_form/domain/repositories/report_repository.dart';
 import 'package:flutter_teste_1/features/sync/data/datasources/report_remote_datasource.dart';
 import 'package:flutter_teste_1/features/sync/domain/services/sync_service.dart';
+import 'package:flutter_teste_1/core/services/cloudinary_service.dart';
 
 class FakeConnectivityService implements ConnectivityService {
   bool isOnline = true;
@@ -23,6 +24,13 @@ class FakeConnectivityService implements ConnectivityService {
 
   void dispose() {
     _controller.close();
+  }
+}
+
+class FakeCloudinaryService extends CloudinaryService {
+  @override
+  Future<String> uploadImage(String absolutePath) async {
+    return 'https://res.cloudinary.com/qoxf3ibm/image/upload/fake_image.jpg';
   }
 }
 
@@ -95,16 +103,19 @@ void main() {
   late FakeLocalRepository localRepo;
   late FakeRemoteDataSource remoteDS;
   late FakeConnectivityService connectivity;
+  late FakeCloudinaryService cloudinary;
   late SyncService syncService;
 
   setUp(() {
     localRepo = FakeLocalRepository();
     remoteDS = FakeRemoteDataSource();
     connectivity = FakeConnectivityService();
+    cloudinary = FakeCloudinaryService();
     syncService = SyncService(
       localRepository: localRepo,
       remoteDataSource: remoteDS,
       connectivityService: connectivity,
+      cloudinaryService: cloudinary,
     );
   });
 

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/services/connectivity_service.dart';
+import '../../../../core/services/cloudinary_service.dart';
 import '../../../report_form/domain/repositories/report_repository.dart';
 import '../../../report_form/presentation/controllers/report_form_controller.dart';
 import '../../data/datasources/report_remote_datasource.dart';
@@ -45,6 +46,10 @@ final connectivityServiceProvider = Provider<ConnectivityService>((ref) {
   return ConnectivityService();
 });
 
+final cloudinaryServiceProvider = Provider<CloudinaryService>((ref) {
+  return CloudinaryService();
+});
+
 final reportRemoteDataSourceProvider = Provider<IReportRemoteDataSource>((ref) {
   return ReportFirestoreDataSource();
 });
@@ -53,11 +58,13 @@ final syncServiceProvider = Provider<SyncService>((ref) {
   final repository = ref.watch(reportRepositoryProvider);
   final remoteDataSource = ref.watch(reportRemoteDataSourceProvider);
   final connectivity = ref.watch(connectivityServiceProvider);
+  final cloudinary = ref.watch(cloudinaryServiceProvider);
 
   return SyncService(
     localRepository: repository,
     remoteDataSource: remoteDataSource,
     connectivityService: connectivity,
+    cloudinaryService: cloudinary,
   );
 });
 
