@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 
 import 'package:flutter_teste_1/features/report_form/data/datasources/report_local_datasource.dart';
 import 'package:flutter_teste_1/features/report_form/data/models/collaborator_model.dart';

@@ -1,4 +1,4 @@
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 import '../../domain/entities/work_order_entity.dart';
 
 part 'work_order_model.g.dart';
