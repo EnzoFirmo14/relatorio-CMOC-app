@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:workmanager/workmanager.dart';
 
 import '../../../../core/services/connectivity_service.dart';
 import '../../../../core/services/cloudinary_service.dart';
@@ -149,6 +151,19 @@ class SyncController extends StateNotifier<SyncState> {
         hasError: pending.any((r) => r.syncStatus.name == 'error'),
         lastSyncTime: synced > 0 ? DateTime.now() : state.lastSyncTime,
       );
+
+      // Se houver pendências não sincronizadas, agenda uma tarefa imediata em segundo plano
+      if (pending.isNotEmpty && !kIsWeb) {
+        try {
+          await Workmanager().registerOneOffTask(
+            'sync-oneoff-${DateTime.now().millisecondsSinceEpoch}',
+            'sync-task',
+            constraints: Constraints(
+              networkType: NetworkType.connected,
+            ),
+          );
+        } catch (_) {}
+      }
     } catch (_) {
       state = state.copyWith(isSyncing: false, hasError: true);
     }
