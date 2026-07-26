@@ -54,6 +54,8 @@ class WorkOrderCard extends StatelessWidget {
   }
 
   void _showMaterialsDialog(BuildContext context) {
+    final List<String> tempMaterials = List<String>.from(os.materialsUsed);
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -72,7 +74,7 @@ class WorkOrderCard extends StatelessWidget {
                   itemCount: AppConstants.matOptions.length,
                   itemBuilder: (context, index) {
                     final mat = AppConstants.matOptions[index];
-                    final isChecked = os.materialsUsed.contains(mat);
+                    final isChecked = tempMaterials.contains(mat);
                     return CheckboxListTile(
                       title: Text(
                         mat,
@@ -81,14 +83,14 @@ class WorkOrderCard extends StatelessWidget {
                       value: isChecked,
                       activeColor: AppTheme.primaryPurple,
                       onChanged: (bool? val) {
-                        final List<String> updatedList = List<String>.from(os.materialsUsed);
-                        if (val == true) {
-                          updatedList.add(mat);
-                        } else {
-                          updatedList.remove(mat);
-                        }
-                        setStateDialog(() {});
-                        onUpdate(os.copyWith(materialsUsed: updatedList));
+                        setStateDialog(() {
+                          if (val == true) {
+                            tempMaterials.add(mat);
+                          } else {
+                            tempMaterials.remove(mat);
+                          }
+                        });
+                        onUpdate(os.copyWith(materialsUsed: List<String>.from(tempMaterials)));
                       },
                     );
                   },
