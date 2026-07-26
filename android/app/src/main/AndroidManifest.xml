@@ -4,7 +4,7 @@
     <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
 
     <application
-        android:label="flutter_teste_1"
+        android:label="InfraLog CMOC (beta)"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
