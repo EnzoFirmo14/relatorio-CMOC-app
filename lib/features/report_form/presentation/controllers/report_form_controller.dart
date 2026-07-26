@@ -307,9 +307,6 @@ class ReportFormController extends Notifier<ReportFormState> {
       if (os.activities.trim().isEmpty) {
         errors.add('${prefix}Atividades realizadas não preenchidas');
       }
-      if (os.status.isEmpty) {
-        errors.add('${prefix}Status não selecionado');
-      }
       if (os.startTime.isEmpty) {
         errors.add('${prefix}Horário de Início não preenchido');
       }

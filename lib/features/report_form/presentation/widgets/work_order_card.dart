@@ -467,29 +467,7 @@ class WorkOrderCard extends StatelessWidget {
                 ],
                 const SizedBox(height: 12),
 
-                // 6. Status da OS
-                const Text(
-                  'STATUS *',
-                  style: TextStyle(
-                    fontFamily: 'monospace',
-                    fontSize: 10.0,
-                    fontWeight: FontWeight.w700,
-                    color: AppTheme.accentPurple,
-                    letterSpacing: 1.0,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                DropdownButtonFormField<String>(
-                  initialValue: os.status.isEmpty ? null : os.status,
-                  decoration: const InputDecoration(hintText: '— Selecione —'),
-                  items: AppConstants.statusOptions.map((opt) {
-                    return DropdownMenuItem(value: opt, child: Text(opt));
-                  }).toList(),
-                  onChanged: (val) {
-                    onUpdate(os.copyWith(status: val ?? ''));
-                  },
-                ),
-                const SizedBox(height: 14),
+
 
                 // 6.5. Fotos / Anexos
                 const Text(
