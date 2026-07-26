@@ -12,6 +12,7 @@ import 'features/sync/domain/services/sync_service.dart';
 import 'features/report_form/data/repositories/report_repository_impl.dart';
 import 'features/report_form/data/datasources/report_local_datasource.dart';
 import 'features/sync/data/datasources/report_remote_datasource.dart';
+import 'features/sync/presentation/controllers/sync_controller.dart';
 import 'firebase_options.dart';
 
 @pragma('vm:entry-point')
@@ -103,11 +104,14 @@ Future<void> main() async {
 }
 
 
-class MyApp extends StatelessWidget {
+class MyApp extends ConsumerWidget {
   const MyApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Eagerly initialize SyncController on app startup
+    ref.watch(syncControllerProvider);
+
     return MaterialApp(
       title: 'InfraLog CMOC (beta)',
       theme: AppTheme.lightTheme,

@@ -110,7 +110,11 @@ class SyncController extends StateNotifier<SyncState> {
 
     final online = await connectivityService.checkHasInternet();
     state = state.copyWith(isOnline: online);
-    refreshPendingCount();
+    if (online) {
+      triggerSync();
+    } else {
+      refreshPendingCount();
+    }
 
     // Inicia escuta automática
     syncService.initAutoSyncListener(onSyncCompleted: (_) {
