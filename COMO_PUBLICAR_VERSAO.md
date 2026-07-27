@@ -81,3 +81,16 @@ Acesse o Console do Firebase, abra o **Firestore Database** e selecione a coleç
 * **Fluxo de Atualização**: Quando o operador clica para abrir o app, o `LauncherPage` (Splash) faz a checagem com o Firestore. Se encontrar uma versão com `build_number` maior do que a instalada localmente, o app **inicia o download na hora**, mostrando o progresso em `%`.
 * **Sem interrupção para Offline**: Se o dispositivo estiver offline (ex: no subsolo da mina) ou se ocorrer algum erro na rede, o app ultrapassa o check em 1 segundo e abre a tela de login normalmente, sem travar o operador.
 * **Modo Desenvolvedor**: O botão de preenchimento automático de teste (raio) é oculto. Para mostrá-lo, **toque 5 vezes seguidas no logotipo da CMOC** no topo esquerdo do AppBar.
+
+---
+
+## 💡 Dica de Ouro: Instalação Inicial Sem Dores
+
+Para que os operadores leigos nunca vejam a tela de instrução solicitando que ativem fontes desconhecidas para o aplicativo CMOC, quem estiver realizando a configuração inicial no dispositivo (supervisor ou TI) pode conceder essa permissão imediatamente após a primeira instalação manual do APK:
+
+1. Logo após instalar o primeiro APK no celular do colaborador, abra as **Configurações** do Android.
+2. Acesse **Aplicativos** > procure por **Relatório CMOC** (ou *CMOC*).
+3. Role a tela até a opção **Instalar apps desconhecidos** (ou *Instalar fontes desconhecidas*).
+4. **Ative a chave para "Permitir desta fonte"**.
+
+Fazendo isso no primeiro dia de setup, o aplicativo CMOC já terá autorização prévia do Android e **todas as futuras atualizações serão baixadas e instaladas de forma 100% invisível e automática para os colaboradores!**
