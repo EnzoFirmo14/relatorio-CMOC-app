@@ -60,7 +60,7 @@ class _ReportFormPageState extends ConsumerState<ReportFormPage> {
                 const SizedBox(height: 4),
                 TextFormField(
                   controller: numController,
-                  decoration: const InputDecoration(hintText: 'Ex: OS-042'),
+                  decoration: const InputDecoration(hintText: 'Ex: OS-003'),
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) return 'Número é obrigatório';
                     return null;
@@ -75,7 +75,7 @@ class _ReportFormPageState extends ConsumerState<ReportFormPage> {
                 TextFormField(
                   controller: locController,
                   textCapitalization: TextCapitalization.sentences,
-                  decoration: const InputDecoration(hintText: 'Ex: Bomba B-04'),
+                  decoration: const InputDecoration(hintText: 'Ex: PT-305'),
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) return 'Local é obrigatório';
                     return null;
@@ -483,7 +483,7 @@ class _ReportFormPageState extends ConsumerState<ReportFormPage> {
                               const SizedBox(height: 4),
                               TextFormField(
                                 initialValue: state.globalLocation,
-                                decoration: const InputDecoration(hintText: 'Ex: Galeria Norte, Poço 3...'),
+                                decoration: const InputDecoration(hintText: 'Ex: Corpo E, Frente ER4AC09...'),
                                 onChanged: controller.setGlobalLocation,
                               ),
                               const SizedBox(height: 12),
