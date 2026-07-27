@@ -91,31 +91,7 @@ class _LauncherPageState extends ConsumerState<LauncherPage> {
     } else if (state.status == AppUpdateStatus.readyToInstall) {
       if (!state.hasInstallPermission) {
         statusText = 'Permissão de instalação necessária';
-        progressWidget = Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 32.0),
-          child: Column(
-            children: [
-              Text(
-                'Para concluir a instalação da nova versão, habilite a permissão de fontes desconhecidas para este aplicativo.',
-                textAlign: TextAlign.center,
-                style: GoogleFonts.inter(fontSize: 13, color: mutedTextColor),
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton.icon(
-                onPressed: () => controller.requestPermission(),
-                icon: const Icon(Icons.settings_suggest_rounded, size: 18),
-                label: const Text('Dar Permissão nas Configurações'),
-              ),
-              if (!isMandatory) ...[
-                const SizedBox(height: 8),
-                TextButton(
-                  onPressed: () => Navigator.pushReplacementNamed(context, '/login'),
-                  child: const Text('Pular e Entrar no App'),
-                ),
-              ],
-            ],
-          ),
-        );
+        progressWidget = _buildPermissionTutorial(context, controller, mutedTextColor, isDark, isMandatory);
       } else {
         statusText = 'Pronto para instalar!';
         progressWidget = Padding(
@@ -237,5 +213,109 @@ class _LauncherPageState extends ConsumerState<LauncherPage> {
     } catch (_) {
       return '';
     }
+  }
+
+  Widget _buildPermissionTutorial(BuildContext context, dynamic controller, Color mutedTextColor, bool isDark, bool isMandatory) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24.0),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Instrução Passo a Passo:',
+                  style: GoogleFonts.inter(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                    color: isDark ? Colors.white : Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                _buildTutorialStep(
+                  '1',
+                  'Toque no botão verde "Dar Permissão nas Configurações" abaixo.',
+                  isDark,
+                ),
+                const SizedBox(height: 8),
+                _buildTutorialStep(
+                  '2',
+                  'Ative a opção "Permitir desta fonte" (ou marque a chave ao lado do logotipo da CMOC).',
+                  isDark,
+                ),
+                const SizedBox(height: 8),
+                _buildTutorialStep(
+                  '3',
+                  'Clique no botão de voltar do seu celular para retornar a esta tela e concluir.',
+                  isDark,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton.icon(
+            onPressed: () => controller.requestPermission(),
+            icon: const Icon(Icons.security, size: 18),
+            label: const Text('Dar Permissão nas Configurações'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.cmocGreen,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            ),
+          ),
+          if (!isMandatory) ...[
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: () => Navigator.pushReplacementNamed(context, '/login'),
+              child: const Text('Pular e Entrar no App'),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTutorialStep(String number, String text, bool isDark) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 22,
+          height: 22,
+          alignment: Alignment.center,
+          decoration: const BoxDecoration(
+            color: AppTheme.primaryBlue,
+            shape: BoxShape.circle,
+          ),
+          child: Text(
+            number,
+            style: GoogleFonts.inter(
+              color: Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            text,
+            style: GoogleFonts.inter(
+              fontSize: 13,
+              height: 1.3,
+              color: isDark ? AppTheme.textLight : AppTheme.textDark,
+            ),
+          ),
+        ),
+      ],
+    );
   }
 }
