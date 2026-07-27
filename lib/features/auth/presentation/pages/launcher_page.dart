@@ -5,6 +5,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import '../../../../core/services/app_update_controller.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/cmoc_logo.dart';
+import '../../../sync/presentation/controllers/sync_controller.dart';
 
 class LauncherPage extends ConsumerStatefulWidget {
   const LauncherPage({super.key});
@@ -23,6 +24,9 @@ class _LauncherPageState extends ConsumerState<LauncherPage> {
   }
 
   void _startCheck() {
+    // Tenta sincronizar relatórios pendentes silenciosamente em segundo plano
+    ref.read(syncControllerProvider.notifier).triggerSync();
+
     ref.read(appUpdateControllerProvider.notifier).runAutomaticUpdateFlow(
       onNoUpdate: () {
         // Sem atualizações ou concluído: redireciona para a página de login
