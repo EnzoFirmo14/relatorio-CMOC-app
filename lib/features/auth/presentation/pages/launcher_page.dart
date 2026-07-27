@@ -182,7 +182,7 @@ class _LauncherPageState extends ConsumerState<LauncherPage> {
                     // Logotipo CMOC centralizado
                     const CmocLogo(
                       showSubtitle: true,
-                      sizeMultiplier: 1.5,
+                      height: 54.0,
                     ),
                     const SizedBox(height: 48),
                     
