@@ -12,9 +12,30 @@ import '../widgets/work_order_card.dart';
 import '../../../sync/presentation/widgets/sync_status_badge.dart';
 import '../../../sync/presentation/controllers/sync_controller.dart';
 import '../../../../core/widgets/cmoc_logo.dart';
+import '../../../../core/services/app_update_controller.dart';
+import '../../../../core/widgets/app_update_dialog.dart';
 
-class ReportFormPage extends ConsumerWidget {
+final devModeProvider = StateProvider<bool>((ref) => false);
+
+class ReportFormPage extends ConsumerStatefulWidget {
   const ReportFormPage({super.key});
+
+  @override
+  ConsumerState<ReportFormPage> createState() => _ReportFormPageState();
+}
+
+class _ReportFormPageState extends ConsumerState<ReportFormPage> {
+  int _logoTapCount = 0;
+  DateTime? _lastTapTime;
+
+  @override
+  void initState() {
+    super.initState();
+    // Verifica atualizações em segundo plano após renderizar a tela
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(appUpdateControllerProvider.notifier).checkForUpdate();
+    });
+  }
 
   void _showNewOSDialog(BuildContext context, ReportFormController controller) {
     final numController = TextEditingController(text: controller.getNextOSNumber());
@@ -105,7 +126,17 @@ class ReportFormPage extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
+    // Escuta alterações de estado para exibir o modal de atualização
+    ref.listen<AppUpdateState>(appUpdateControllerProvider, (previous, next) {
+      if (next.status == AppUpdateStatus.updateAvailable) {
+        AppUpdateDialog.show(
+          context,
+          isMandatory: next.updateInfo?.isMandatory ?? false,
+        );
+      }
+    });
+
     final state = ref.watch(reportFormControllerProvider);
     final syncState = ref.watch(syncControllerProvider);
     final controller = ref.read(reportFormControllerProvider.notifier);
@@ -119,23 +150,52 @@ class ReportFormPage extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const CmocLogo(showSubtitle: true),
+        title: GestureDetector(
+          onTap: () {
+            final now = DateTime.now();
+            if (_lastTapTime == null || now.difference(_lastTapTime!) > const Duration(seconds: 2)) {
+              _logoTapCount = 1;
+            } else {
+              _logoTapCount++;
+            }
+            _lastTapTime = now;
+            
+            if (_logoTapCount == 5) {
+              final currentDev = ref.read(devModeProvider);
+              ref.read(devModeProvider.notifier).state = !currentDev;
+              _logoTapCount = 0;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    !currentDev 
+                        ? '🚀 Modo Desenvolvedor Ativado!' 
+                        : '🔒 Modo Desenvolvedor Desativado!'
+                  ),
+                  backgroundColor: !currentDev ? AppTheme.cmocGreen : AppTheme.accentBlue,
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+            }
+          },
+          child: const CmocLogo(showSubtitle: true),
+        ),
         actions: [
           const SyncStatusBadge(),
           const SizedBox(width: 4),
-          IconButton(
-            icon: const Icon(Icons.bolt, color: AppTheme.accentPurple),
-            tooltip: 'Preencher Automático (Testes)',
-            onPressed: () {
-              controller.fillMockData();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Formulário preenchido com dados de teste!'),
-                  duration: Duration(seconds: 2),
-                ),
-              );
-            },
-          ),
+          if (ref.watch(devModeProvider))
+            IconButton(
+              icon: const Icon(Icons.bolt, color: AppTheme.accentPurple),
+              tooltip: 'Preencher Automático (Testes)',
+              onPressed: () {
+                controller.fillMockData();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Formulário preenchido com dados de teste!'),
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+              },
+            ),
           IconButton(
             icon: const Icon(Icons.history_rounded),
             onPressed: () {

@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
@@ -307,6 +308,9 @@ class ReportFormController extends Notifier<ReportFormState> {
       if (os.activities.trim().isEmpty) {
         errors.add('${prefix}Atividades realizadas não preenchidas');
       }
+      if (os.status.isEmpty) {
+        errors.add('${prefix}Status não selecionado');
+      }
       if (os.startTime.isEmpty) {
         errors.add('${prefix}Horário de Início não preenchido');
       }
@@ -439,50 +443,178 @@ class ReportFormController extends Notifier<ReportFormState> {
   }
 
   void fillMockData() {
-    state = state.copyWith(
-      date: DateTime.now(),
-      shift: AppConstants.shiftOptions.isNotEmpty ? AppConstants.shiftOptions.first : 'T1',
-      team: AppConstants.teamOptions.isNotEmpty ? AppConstants.teamOptions.first : 'A',
-      globalEquipment: AppConstants.equipOptions.isNotEmpty ? AppConstants.equipOptions.first : 'PT302',
-      globalLocation: 'Frente de Lavra 01',
-      fuelLevel: 75.0,
-      availableMaterials: 'Duto de 800, Abraçadeira de 110',
-      observations: 'Operação realizada com sucesso. Sem intercorrências.',
-      operators: [
+    final rand = Random();
+    
+    // Lista de Turnos e Turmas aleatórias
+    final shift = AppConstants.shiftOptions.isNotEmpty 
+        ? AppConstants.shiftOptions[rand.nextInt(AppConstants.shiftOptions.length)] 
+        : 'T1';
+    final team = AppConstants.teamOptions.isNotEmpty 
+        ? AppConstants.teamOptions[rand.nextInt(AppConstants.teamOptions.length)] 
+        : 'A';
+        
+    // Lista de Equipamentos
+    final equip = AppConstants.equipOptions.isNotEmpty 
+        ? AppConstants.equipOptions[rand.nextInt(AppConstants.equipOptions.length)] 
+        : 'PT302';
+        
+    // Locais Aleatórios
+    final locations = [
+      'Galeria Norte - Setor 3',
+      'Frente de Lavra 02',
+      'Rampa de Acesso Principal',
+      'Poço de Ventilação 04',
+      'Subestação de Energia Leste',
+      'Painel 12 - Nível 300',
+      'Galeria de Transporte 08',
+      'Frente de Perfuração Norte'
+    ];
+    final globalLoc = locations[rand.nextInt(locations.length)];
+    
+    // Nível de Combustível aleatório (passos de 5% entre 30% e 100%)
+    final fuel = (30 + rand.nextInt(15) * 5).toDouble();
+    
+    // Materiais aleatórios
+    final materialsList = [
+      'Duto de 800, Abraçadeira de 110',
+      'Duto de 1000, Corrente de fixação',
+      'Abraçadeiras de aço 80, Duto de 600',
+      'Cabos elétricos 16mm, Caixa de passagem',
+      'Válvula hidráulica 2 polegadas, Fita veda-rosca'
+    ];
+    final availMats = materialsList[rand.nextInt(materialsList.length)];
+    
+    // Observações aleatórias
+    final observationsList = [
+      'Tudo operacional. Equipamento testado e liberado.',
+      'Aguardando reabastecimento de dutos extras no almoxarifado.',
+      'A manutenção programada correu bem. Sem vazamentos observados.',
+      'Substituição de dutos concluída. Pressão de ar normalizada.',
+      'Alinhamento de correia de transmissão realizado pela equipe de apoio.',
+      'Pequena infiltração no teto da galeria reportada ao supervisor.'
+    ];
+    final obs = observationsList[rand.nextInt(observationsList.length)];
+    
+    // Operadores Consolidados aleatórios
+    final candidates = getConsolidatedCollaborators();
+    List<OperatorState> ops = [];
+    if (candidates.length >= 2) {
+      final selectedIndices = <int>{};
+      while (selectedIndices.length < 2) {
+        selectedIndices.add(rand.nextInt(candidates.length));
+      }
+      for (final idx in selectedIndices) {
+        final c = candidates.elementAt(idx);
+        ops.add(OperatorState(name: c['nome'] ?? '', registration: c['mat'] ?? ''));
+      }
+    } else {
+      ops = [
         const OperatorState(name: 'Acacio Oliveira Souza', registration: '4786'),
         const OperatorState(name: 'Adailton Silva Santos', registration: '99300599'),
+      ];
+    }
+    
+    // Ordens de Serviço aleatórias (1 a 3 OSs)
+    final numOSs = 1 + rand.nextInt(3);
+    final List<WorkOrderState> wos = [];
+    
+    final osTypes = ['Avanço', 'Corretiva', 'Preventiva', 'Inspeção'];
+    final osCauses = {
+      'Avanço': ['Avanço de Tubulação', 'Extensão de Rede', 'Nova Instalação'],
+      'Corretiva': ['Tubo Danificado', 'Vazamento de Pressão', 'Ruptura de Fixador'],
+      'Preventiva': ['Revisão Periódica', 'Ajuste de Alinhamento', 'Lubrificação Geral'],
+      'Inspeção': ['Medição de Vazão', 'Análise Térmica', 'Verificação Visual']
+    };
+    final osActivities = {
+      'Avanço': [
+        'Instalação de dutos de ventilação adicionais.',
+        'Extensão da tubulação pneumática principal.',
+        'Montagem de novo ramal de exaustão.'
       ],
-      workOrders: [
-        const WorkOrderState(
-          id: 'os-1',
-          number: 'OS-001',
-          location: 'Galeria Norte',
-          maintenanceType: 'Avanço',
-          cause: 'Avanço de Tubulação',
-          activities: 'Instalação de 3 tubos de ventilação adicionais.',
-          materialsUsed: ['Duto de 800', 'Abraçadeira Comum'],
-          quantityMeters: '18',
-          quantityPieces: '3',
-          startTime: '08:00',
-          endTime: '10:30',
-          status: 'Liberado',
-        ),
-        const WorkOrderState(
-          id: 'os-2',
-          number: 'OS-002',
-          location: 'Poço 3',
-          maintenanceType: 'Corretiva',
-          cause: 'Tubo Danificado',
-          activities: 'Substituição de duto rasgado por um novo.',
-          materialsUsed: ['Duto de 1000', 'Corrente'],
-          quantityMeters: '6',
-          quantityPieces: '1',
-          startTime: '13:00',
-          endTime: '14:15',
-          status: 'Corrigido',
-        ),
+      'Corretiva': [
+        'Substituição de trecho de duto rasgado.',
+        'Troca de abraçadeiras quebradas e re-fixação do duto.',
+        'Vedação de juntas de união com fita de alta pressão.'
       ],
-      osCounter: 2,
+      'Preventiva': [
+        'Ajuste das correntes de sustentação ao longo da rampa.',
+        'Troca preventiva de vedantes de acoplamento.',
+        'Aperto geral de suportes e conexões.'
+      ],
+      'Inspeção': [
+        'Medição de pressão e vazão nas saídas do duto.',
+        'Inspeção por ultrassom na linha principal.',
+        'Verificação de nível de acúmulo de poeira nos filtros.'
+      ]
+    };
+    
+    final mockPhotos = [
+      'https://picsum.photos/id/84/300/300',
+      'https://picsum.photos/id/102/300/300',
+      'https://picsum.photos/id/292/300/300',
+      'https://picsum.photos/id/1043/300/300',
+      'https://picsum.photos/id/1062/300/300'
+    ];
+    
+    for (int i = 0; i < numOSs; i++) {
+      final type = osTypes[rand.nextInt(osTypes.length)];
+      final causes = osCauses[type] ?? ['Geral'];
+      final cause = causes[rand.nextInt(causes.length)];
+      final acts = osActivities[type] ?? ['Inspeção padrão.'];
+      final act = acts[rand.nextInt(acts.length)];
+      
+      final currentCounter = state.osCounter + i + 1;
+      final osNum = 'OS-${currentCounter.toString().padLeft(3, '0')}';
+      
+      // Fotos aleatórias para a OS (1 a 2 fotos por OS)
+      final numPhotos = 1 + rand.nextInt(2);
+      final List<String> osPhotos = [];
+      final photoIndices = <int>{};
+      while (photoIndices.length < numPhotos) {
+        photoIndices.add(rand.nextInt(mockPhotos.length));
+      }
+      for (final idx in photoIndices) {
+        osPhotos.add(mockPhotos[idx]);
+      }
+      
+      // Horários
+      final startHour = 7 + rand.nextInt(8);
+      final startMin = rand.nextBool() ? '00' : '30';
+      final endHour = startHour + 1 + rand.nextInt(3);
+      final endMin = rand.nextBool() ? '00' : '30';
+      
+      // Materiais utilizados
+      final matOption = AppConstants.matOptions.isNotEmpty ? AppConstants.matOptions[rand.nextInt(AppConstants.matOptions.length)] : 'Duto de 800';
+      
+      wos.add(WorkOrderState(
+        id: 'os-$currentCounter',
+        number: osNum,
+        location: locations[rand.nextInt(locations.length)],
+        maintenanceType: type,
+        cause: cause,
+        activities: act,
+        materialsUsed: [matOption],
+        quantityMeters: (5 + rand.nextInt(20)).toString(),
+        quantityPieces: (1 + rand.nextInt(4)).toString(),
+        startTime: '$startHour:$startMin',
+        endTime: '$endHour:$endMin',
+        status: rand.nextBool() ? 'Liberado' : 'Concluído',
+        photoPaths: osPhotos,
+      ));
+    }
+    
+    state = state.copyWith(
+      date: DateTime.now(),
+      shift: shift,
+      team: team,
+      globalEquipment: equip,
+      globalLocation: globalLoc,
+      fuelLevel: fuel,
+      availableMaterials: availMats,
+      observations: obs,
+      operators: ops,
+      workOrders: wos,
+      osCounter: state.osCounter + numOSs,
     );
     _autosave();
   }
