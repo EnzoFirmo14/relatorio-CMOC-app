@@ -31,10 +31,6 @@ class _ReportFormPageState extends ConsumerState<ReportFormPage> {
   @override
   void initState() {
     super.initState();
-    // Verifica atualizações em segundo plano após renderizar a tela
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(appUpdateControllerProvider.notifier).checkForUpdate();
-    });
   }
 
   void _showNewOSDialog(BuildContext context, ReportFormController controller) {
@@ -127,16 +123,6 @@ class _ReportFormPageState extends ConsumerState<ReportFormPage> {
 
   @override
   Widget build(BuildContext context) {
-    // Escuta alterações de estado para exibir o modal de atualização
-    ref.listen<AppUpdateState>(appUpdateControllerProvider, (previous, next) {
-      if (next.status == AppUpdateStatus.updateAvailable) {
-        AppUpdateDialog.show(
-          context,
-          isMandatory: next.updateInfo?.isMandatory ?? false,
-        );
-      }
-    });
-
     final state = ref.watch(reportFormControllerProvider);
     final syncState = ref.watch(syncControllerProvider);
     final controller = ref.read(reportFormControllerProvider.notifier);

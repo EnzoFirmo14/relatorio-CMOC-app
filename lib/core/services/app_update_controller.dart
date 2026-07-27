@@ -55,6 +55,84 @@ class AppUpdateNotifier extends StateNotifier<AppUpdateState> {
 
   AppUpdateNotifier(this._service) : super(AppUpdateState(status: AppUpdateStatus.idle));
 
+  /// Inicia o fluxo de atualização automático no splash screen (estilo Steam).
+  Future<void> runAutomaticUpdateFlow({
+    required void Function() onNoUpdate,
+    required void Function() onPermissionRequired,
+  }) async {
+    state = state.copyWith(status: AppUpdateStatus.checking);
+    try {
+      final updateInfo = await _service.checkForUpdate();
+      if (updateInfo == null) {
+        onNoUpdate();
+        return;
+      }
+
+      // Se encontrou nova versão, inicia o download imediatamente sem exibir notas
+      state = AppUpdateState(
+        status: AppUpdateStatus.downloading,
+        updateInfo: updateInfo,
+        downloadProgress: 0.0,
+      );
+
+      final file = await _service.downloadApk(
+        updateInfo.apkUrl,
+        onProgress: (progress) {
+          state = state.copyWith(downloadProgress: progress);
+        },
+      );
+
+      state = state.copyWith(status: AppUpdateStatus.validating);
+
+      final isValid = await _service.validateIntegrity(file, updateInfo.sha256);
+      if (!isValid) {
+        state = state.copyWith(
+          status: AppUpdateStatus.error,
+          errorMessage: 'Falha na validação de integridade. O arquivo pode ter sido corrompido.',
+        );
+        // Prossegue para o app se não for obrigatório
+        if (!updateInfo.isMandatory) {
+          await Future.delayed(const Duration(seconds: 2));
+          onNoUpdate();
+        }
+        return;
+      }
+
+      final hasPerm = await _service.checkInstallPermission();
+      state = state.copyWith(
+        status: AppUpdateStatus.readyToInstall,
+        downloadedFile: file,
+        hasInstallPermission: hasPerm,
+      );
+
+      if (hasPerm) {
+        state = state.copyWith(status: AppUpdateStatus.installing);
+        final success = await _service.installApk(file.path);
+        if (!success) {
+          state = state.copyWith(
+            status: AppUpdateStatus.error,
+            errorMessage: 'Falha ao iniciar o instalador do Android.',
+          );
+          if (!updateInfo.isMandatory) {
+            await Future.delayed(const Duration(seconds: 2));
+            onNoUpdate();
+          }
+        }
+      } else {
+        onPermissionRequired();
+      }
+    } catch (e) {
+      debugPrint('[AppUpdateNotifier] Erro no fluxo de atualizacao automatica: $e');
+      state = AppUpdateState(
+        status: AppUpdateStatus.error,
+        errorMessage: 'Sem conexao ou falha de rede.',
+      );
+      // Se der qualquer erro (offlines por exemplo), libera a entrada no app
+      await Future.delayed(const Duration(seconds: 1));
+      onNoUpdate();
+    }
+  }
+
   /// Inicia a busca por nova versão.
   Future<void> checkForUpdate() async {
     // Evita múltiplas requisições simultâneas
