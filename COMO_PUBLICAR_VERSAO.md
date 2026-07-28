@@ -30,10 +30,22 @@ version: 1.0.1+3
 ---
 
 ### Passo 2: Compilar o APK de Produção
-No terminal da raiz do seu projeto Flutter, gere o executável otimizado em modo release:
+
+> ⚠️ **IMPORTANTE**: Sempre use os flags `--build-name` e `--build-number` explicitamente. Sem eles, o Gradle pode usar o versionCode em cache e embutir um número de versão errado no APK, causando loop de atualização nos dispositivos.
+
+No terminal da raiz do projeto Flutter, execute:
 ```bash
-flutter build apk --release
+flutter build apk --release --build-name=1.0.0 --build-number=5
 ```
+Substitua `1.0.0` e `5` pelos valores da versão atual do [pubspec.yaml](file:///c:/Users/Enzo/Documents/Projetos/Flutter/relatorio-CMOC-app/pubspec.yaml).
+
+**Verifique sempre** se o versionCode foi gravado corretamente no APK antes de publicar:
+```powershell
+$aapt = Get-ChildItem "$env:LOCALAPPDATA\Android\Sdk\build-tools" -Filter "aapt.exe" -Recurse | Sort-Object LastWriteTime -Descending | Select-Object -First 1 -ExpandProperty FullName
+& $aapt dump badging "build\app\outputs\flutter-apk\app-release.apk" | Select-String "versionCode"
+```
+O resultado deve mostrar `versionCode='5'` (ou o número correto da versão).
+
 O arquivo APK assinado será gerado no caminho:
 📁 `build/app/outputs/flutter-apk/app-release.apk`
 
