@@ -55,3 +55,7 @@ app.*.map.json
 # Node and web
 node_modules/
 .env
+
+# Keystore de producao - NUNCA versionar
+android/app/*.keystore
+android/app/*.jks
