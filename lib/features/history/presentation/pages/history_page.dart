@@ -17,11 +17,10 @@ class HistoryPage extends ConsumerWidget {
     final formController = ref.read(reportFormControllerProvider.notifier);
 
     return Scaffold(
-      backgroundColor: AppTheme.backgroundLight,
       appBar: AppBar(
         title: const CmocLogo(showSubtitle: true),
-        backgroundColor: Colors.white,
-        foregroundColor: AppTheme.textDark,
+        backgroundColor: AppTheme.cardBg(context),
+        foregroundColor: AppTheme.textPrimary(context),
       ),
       body: Column(
         children: [
