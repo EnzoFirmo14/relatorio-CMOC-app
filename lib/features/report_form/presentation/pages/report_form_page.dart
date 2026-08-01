@@ -235,20 +235,24 @@ class _ReportFormPageState extends ConsumerState<ReportFormPage> {
                             children: [
                               // Campo Data
                               ListTile(
-                                title: const Text(
+                                title: Text(
                                   'DATA',
                                   style: TextStyle(
                                     fontFamily: 'monospace',
                                     fontSize: 10,
                                     fontWeight: FontWeight.bold,
-                                    color: AppTheme.accentPurple,
+                                    color: AppTheme.accent(context),
                                   ),
                                 ),
                                 subtitle: Text(
                                   '${state.date.day.toString().padLeft(2, '0')}/${state.date.month.toString().padLeft(2, '0')}/${state.date.year}',
-                                  style: const TextStyle(fontSize: 16, color: AppTheme.textDark),
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppTheme.textPrimary(context),
+                                  ),
                                 ),
-                                trailing: const Icon(Icons.calendar_month),
+                                trailing: Icon(Icons.calendar_month, color: AppTheme.primary(context)),
                                 onTap: () async {
                                   final DateTime? picked = await showDatePicker(
                                     context: context,
@@ -687,7 +691,7 @@ class _ReportFormPageState extends ConsumerState<ReportFormPage> {
                                   Expanded(
                                     child: Text(
                                       state.validationErrors[index],
-                                      style: const TextStyle(fontSize: 13, color: AppTheme.textDark),
+                                      style: TextStyle(fontSize: 13, color: AppTheme.textPrimary(context)),
                                     ),
                                   ),
                                 ],

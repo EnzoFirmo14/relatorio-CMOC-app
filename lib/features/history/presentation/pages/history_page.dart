@@ -202,21 +202,21 @@ class HistoryPage extends ConsumerWidget {
                       runSpacing: 4,
                       crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
-                        const Icon(Icons.calendar_today, size: 14, color: AppTheme.textMuted),
+                        Icon(Icons.calendar_today, size: 14, color: AppTheme.primary(context)),
                         Text(
                           dateStr,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 13,
-                            color: AppTheme.textDark,
+                            color: AppTheme.textPrimary(context),
                           ),
                         ),
                         if (report.shift.isNotEmpty || report.team.isNotEmpty)
                           Text(
                             '•  Turno ${report.shift} • Turma ${report.team}',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12,
-                              color: AppTheme.textMuted,
+                              color: AppTheme.textMutedColor(context),
                             ),
                           ),
                       ],
