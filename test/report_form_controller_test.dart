@@ -128,12 +128,11 @@ void main() {
     errors = controller.validateForm();
     expect(errors, isNot(contains('Informe pelo menos um Executante')));
 
-    // Adiciona OS vazia -> deve dar erros de tipo de manutencao, atividades, status e horario inicio
+    // Adiciona OS vazia -> deve dar erros de tipo de manutencao, atividades e horario inicio
     controller.addWorkOrder('Bomba B-04', 'OS-001');
     errors = controller.validateForm();
     expect(errors, contains('OS OS-001: Tipo de Manutenção não selecionado'));
     expect(errors, contains('OS OS-001: Atividades realizadas não preenchidas'));
-    expect(errors, contains('OS OS-001: Status não selecionado'));
     expect(errors, contains('OS OS-001: Horário de Início não preenchido'));
 
     // Turno noturno (ex: 22:00 as 06:00) deve ser valido e calcular 8h
@@ -204,7 +203,6 @@ void main() {
     expect(formattedText, contains('*Qtd. Metros:* 15m'));
     expect(formattedText, contains('*Qtd. Peças:* 2'));
     expect(formattedText, contains('*Início:* 08:00  |  *Término:* 09:30'));
-    expect(formattedText, contains('*Status:* Liberado'));
     expect(formattedText, contains('*Equipamento:* PT302'));
     expect(formattedText, contains('*Local:* Galeria Norte'));
     expect(formattedText, contains('*Nível Combustível:* 75%'));

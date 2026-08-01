@@ -308,9 +308,6 @@ class ReportFormController extends Notifier<ReportFormState> {
       if (os.activities.trim().isEmpty) {
         errors.add('${prefix}Atividades realizadas não preenchidas');
       }
-      if (os.status.isEmpty) {
-        errors.add('${prefix}Status não selecionado');
-      }
       if (os.startTime.isEmpty) {
         errors.add('${prefix}Horário de Início não preenchido');
       }
@@ -389,9 +386,6 @@ class ReportFormController extends Notifier<ReportFormState> {
           final end =
               os.endTime.isNotEmpty ? '  |  *Término:* ${os.endTime}' : '';
           lines.add('*Início:* ${os.startTime}$end');
-        }
-        if (os.status.isNotEmpty) {
-          lines.add('*Status:* ${os.status}');
         }
         if (os.activities.isEmpty && mats.isEmpty) {
           lines.add('_(sem descrição)_');

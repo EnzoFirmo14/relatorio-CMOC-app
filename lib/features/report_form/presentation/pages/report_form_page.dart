@@ -317,16 +317,16 @@ class _ReportFormPageState extends ConsumerState<ReportFormPage> {
                                               height: 48,
                                               alignment: Alignment.center,
                                               decoration: BoxDecoration(
-                                                color: AppTheme.primaryPurple.withValues(alpha: 0.08),
+                                                color: AppTheme.primary(context).withValues(alpha: 0.12),
                                                 borderRadius: BorderRadius.circular(8),
-                                                border: Border.all(color: AppTheme.borderLight),
+                                                border: Border.all(color: AppTheme.border(context)),
                                               ),
                                               child: Text(
                                                 op.registration.isEmpty ? 'Matrícula' : op.registration,
-                                                style: const TextStyle(
+                                                style: TextStyle(
                                                   fontFamily: 'monospace',
                                                   fontWeight: FontWeight.bold,
-                                                  color: AppTheme.primaryPurple,
+                                                  color: AppTheme.primary(context),
                                                   fontSize: 13,
                                                 ),
                                               ),
@@ -353,7 +353,7 @@ class _ReportFormPageState extends ConsumerState<ReportFormPage> {
                                   child: OutlinedButton(
                                     onPressed: () => _showAddColabDialog(context, controller),
                                     style: OutlinedButton.styleFrom(
-                                      side: const BorderSide(color: AppTheme.borderLight),
+                                      side: BorderSide(color: AppTheme.border(context)),
                                     ),
                                     child: const Text('➕ Cadastrar Colaborador'),
                                   ),
@@ -371,13 +371,13 @@ class _ReportFormPageState extends ConsumerState<ReportFormPage> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
+                              Text(
                                 'TURNO',
                                 style: TextStyle(
                                   fontFamily: 'monospace',
                                   fontSize: 10,
                                   fontWeight: FontWeight.bold,
-                                  color: AppTheme.accentPurple,
+                                  color: AppTheme.accent(context),
                                 ),
                               ),
                               const SizedBox(height: 6),
@@ -388,13 +388,13 @@ class _ReportFormPageState extends ConsumerState<ReportFormPage> {
                                 labelBuilder: (s) => s,
                               ),
                               const SizedBox(height: 16),
-                              const Text(
+                              Text(
                                 'TURMA',
                                 style: TextStyle(
                                   fontFamily: 'monospace',
                                   fontSize: 10,
                                   fontWeight: FontWeight.bold,
-                                  color: AppTheme.accentPurple,
+                                  color: AppTheme.accent(context),
                                 ),
                               ),
                               const SizedBox(height: 6),
