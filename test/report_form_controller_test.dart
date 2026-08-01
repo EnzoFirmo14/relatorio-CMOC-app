@@ -136,16 +136,27 @@ void main() {
     expect(errors, contains('OS OS-001: Status não selecionado'));
     expect(errors, contains('OS OS-001: Horário de Início não preenchido'));
 
-    // Preenche OS com horario invalido (termino antes do inicio)
+    // Turno noturno (ex: 22:00 as 06:00) deve ser valido e calcular 8h
     controller.updateWorkOrder('os-1', (os) => os.copyWith(
       maintenanceType: 'Apoio',
       activities: 'Apoio geral',
       status: 'Liberado',
-      startTime: '10:00',
-      endTime: '09:00',
+      startTime: '22:00',
+      endTime: '06:00',
     ));
     errors = controller.validateForm();
-    expect(errors, contains('OS OS-001: Horário de Término deve ser depois do Início'));
+    expect(errors, isEmpty);
+    final osNight = container.read(reportFormControllerProvider).workOrders[0];
+    expect(osNight.durationInMinutes, equals(480));
+    expect(osNight.durationFormatted, equals('8h'));
+
+    // Preenche OS com horario invalido (inicio e termino iguais)
+    controller.updateWorkOrder('os-1', (os) => os.copyWith(
+      startTime: '10:00',
+      endTime: '10:00',
+    ));
+    errors = controller.validateForm();
+    expect(errors, contains('OS OS-001: Horário de Início e Término não podem ser iguais'));
   });
 
   test('Deve formatar texto do WhatsApp exatamente como esperado', () {

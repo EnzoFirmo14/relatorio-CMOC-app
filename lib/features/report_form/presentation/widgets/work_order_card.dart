@@ -456,7 +456,7 @@ class WorkOrderCard extends StatelessWidget {
                 if (invalidTime) ...[
                   const SizedBox(height: 4),
                   const Text(
-                    '⚠️ Término deve ser depois do Início',
+                    '⚠️ Início e Término não podem ser iguais',
                     style: TextStyle(
                       fontFamily: 'monospace',
                       fontSize: 10.0,

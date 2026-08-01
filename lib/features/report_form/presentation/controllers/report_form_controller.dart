@@ -316,7 +316,7 @@ class ReportFormController extends Notifier<ReportFormState> {
       }
       if (os.startTime.isNotEmpty && os.endTime.isNotEmpty) {
         if (os.durationInMinutes <= 0) {
-          errors.add('${prefix}Horário de Término deve ser depois do Início');
+          errors.add('${prefix}Horário de Início e Término não podem ser iguais');
         }
       }
     }
