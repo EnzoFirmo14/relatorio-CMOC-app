@@ -67,7 +67,11 @@ class WorkOrderState {
 
       final startMinutes = int.parse(startParts[0]) * 60 + int.parse(startParts[1]);
       final endMinutes = int.parse(endParts[0]) * 60 + int.parse(endParts[1]);
-      return endMinutes - startMinutes;
+      int diff = endMinutes - startMinutes;
+      if (diff < 0) {
+        diff += 24 * 60; // Suporta turnos noturnos que atravessam a meia-noite (ex: 22:00 às 06:00)
+      }
+      return diff;
     } catch (_) {
       return 0;
     }

@@ -13,11 +13,14 @@ class CmocLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return SvgPicture.asset(
       'assets/images/CMOC_bilingual_logo.svg',
       height: height,
       fit: BoxFit.contain,
-      placeholderBuilder: (context) => const SizedBox(
+      colorFilter: isDark ? const ColorFilter.mode(Colors.white, BlendMode.srcIn) : null,
+      placeholderBuilder: (context) => SizedBox(
         width: 100,
         height: 30,
         child: Center(
@@ -26,7 +29,7 @@ class CmocLogo extends StatelessWidget {
             style: TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 18,
-              color: Color(0xFF0F4C81),
+              color: isDark ? Colors.white : const Color(0xFF0F4C81),
             ),
           ),
         ),

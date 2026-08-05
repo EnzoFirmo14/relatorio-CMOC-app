@@ -17,11 +17,10 @@ class HistoryPage extends ConsumerWidget {
     final formController = ref.read(reportFormControllerProvider.notifier);
 
     return Scaffold(
-      backgroundColor: AppTheme.backgroundLight,
       appBar: AppBar(
         title: const CmocLogo(showSubtitle: true),
-        backgroundColor: Colors.white,
-        foregroundColor: AppTheme.textDark,
+        backgroundColor: AppTheme.cardBg(context),
+        foregroundColor: AppTheme.textPrimary(context),
       ),
       body: Column(
         children: [
@@ -116,25 +115,25 @@ class HistoryPage extends ConsumerWidget {
         (label == 'Todos' && state.statusFilter == null) ||
         (state.statusFilter == label);
 
-    Color activeColor = AppTheme.primaryPurple;
-    if (label == 'Rascunho') activeColor = Colors.grey;
-    if (label == 'Finalizada') activeColor = AppTheme.greenSuccess;
+    Color activeColor = AppTheme.primary(context);
+    if (label == 'Rascunho') activeColor = AppTheme.textMutedColor(context);
+    if (label == 'Finalizada') activeColor = AppTheme.green(context);
 
     return ChoiceChip(
       label: Text(label),
       selected: isSelected,
-      selectedColor: activeColor.withValues(alpha: 0.15),
+      selectedColor: activeColor.withValues(alpha: 0.2),
       disabledColor: Colors.transparent,
       side: BorderSide(
-        color: isSelected ? activeColor : AppTheme.borderLight,
+        color: isSelected ? activeColor : AppTheme.border(context),
         width: 1,
       ),
       labelStyle: TextStyle(
-        color: isSelected ? activeColor : AppTheme.textMuted,
+        color: isSelected ? activeColor : AppTheme.textMutedColor(context),
         fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
         fontSize: 12,
       ),
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppTheme.subCardBg(context),
       onSelected: (_) => controller.setStatusFilter(label),
     );
   }
@@ -152,29 +151,29 @@ class HistoryPage extends ConsumerWidget {
     // Definição de cores e ícones baseados no status
     String statusLabel = 'Rascunho';
     IconData statusIcon = Icons.edit_note;
-    Color statusColor = Colors.grey;
+    Color statusColor = AppTheme.textMutedColor(context);
 
     if (report.syncStatus == ReportSyncStatus.pending) {
       statusLabel = 'Em Andamento';
       statusIcon = Icons.sync;
-      statusColor = AppTheme.primaryPurple;
+      statusColor = AppTheme.primary(context);
     } else if (report.syncStatus == ReportSyncStatus.synced) {
       statusLabel = 'Finalizada';
       statusIcon = Icons.check_circle;
-      statusColor = AppTheme.greenSuccess;
+      statusColor = AppTheme.green(context);
     }
 
     IconData syncCloudIcon = Icons.cloud_done_rounded;
-    Color syncCloudColor = AppTheme.greenSuccess;
+    Color syncCloudColor = AppTheme.green(context);
     if (report.syncStatus == ReportSyncStatus.pending) {
       syncCloudIcon = Icons.cloud_upload_rounded;
-      syncCloudColor = Colors.amber.shade900;
+      syncCloudColor = Colors.amber.shade400;
     } else if (report.syncStatus == ReportSyncStatus.error) {
       syncCloudIcon = Icons.cloud_off_rounded;
       syncCloudColor = AppTheme.redAlert;
     } else if (report.syncStatus == ReportSyncStatus.draft) {
       syncCloudIcon = Icons.cloud_queue_rounded;
-      syncCloudColor = AppTheme.textFaint;
+      syncCloudColor = AppTheme.textFaintColor(context);
     }
 
     return Card(
@@ -203,21 +202,21 @@ class HistoryPage extends ConsumerWidget {
                       runSpacing: 4,
                       crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
-                        const Icon(Icons.calendar_today, size: 14, color: AppTheme.textMuted),
+                        Icon(Icons.calendar_today, size: 14, color: AppTheme.primary(context)),
                         Text(
                           dateStr,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 13,
-                            color: AppTheme.textDark,
+                            color: AppTheme.textPrimary(context),
                           ),
                         ),
                         if (report.shift.isNotEmpty || report.team.isNotEmpty)
                           Text(
                             '•  Turno ${report.shift} • Turma ${report.team}',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12,
-                              color: AppTheme.textMuted,
+                              color: AppTheme.textMutedColor(context),
                             ),
                           ),
                       ],

@@ -77,10 +77,10 @@ class AutocompleteOperator extends StatelessWidget {
               alignment: Alignment.topLeft,
               child: Material(
                 elevation: 8.0,
-                color: AppTheme.cardColorLight,
+                color: AppTheme.cardBg(context),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10.0),
-                  side: const BorderSide(color: AppTheme.borderLight),
+                  side: BorderSide(color: AppTheme.border(context)),
                 ),
                 child: Container(
                   width: constraints.maxWidth,
@@ -89,8 +89,8 @@ class AutocompleteOperator extends StatelessWidget {
                     padding: EdgeInsets.zero,
                     shrinkWrap: true,
                     itemCount: options.length,
-                    separatorBuilder: (_, __) => const Divider(
-                      color: AppTheme.borderLight,
+                    separatorBuilder: (_, __) => Divider(
+                      color: AppTheme.border(context),
                       height: 1,
                     ),
                     itemBuilder: (BuildContext context, int index) {
@@ -115,9 +115,9 @@ class AutocompleteOperator extends StatelessWidget {
                                 Expanded(
                                   child: Text(
                                     nome,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 13.0,
-                                      color: AppTheme.textDark,
+                                      color: AppTheme.textPrimary(context),
                                     ),
                                   ),
                                 ),
@@ -143,15 +143,15 @@ class AutocompleteOperator extends StatelessWidget {
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                     decoration: BoxDecoration(
-                                      color: AppTheme.primaryPurple.withValues(alpha: 0.1),
+                                      color: AppTheme.primary(context).withValues(alpha: 0.15),
                                       borderRadius: BorderRadius.circular(4),
                                     ),
                                     child: Text(
                                       mat,
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontFamily: 'monospace',
                                         fontSize: 11.0,
-                                        color: AppTheme.primaryPurple,
+                                        color: AppTheme.primary(context),
                                         fontWeight: FontWeight.w700,
                                       ),
                                     ),

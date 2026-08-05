@@ -58,3 +58,7 @@ google-services.json
 **/google-services.json
 GoogleService-Info.plist
 **/GoogleService-Info.plist
+
+# Keystore de producao - NUNCA versionar
+android/app/*.keystore
+android/app/*.jks

@@ -12,9 +12,26 @@ import '../widgets/work_order_card.dart';
 import '../../../sync/presentation/widgets/sync_status_badge.dart';
 import '../../../sync/presentation/controllers/sync_controller.dart';
 import '../../../../core/widgets/cmoc_logo.dart';
+import '../../../../core/services/app_update_controller.dart';
+import '../../../../core/widgets/app_update_dialog.dart';
 
-class ReportFormPage extends ConsumerWidget {
+final devModeProvider = StateProvider<bool>((ref) => false);
+
+class ReportFormPage extends ConsumerStatefulWidget {
   const ReportFormPage({super.key});
+
+  @override
+  ConsumerState<ReportFormPage> createState() => _ReportFormPageState();
+}
+
+class _ReportFormPageState extends ConsumerState<ReportFormPage> {
+  int _logoTapCount = 0;
+  DateTime? _lastTapTime;
+
+  @override
+  void initState() {
+    super.initState();
+  }
 
   void _showNewOSDialog(BuildContext context, ReportFormController controller) {
     final numController = TextEditingController(text: controller.getNextOSNumber());
@@ -43,7 +60,7 @@ class ReportFormPage extends ConsumerWidget {
                 const SizedBox(height: 4),
                 TextFormField(
                   controller: numController,
-                  decoration: const InputDecoration(hintText: 'Ex: OS-042'),
+                  decoration: const InputDecoration(hintText: 'Ex: OS-003'),
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) return 'Número é obrigatório';
                     return null;
@@ -58,7 +75,7 @@ class ReportFormPage extends ConsumerWidget {
                 TextFormField(
                   controller: locController,
                   textCapitalization: TextCapitalization.sentences,
-                  decoration: const InputDecoration(hintText: 'Ex: Bomba B-04'),
+                  decoration: const InputDecoration(hintText: 'Ex: PT-305'),
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) return 'Local é obrigatório';
                     return null;
@@ -105,7 +122,7 @@ class ReportFormPage extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final state = ref.watch(reportFormControllerProvider);
     final syncState = ref.watch(syncControllerProvider);
     final controller = ref.read(reportFormControllerProvider.notifier);
@@ -119,23 +136,52 @@ class ReportFormPage extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const CmocLogo(showSubtitle: true),
+        title: GestureDetector(
+          onTap: () {
+            final now = DateTime.now();
+            if (_lastTapTime == null || now.difference(_lastTapTime!) > const Duration(seconds: 2)) {
+              _logoTapCount = 1;
+            } else {
+              _logoTapCount++;
+            }
+            _lastTapTime = now;
+            
+            if (_logoTapCount == 5) {
+              final currentDev = ref.read(devModeProvider);
+              ref.read(devModeProvider.notifier).state = !currentDev;
+              _logoTapCount = 0;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    !currentDev 
+                        ? '🚀 Modo Desenvolvedor Ativado!' 
+                        : '🔒 Modo Desenvolvedor Desativado!'
+                  ),
+                  backgroundColor: !currentDev ? AppTheme.cmocGreen : AppTheme.accentBlue,
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+            }
+          },
+          child: const CmocLogo(showSubtitle: true),
+        ),
         actions: [
           const SyncStatusBadge(),
           const SizedBox(width: 4),
-          IconButton(
-            icon: const Icon(Icons.bolt, color: AppTheme.accentPurple),
-            tooltip: 'Preencher Automático (Testes)',
-            onPressed: () {
-              controller.fillMockData();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Formulário preenchido com dados de teste!'),
-                  duration: Duration(seconds: 2),
-                ),
-              );
-            },
-          ),
+          if (ref.watch(devModeProvider))
+            IconButton(
+              icon: const Icon(Icons.bolt, color: AppTheme.accentPurple),
+              tooltip: 'Preencher Automático (Testes)',
+              onPressed: () {
+                controller.fillMockData();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Formulário preenchido com dados de teste!'),
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+              },
+            ),
           IconButton(
             icon: const Icon(Icons.history_rounded),
             onPressed: () {
@@ -189,20 +235,24 @@ class ReportFormPage extends ConsumerWidget {
                             children: [
                               // Campo Data
                               ListTile(
-                                title: const Text(
+                                title: Text(
                                   'DATA',
                                   style: TextStyle(
                                     fontFamily: 'monospace',
                                     fontSize: 10,
                                     fontWeight: FontWeight.bold,
-                                    color: AppTheme.accentPurple,
+                                    color: AppTheme.accent(context),
                                   ),
                                 ),
                                 subtitle: Text(
                                   '${state.date.day.toString().padLeft(2, '0')}/${state.date.month.toString().padLeft(2, '0')}/${state.date.year}',
-                                  style: const TextStyle(fontSize: 16, color: AppTheme.textDark),
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppTheme.textPrimary(context),
+                                  ),
                                 ),
-                                trailing: const Icon(Icons.calendar_month),
+                                trailing: Icon(Icons.calendar_month, color: AppTheme.primary(context)),
                                 onTap: () async {
                                   final DateTime? picked = await showDatePicker(
                                     context: context,
@@ -271,16 +321,16 @@ class ReportFormPage extends ConsumerWidget {
                                               height: 48,
                                               alignment: Alignment.center,
                                               decoration: BoxDecoration(
-                                                color: AppTheme.primaryPurple.withValues(alpha: 0.08),
+                                                color: AppTheme.primary(context).withValues(alpha: 0.12),
                                                 borderRadius: BorderRadius.circular(8),
-                                                border: Border.all(color: AppTheme.borderLight),
+                                                border: Border.all(color: AppTheme.border(context)),
                                               ),
                                               child: Text(
                                                 op.registration.isEmpty ? 'Matrícula' : op.registration,
-                                                style: const TextStyle(
+                                                style: TextStyle(
                                                   fontFamily: 'monospace',
                                                   fontWeight: FontWeight.bold,
-                                                  color: AppTheme.primaryPurple,
+                                                  color: AppTheme.primary(context),
                                                   fontSize: 13,
                                                 ),
                                               ),
@@ -307,7 +357,7 @@ class ReportFormPage extends ConsumerWidget {
                                   child: OutlinedButton(
                                     onPressed: () => _showAddColabDialog(context, controller),
                                     style: OutlinedButton.styleFrom(
-                                      side: const BorderSide(color: AppTheme.borderLight),
+                                      side: BorderSide(color: AppTheme.border(context)),
                                     ),
                                     child: const Text('➕ Cadastrar Colaborador'),
                                   ),
@@ -325,13 +375,13 @@ class ReportFormPage extends ConsumerWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
+                              Text(
                                 'TURNO',
                                 style: TextStyle(
                                   fontFamily: 'monospace',
                                   fontSize: 10,
                                   fontWeight: FontWeight.bold,
-                                  color: AppTheme.accentPurple,
+                                  color: AppTheme.accent(context),
                                 ),
                               ),
                               const SizedBox(height: 6),
@@ -342,13 +392,13 @@ class ReportFormPage extends ConsumerWidget {
                                 labelBuilder: (s) => s,
                               ),
                               const SizedBox(height: 16),
-                              const Text(
+                              Text(
                                 'TURMA',
                                 style: TextStyle(
                                   fontFamily: 'monospace',
                                   fontSize: 10,
                                   fontWeight: FontWeight.bold,
-                                  color: AppTheme.accentPurple,
+                                  color: AppTheme.accent(context),
                                 ),
                               ),
                               const SizedBox(height: 6),
@@ -437,7 +487,7 @@ class ReportFormPage extends ConsumerWidget {
                               const SizedBox(height: 4),
                               TextFormField(
                                 initialValue: state.globalLocation,
-                                decoration: const InputDecoration(hintText: 'Ex: Galeria Norte, Poço 3...'),
+                                decoration: const InputDecoration(hintText: 'Ex: Corpo E, Frente ER4AC09...'),
                                 onChanged: controller.setGlobalLocation,
                               ),
                               const SizedBox(height: 12),
@@ -641,7 +691,7 @@ class ReportFormPage extends ConsumerWidget {
                                   Expanded(
                                     child: Text(
                                       state.validationErrors[index],
-                                      style: const TextStyle(fontSize: 13, color: AppTheme.textDark),
+                                      style: TextStyle(fontSize: 13, color: AppTheme.textPrimary(context)),
                                     ),
                                   ),
                                 ],

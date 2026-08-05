@@ -17,6 +17,11 @@ class ChipsSelector<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final primaryColor = AppTheme.primary(context);
+    final textMutedColor = AppTheme.textMutedColor(context);
+    final borderColor = AppTheme.border(context);
+    final subCardBg = AppTheme.subCardBg(context);
+
     return Wrap(
       spacing: 8.0,
       runSpacing: 8.0,
@@ -27,9 +32,9 @@ class ChipsSelector<T> extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 16.0),
             decoration: BoxDecoration(
-              color: isSel ? AppTheme.primaryPurple.withValues(alpha: 0.15) : Colors.transparent,
+              color: isSel ? primaryColor.withValues(alpha: 0.18) : subCardBg,
               border: Border.all(
-                color: isSel ? AppTheme.primaryPurple : AppTheme.borderLight,
+                color: isSel ? primaryColor : borderColor,
                 width: 1.5,
               ),
               borderRadius: BorderRadius.circular(8.0),
@@ -40,7 +45,7 @@ class ChipsSelector<T> extends StatelessWidget {
                 fontFamily: 'monospace',
                 fontSize: 13.0,
                 fontWeight: isSel ? FontWeight.w700 : FontWeight.w600,
-                color: isSel ? AppTheme.primaryPurple : AppTheme.textMuted,
+                color: isSel ? primaryColor : textMutedColor,
               ),
             ),
           ),

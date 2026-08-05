@@ -17,17 +17,17 @@ class SectionLabel extends StatelessWidget {
         children: [
           Text(
             text.toUpperCase(),
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 11.0,
               fontWeight: FontWeight.w700,
-              color: AppTheme.darkBlue,
+              color: AppTheme.primary(context),
               letterSpacing: 2.0,
             ),
           ),
           const SizedBox(width: 8),
-          const Expanded(
+          Expanded(
             child: Divider(
-              color: AppTheme.borderLight,
+              color: AppTheme.border(context),
               thickness: 1.0,
             ),
           ),

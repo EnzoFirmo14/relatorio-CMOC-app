@@ -62,10 +62,10 @@ class WorkOrderCard extends StatelessWidget {
         return StatefulBuilder(
           builder: (context, setStateDialog) {
             return AlertDialog(
-              backgroundColor: AppTheme.cardColorLight,
-              title: const Text(
+              backgroundColor: AppTheme.cardBg(context),
+              title: Text(
                 'Materiais Utilizados',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.0),
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.0, color: AppTheme.textPrimary(context)),
               ),
               content: SizedBox(
                 width: double.maxFinite,
@@ -78,10 +78,10 @@ class WorkOrderCard extends StatelessWidget {
                     return CheckboxListTile(
                       title: Text(
                         mat,
-                        style: const TextStyle(fontSize: 14.0, fontFamily: 'monospace'),
+                        style: TextStyle(fontSize: 14.0, fontFamily: 'monospace', color: AppTheme.textPrimary(context)),
                       ),
                       value: isChecked,
-                      activeColor: AppTheme.primaryPurple,
+                      activeColor: AppTheme.primary(context),
                       onChanged: (bool? val) {
                         setStateDialog(() {
                           if (val == true) {
@@ -124,7 +124,7 @@ class WorkOrderCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 10.0),
             decoration: BoxDecoration(
-              color: AppTheme.primaryPurple.withValues(alpha: 0.07),
+              color: AppTheme.primary(context).withValues(alpha: 0.12),
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(14.0),
                 topRight: Radius.circular(14.0),
@@ -139,32 +139,32 @@ class WorkOrderCard extends StatelessWidget {
                     children: [
                       Text(
                         '📋 ${os.number}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontFamily: 'monospace',
                           fontSize: 13.0,
                           fontWeight: FontWeight.w700,
-                          color: AppTheme.primaryPurple,
+                          color: AppTheme.primary(context),
                         ),
                       ),
                       if (os.location.isNotEmpty)
                         Text(
                           '📍 ${os.location}',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontFamily: 'monospace',
                             fontSize: 11.0,
-                            color: AppTheme.textMuted,
+                            color: AppTheme.textMutedColor(context),
                           ),
                         ),
                     ],
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.delete_outline, size: 20, color: AppTheme.textMuted),
+                  icon: Icon(Icons.delete_outline, size: 20, color: AppTheme.textMutedColor(context)),
                   onPressed: () {
                     showDialog(
                       context: context,
                       builder: (context) => AlertDialog(
-                        backgroundColor: AppTheme.cardColorLight,
+                        backgroundColor: AppTheme.cardBg(context),
                         title: const Text('Excluir Ordem de Serviço?'),
                         content: Text('Tem certeza de que deseja excluir a OS "${os.number} — ${os.location}"? Esta ação não pode ser desfeita.'),
                         actions: [
@@ -196,13 +196,13 @@ class WorkOrderCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // 1. Tipo de Manutencao
-                const Text(
+                Text(
                   'TIPO DE MANUTENÇÃO *',
                   style: TextStyle(
                     fontFamily: 'monospace',
                     fontSize: 10.0,
                     fontWeight: FontWeight.w700,
-                    color: AppTheme.accentPurple,
+                    color: AppTheme.accent(context),
                     letterSpacing: 1.0,
                   ),
                 ),
@@ -223,13 +223,13 @@ class WorkOrderCard extends StatelessWidget {
                 const SizedBox(height: 12),
 
                 // 2. Causa
-                const Text(
+                Text(
                   'CAUSA',
                   style: TextStyle(
                     fontFamily: 'monospace',
                     fontSize: 10.0,
                     fontWeight: FontWeight.w700,
-                    color: AppTheme.accentPurple,
+                    color: AppTheme.accent(context),
                     letterSpacing: 1.0,
                   ),
                 ),
@@ -254,13 +254,13 @@ class WorkOrderCard extends StatelessWidget {
                 const SizedBox(height: 12),
 
                 // 3. Atividades Realizadas
-                const Text(
+                Text(
                   'ATIVIDADES REALIZADAS *',
                   style: TextStyle(
                     fontFamily: 'monospace',
                     fontSize: 10.0,
                     fontWeight: FontWeight.w700,
-                    color: AppTheme.accentPurple,
+                    color: AppTheme.accent(context),
                     letterSpacing: 1.0,
                   ),
                 ),
@@ -278,13 +278,13 @@ class WorkOrderCard extends StatelessWidget {
                 const SizedBox(height: 12),
 
                 // 4. Materiais Utilizados (Multi-Select)
-                const Text(
+                Text(
                   'MATERIAIS UTILIZADOS',
                   style: TextStyle(
                     fontFamily: 'monospace',
                     fontSize: 10.0,
                     fontWeight: FontWeight.w700,
-                    color: AppTheme.accentPurple,
+                    color: AppTheme.accent(context),
                     letterSpacing: 1.0,
                   ),
                 ),
@@ -294,13 +294,14 @@ class WorkOrderCard extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 10.0),
                     decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.04),
+                      color: AppTheme.subCardBg(context),
                       borderRadius: BorderRadius.circular(8.0),
+                      border: Border.all(color: AppTheme.border(context)),
                     ),
                     child: os.materialsUsed.isEmpty
-                        ? const Text(
+                        ? Text(
                             '— Selecione um ou mais —',
-                            style: TextStyle(color: AppTheme.textFaint, fontSize: 14.0),
+                            style: TextStyle(color: AppTheme.textFaintColor(context), fontSize: 14.0),
                           )
                         : Wrap(
                             spacing: 6.0,
@@ -309,8 +310,8 @@ class WorkOrderCard extends StatelessWidget {
                               return Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                 decoration: BoxDecoration(
-                                  color: AppTheme.primaryPurple.withValues(alpha: 0.15),
-                                  border: Border.all(color: AppTheme.primaryPurple.withValues(alpha: 0.3)),
+                                  color: AppTheme.primary(context).withValues(alpha: 0.15),
+                                  border: Border.all(color: AppTheme.primary(context).withValues(alpha: 0.4)),
                                   borderRadius: BorderRadius.circular(4.0),
                                 ),
                                 child: Row(
@@ -318,11 +319,11 @@ class WorkOrderCard extends StatelessWidget {
                                   children: [
                                     Text(
                                       mat,
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontFamily: 'monospace',
                                         fontSize: 11.0,
                                         fontWeight: FontWeight.w600,
-                                        color: AppTheme.primaryPurple,
+                                        color: AppTheme.primary(context),
                                       ),
                                     ),
                                     const SizedBox(width: 4),
@@ -331,7 +332,7 @@ class WorkOrderCard extends StatelessWidget {
                                         final list = List<String>.from(os.materialsUsed)..remove(mat);
                                         onUpdate(os.copyWith(materialsUsed: list));
                                       },
-                                      child: const Icon(Icons.close, size: 10, color: AppTheme.textMuted),
+                                      child: Icon(Icons.close, size: 10, color: AppTheme.textMutedColor(context)),
                                     ),
                                   ],
                                 ),
@@ -387,13 +388,13 @@ class WorkOrderCard extends StatelessWidget {
                 const SizedBox(height: 12),
 
                 // 5. Horario (Inicio / Término)
-                const Text(
+                Text(
                   'HORÁRIO *',
                   style: TextStyle(
                     fontFamily: 'monospace',
                     fontSize: 10.0,
                     fontWeight: FontWeight.w700,
-                    color: AppTheme.accentPurple,
+                    color: AppTheme.accent(context),
                     letterSpacing: 1.0,
                   ),
                 ),
@@ -436,17 +437,17 @@ class WorkOrderCard extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                         decoration: BoxDecoration(
-                          color: AppTheme.primaryPurple.withValues(alpha: 0.12),
-                          border: Border.all(color: AppTheme.primaryPurple.withValues(alpha: 0.3)),
+                          color: AppTheme.primary(context).withValues(alpha: 0.15),
+                          border: Border.all(color: AppTheme.primary(context).withValues(alpha: 0.4)),
                           borderRadius: BorderRadius.circular(6.0),
                         ),
                         child: Text(
                           os.durationFormatted,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontFamily: 'monospace',
                             fontSize: 12.0,
                             fontWeight: FontWeight.w700,
-                            color: AppTheme.primaryPurple,
+                            color: AppTheme.primary(context),
                           ),
                         ),
                       ),
@@ -456,7 +457,7 @@ class WorkOrderCard extends StatelessWidget {
                 if (invalidTime) ...[
                   const SizedBox(height: 4),
                   const Text(
-                    '⚠️ Término deve ser depois do Início',
+                    '⚠️ Início e Término não podem ser iguais',
                     style: TextStyle(
                       fontFamily: 'monospace',
                       fontSize: 10.0,
@@ -467,89 +468,19 @@ class WorkOrderCard extends StatelessWidget {
                 ],
                 const SizedBox(height: 12),
 
-
-
-                // 6.5. Fotos / Anexos
-                const Text(
+                // 6. Fotos / Anexos
+                Text(
                   'FOTOS / ANEXOS',
                   style: TextStyle(
                     fontFamily: 'monospace',
                     fontSize: 10.0,
                     fontWeight: FontWeight.w700,
-                    color: AppTheme.accentPurple,
+                    color: AppTheme.accent(context),
                     letterSpacing: 1.0,
                   ),
                 ),
                 const SizedBox(height: 6),
                 _buildPhotosSection(context),
-                const SizedBox(height: 14),
-
-                // 7. Status Chips da OS
-                const Divider(color: AppTheme.borderLight, height: 1),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    const Text(
-                      'STATUS OS:',
-                      style: TextStyle(
-                        fontFamily: 'monospace',
-                        fontSize: 10.0,
-                        fontWeight: FontWeight.w700,
-                        color: AppTheme.textFaint,
-                        letterSpacing: 1.0,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: ['Rascunho', 'Em Andamento', 'Finalizada'].map((st) {
-                          final isSel = os.osStatus == st;
-                          Color bg = Colors.black.withValues(alpha: 0.03);
-                          Color txt = AppTheme.textMuted;
-                          Color bdr = AppTheme.borderLight;
-
-                          if (isSel) {
-                            if (st == 'Rascunho') {
-                              bg = AppTheme.textMuted.withValues(alpha: 0.12);
-                              txt = AppTheme.textMuted;
-                              bdr = AppTheme.textMuted;
-                            } else if (st == 'Em Andamento') {
-                              bg = AppTheme.primaryPurple.withValues(alpha: 0.15);
-                              txt = AppTheme.primaryPurple;
-                              bdr = AppTheme.primaryPurple;
-                            } else {
-                              bg = AppTheme.greenSuccess.withValues(alpha: 0.14);
-                              txt = AppTheme.greenSuccess;
-                              bdr = AppTheme.greenSuccess;
-                            }
-                          }
-
-                          return GestureDetector(
-                            onTap: () => onUpdate(os.copyWith(osStatus: st)),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 4.0),
-                              decoration: BoxDecoration(
-                                color: bg,
-                                border: Border.all(color: bdr, width: 1.5),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Text(
-                                st,
-                                style: TextStyle(
-                                  fontFamily: 'monospace',
-                                  fontSize: 10.0,
-                                  fontWeight: FontWeight.w700,
-                                  color: txt,
-                                ),
-                              ),
-                            ),
-                          );
-                        }).toList(),
-                      ),
-                    ),
-                  ],
-                ),
               ],
             ),
           ),
@@ -673,24 +604,24 @@ class WorkOrderCard extends StatelessWidget {
               width: 90,
               height: 90,
               decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.02),
+                color: AppTheme.subCardBg(context),
                 borderRadius: BorderRadius.circular(8.0),
                 border: Border.all(
-                  color: AppTheme.primaryPurple.withValues(alpha: 0.4),
-                  style: BorderStyle.solid, // Dotted style isn't native, solid purple looks very clean here
+                  color: AppTheme.primary(context).withValues(alpha: 0.4),
+                  style: BorderStyle.solid,
                 ),
               ),
-              child: const Column(
+              child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.add_a_photo_outlined, color: AppTheme.primaryPurple, size: 24),
-                  SizedBox(height: 4),
+                  Icon(Icons.add_a_photo_outlined, color: AppTheme.primary(context), size: 24),
+                  const SizedBox(height: 4),
                   Text(
                     'Add Foto',
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.bold,
-                      color: AppTheme.primaryPurple,
+                      color: AppTheme.primary(context),
                     ),
                   ),
                 ],
@@ -705,6 +636,7 @@ class WorkOrderCard extends StatelessWidget {
   void _showAddPhotoBottomSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
+      backgroundColor: AppTheme.cardBg(context),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
@@ -713,8 +645,8 @@ class WorkOrderCard extends StatelessWidget {
           child: Wrap(
             children: <Widget>[
               ListTile(
-                leading: const Icon(Icons.camera_alt_rounded, color: AppTheme.primaryPurple),
-                title: const Text('Câmera (Tirar Foto)'),
+                leading: Icon(Icons.camera_alt_rounded, color: AppTheme.primary(context)),
+                title: Text('Câmera (Tirar Foto)', style: TextStyle(color: AppTheme.textPrimary(context))),
                 onTap: () async {
                   Navigator.of(context).pop();
                   final path = await ImageService.pickAndCompressImage(ImageSource.camera);
@@ -724,8 +656,8 @@ class WorkOrderCard extends StatelessWidget {
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.photo_library_rounded, color: AppTheme.primaryPurple),
-                title: const Text('Galeria (Escolher Foto)'),
+                leading: Icon(Icons.photo_library_rounded, color: AppTheme.primary(context)),
+                title: Text('Galeria (Escolher Foto)', style: TextStyle(color: AppTheme.textPrimary(context))),
                 onTap: () async {
                   Navigator.of(context).pop();
                   final path = await ImageService.pickAndCompressImage(ImageSource.gallery);

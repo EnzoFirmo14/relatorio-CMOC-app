@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:workmanager/workmanager.dart';
 
@@ -85,7 +86,7 @@ final syncControllerProvider =
 
 // ─── Controller ──────────────────────────────────────────────────────────────
 
-class SyncController extends StateNotifier<SyncState> {
+class SyncController extends StateNotifier<SyncState> with WidgetsBindingObserver {
   final IReportRepository repository;
   final SyncService syncService;
   final ConnectivityService connectivityService;
@@ -100,6 +101,8 @@ class SyncController extends StateNotifier<SyncState> {
   }
 
   void _init() async {
+    WidgetsBinding.instance.addObserver(this);
+
     // Escuta alterações de rede
     _netSub = connectivityService.onConnectivityChanged.listen((online) {
       state = state.copyWith(isOnline: online);
@@ -123,7 +126,16 @@ class SyncController extends StateNotifier<SyncState> {
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState lifecycleState) {
+    if (lifecycleState == AppLifecycleState.resumed) {
+      // Ao retornar ao primeiro plano, verifica e dispara a sincronização
+      triggerSync();
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _netSub?.cancel();
     syncService.dispose();
     super.dispose();
