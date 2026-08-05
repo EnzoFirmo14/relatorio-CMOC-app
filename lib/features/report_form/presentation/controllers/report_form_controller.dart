@@ -512,13 +512,7 @@ class ReportFormController extends Notifier<ReportFormState> {
     final numOSs = 1 + rand.nextInt(3);
     final List<WorkOrderState> wos = [];
     
-    final osTypes = ['Avanço', 'Corretiva', 'Preventiva', 'Inspeção'];
-    final osCauses = {
-      'Avanço': ['Avanço de Tubulação', 'Extensão de Rede', 'Nova Instalação'],
-      'Corretiva': ['Tubo Danificado', 'Vazamento de Pressão', 'Ruptura de Fixador'],
-      'Preventiva': ['Revisão Periódica', 'Ajuste de Alinhamento', 'Lubrificação Geral'],
-      'Inspeção': ['Medição de Vazão', 'Análise Térmica', 'Verificação Visual']
-    };
+    const osTypes = AppConstants.manutOptions;
     final osActivities = {
       'Avanço': [
         'Instalação de dutos de ventilação adicionais.',
@@ -530,15 +524,15 @@ class ReportFormController extends Notifier<ReportFormState> {
         'Troca de abraçadeiras quebradas e re-fixação do duto.',
         'Vedação de juntas de união com fita de alta pressão.'
       ],
-      'Preventiva': [
-        'Ajuste das correntes de sustentação ao longo da rampa.',
-        'Troca preventiva de vedantes de acoplamento.',
-        'Aperto geral de suportes e conexões.'
+      'Recuo': [
+        'Recuo de tubulação de ventilação.',
+        'Desmontagem de suporte e dutos temporários.'
       ],
-      'Inspeção': [
-        'Medição de pressão e vazão nas saídas do duto.',
-        'Inspeção por ultrassom na linha principal.',
-        'Verificação de nível de acúmulo de poeira nos filtros.'
+      'Transporte': [
+        'Transporte de materiais e peças para a frente de lavra.'
+      ],
+      'Apoio': [
+        'Apoio à equipe de elétrica na manutenção da subestação.'
       ]
     };
     
@@ -552,7 +546,7 @@ class ReportFormController extends Notifier<ReportFormState> {
     
     for (int i = 0; i < numOSs; i++) {
       final type = osTypes[rand.nextInt(osTypes.length)];
-      final causes = osCauses[type] ?? ['Geral'];
+      final causes = AppConstants.causaMap[type] ?? ['Geral'];
       final cause = causes[rand.nextInt(causes.length)];
       final acts = osActivities[type] ?? ['Inspeção padrão.'];
       final act = acts[rand.nextInt(acts.length)];
