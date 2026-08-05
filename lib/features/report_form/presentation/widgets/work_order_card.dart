@@ -208,9 +208,14 @@ class WorkOrderCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 DropdownButtonFormField<String>(
-                  initialValue: os.maintenanceType.isEmpty ? null : os.maintenanceType,
+                  initialValue: (os.maintenanceType.isEmpty || !AppConstants.manutOptions.contains(os.maintenanceType))
+                      ? (os.maintenanceType.isNotEmpty ? os.maintenanceType : null)
+                      : os.maintenanceType,
                   decoration: const InputDecoration(hintText: '— Selecione —'),
-                  items: AppConstants.manutOptions.map((opt) {
+                  items: (os.maintenanceType.isNotEmpty && !AppConstants.manutOptions.contains(os.maintenanceType)
+                          ? [...AppConstants.manutOptions, os.maintenanceType]
+                          : AppConstants.manutOptions)
+                      .map((opt) {
                     return DropdownMenuItem(value: opt, child: Text(opt));
                   }).toList(),
                   onChanged: (val) {

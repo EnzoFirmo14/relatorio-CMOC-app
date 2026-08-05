@@ -471,9 +471,15 @@ class _ReportFormPageState extends ConsumerState<ReportFormPage> {
                               ),
                               const SizedBox(height: 4),
                               DropdownButtonFormField<String>(
-                                initialValue: state.globalEquipment.isEmpty ? null : state.globalEquipment,
+                                initialValue: (state.globalEquipment.isEmpty || !AppConstants.equipOptions.contains(state.globalEquipment))
+                                    ? (state.globalEquipment.isNotEmpty ? state.globalEquipment : null)
+                                    : state.globalEquipment,
                                 decoration: const InputDecoration(hintText: '— Selecione —'),
-                                items: AppConstants.equipOptions.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+                                items: (state.globalEquipment.isNotEmpty && !AppConstants.equipOptions.contains(state.globalEquipment)
+                                        ? [...AppConstants.equipOptions, state.globalEquipment]
+                                        : AppConstants.equipOptions)
+                                    .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                                    .toList(),
                                 onChanged: (val) => controller.setGlobalEquipment(val ?? ''),
                               ),
                               const SizedBox(height: 12),

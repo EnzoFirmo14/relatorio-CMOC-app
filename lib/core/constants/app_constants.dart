@@ -27,6 +27,8 @@ class AppConstants {
   static const List<String> manutOptions = [
     'Avanço',
     'Corretiva',
+    'Preventiva',
+    'Inspeção',
     'Recuo',
     'Transporte',
     'Apoio'
@@ -35,7 +37,8 @@ class AppConstants {
   static const Map<String, List<String>> causaMap = {
     'Avanço': [
       'Avanço de Ventilação',
-      'Avanço de Tubulação'
+      'Avanço de Tubulação',
+      'Nova Instalação'
     ],
     'Corretiva': [
       'Tubo Danificado',
@@ -44,7 +47,19 @@ class AppConstants {
       'Duto Acidentado',
       'Duto Arriado',
       'Duto Desacoplado',
-      'Ventilação Ineficiente'
+      'Ventilação Ineficiente',
+      'Vazamento de Pressão',
+      'Ruptura de Fixador'
+    ],
+    'Preventiva': [
+      'Revisão Periódica',
+      'Ajuste de Alinhamento',
+      'Lubrificação Geral'
+    ],
+    'Inspeção': [
+      'Medição de Vazão',
+      'Análise Térmica',
+      'Verificação Visual'
     ],
     'Recuo': [
       'Recuar Tubulação',
