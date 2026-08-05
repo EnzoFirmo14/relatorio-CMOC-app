@@ -30,19 +30,19 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyBkEzrbkGFq8jEutYvQvOd6nOST0Vh9siw',
-    appId: '1:279433346974:web:df020affeb3225985ae08f',
-    messagingSenderId: '279433346974',
-    projectId: 'cmoc-relatorio',
-    authDomain: 'cmoc-relatorio.firebaseapp.com',
-    storageBucket: 'cmoc-relatorio.firebasestorage.app',
+    apiKey: String.fromEnvironment('VITE_FIREBASE_API_KEY'),
+    appId: String.fromEnvironment('VITE_FIREBASE_APP_ID'),
+    messagingSenderId: String.fromEnvironment('VITE_FIREBASE_MESSAGING_SENDER_ID'),
+    projectId: String.fromEnvironment('VITE_FIREBASE_PROJECT_ID'),
+    authDomain: String.fromEnvironment('VITE_FIREBASE_AUTH_DOMAIN'),
+    storageBucket: String.fromEnvironment('VITE_FIREBASE_STORAGE_BUCKET'),
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyBkEzrbkGFq8jEutYvQvOd6nOST0Vh9siw',
-    appId: '1:279433346974:android:fb05389a58d0d4f45ae08f',
-    messagingSenderId: '279433346974',
-    projectId: 'cmoc-relatorio',
-    storageBucket: 'cmoc-relatorio.firebasestorage.app',
+    apiKey: String.fromEnvironment('VITE_FIREBASE_API_KEY'),
+    appId: String.fromEnvironment('ANDROID_FIREBASE_APP_ID'),
+    messagingSenderId: String.fromEnvironment('VITE_FIREBASE_MESSAGING_SENDER_ID'),
+    projectId: String.fromEnvironment('VITE_FIREBASE_PROJECT_ID'),
+    storageBucket: String.fromEnvironment('VITE_FIREBASE_STORAGE_BUCKET'),
   );
 }
