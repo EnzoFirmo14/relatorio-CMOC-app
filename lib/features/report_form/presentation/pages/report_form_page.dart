@@ -12,8 +12,6 @@ import '../widgets/work_order_card.dart';
 import '../../../sync/presentation/widgets/sync_status_badge.dart';
 import '../../../sync/presentation/controllers/sync_controller.dart';
 import '../../../../core/widgets/cmoc_logo.dart';
-import '../../../../core/services/app_update_controller.dart';
-import '../../../../core/widgets/app_update_dialog.dart';
 
 final devModeProvider = StateProvider<bool>((ref) => false);
 
