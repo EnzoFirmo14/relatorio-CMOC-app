@@ -197,7 +197,6 @@ class AppTheme {
       primaryColor: primaryBlueDark,
       scaffoldBackgroundColor: backgroundDark,
       cardColor: cardColorDark,
-      dialogBackgroundColor: cardColorDark,
       dialogTheme: const DialogThemeData(
         backgroundColor: cardColorDark,
         surfaceTintColor: Colors.transparent,

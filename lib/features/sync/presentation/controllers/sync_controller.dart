@@ -126,8 +126,8 @@ class SyncController extends StateNotifier<SyncState> with WidgetsBindingObserve
   }
 
   @override
-  void didChangeAppLifecycleState(AppLifecycleState lifecycleState) {
-    if (lifecycleState == AppLifecycleState.resumed) {
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
       // Ao retornar ao primeiro plano, verifica e dispara a sincronização
       triggerSync();
     }
