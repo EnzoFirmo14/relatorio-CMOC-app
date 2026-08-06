@@ -15,7 +15,7 @@ extension GetReportModelCollection on Isar {
 
 const ReportModelSchema = CollectionSchema(
   name: r'ReportModel',
-  id: 3139160268685868681,
+  id: 313916026868586,
   properties: {
     r'availableMaterials': PropertySchema(
       id: 0,
@@ -85,7 +85,7 @@ const ReportModelSchema = CollectionSchema(
   idName: r'id',
   indexes: {
     r'uuid': IndexSchema(
-      id: 2134397340427724972,
+      id: 213439734042772,
       name: r'uuid',
       unique: true,
       replace: true,
@@ -2605,7 +2605,7 @@ extension ReportModelQueryProperty
 
 const EmbeddedCollaboratorModelSchema = Schema(
   name: r'EmbeddedCollaboratorModel',
-  id: 5824696152780669677,
+  id: 582469615278066,
   properties: {
     r'id': PropertySchema(id: 0, name: r'id', type: IsarType.string),
     r'isCustom': PropertySchema(id: 1, name: r'isCustom', type: IsarType.bool),
