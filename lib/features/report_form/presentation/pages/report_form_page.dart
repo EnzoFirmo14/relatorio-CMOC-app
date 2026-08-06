@@ -12,6 +12,10 @@ import '../widgets/work_order_card.dart';
 import '../../../sync/presentation/widgets/sync_status_badge.dart';
 import '../../../sync/presentation/controllers/sync_controller.dart';
 import '../../../../core/widgets/cmoc_logo.dart';
+import '../controllers/report_type_provider.dart';
+import '../widgets/report_type_selector.dart';
+import '../widgets/electrical_form_widget.dart';
+import '../widgets/pumping_form_widget.dart';
 
 final devModeProvider = StateProvider<bool>((ref) => false);
 
@@ -123,6 +127,7 @@ class _ReportFormPageState extends ConsumerState<ReportFormPage> {
   Widget build(BuildContext context) {
     final state = ref.watch(reportFormControllerProvider);
     final syncState = ref.watch(syncControllerProvider);
+    final activeCategory = ref.watch(activeReportCategoryProvider);
     final controller = ref.read(reportFormControllerProvider.notifier);
     final candidates = controller.getConsolidatedCollaborators();
     
@@ -223,8 +228,16 @@ class _ReportFormPageState extends ConsumerState<ReportFormPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      // SECAO IDENTIFICACAO
-                      const SectionLabel(text: 'Identificação'),
+                      // SELETOR DO TIPO DE RELATÓRIO (EQUIPAGEM, ELÉTRICA, BOMBEAMENTO)
+                      const ReportTypeSelector(),
+
+                      if (activeCategory == ReportCategory.eletrica)
+                        const ElectricalFormWidget()
+                      else if (activeCategory == ReportCategory.bombeamento)
+                        const PumpingFormWidget()
+                      else ...[
+                        // SECAO IDENTIFICACAO
+                        const SectionLabel(text: 'Identificação'),
                       Card(
                         child: Padding(
                           padding: const EdgeInsets.symmetric(vertical: 8.0),
@@ -627,6 +640,7 @@ class _ReportFormPageState extends ConsumerState<ReportFormPage> {
                         icon: const Icon(Icons.add),
                         label: const Text('Novo relatório'),
                       ),
+                      ],
                       const SizedBox(height: 100), // margem inferior para o painel de validacao
                     ],
                   ),

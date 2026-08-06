@@ -4,6 +4,8 @@ import 'package:isar_community/isar.dart';
 import 'package:path_provider/path_provider.dart';
 import '../../features/report_form/data/models/collaborator_model.dart';
 import '../../features/report_form/data/models/report_model.dart';
+import '../../features/report_form/data/models/electrical_report_model.dart';
+import '../../features/report_form/data/models/pumping_report_model.dart';
 
 /// Serviço singleton para gerenciar o ciclo de vida da conexão com o Isar.
 ///
@@ -52,6 +54,8 @@ class IsarService {
         [
           ReportModelSchema,
           CollaboratorModelSchema,
+          ElectricalReportModelSchema,
+          PumpingReportModelSchema,
         ],
         directory: dirPath ?? '',
         name: dbName,
@@ -67,6 +71,8 @@ class IsarService {
         [
           ReportModelSchema,
           CollaboratorModelSchema,
+          ElectricalReportModelSchema,
+          PumpingReportModelSchema,
         ],
         directory: dirPath ?? '',
         name: dbName,
