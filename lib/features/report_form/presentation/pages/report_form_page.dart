@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/providers/dev_mode_provider.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../controllers/report_form_controller.dart';
@@ -123,19 +124,20 @@ class ReportFormPage extends ConsumerWidget {
         actions: [
           const SyncStatusBadge(),
           const SizedBox(width: 4),
-          IconButton(
-            icon: const Icon(Icons.bolt, color: AppTheme.accentPurple),
-            tooltip: 'Preencher Automático (Testes)',
-            onPressed: () {
-              controller.fillMockData();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Formulário preenchido com dados de teste!'),
-                  duration: Duration(seconds: 2),
-                ),
-              );
-            },
-          ),
+          if (ref.watch(devModeProvider))
+            IconButton(
+              icon: const Icon(Icons.bolt, color: AppTheme.accentPurple),
+              tooltip: 'Preencher Automático (Testes)',
+              onPressed: () {
+                controller.fillMockData();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Formulário preenchido com dados de teste!'),
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+              },
+            ),
           IconButton(
             icon: const Icon(Icons.history_rounded),
             onPressed: () {
@@ -572,6 +574,13 @@ class ReportFormPage extends ConsumerWidget {
                         },
                         icon: const Icon(Icons.add),
                         label: const Text('Novo relatório'),
+                      ),
+                      const SizedBox(height: 24),
+                      const Center(
+                        child: Text(
+                          '| Dev by WP & EF',
+                          style: TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.w500),
+                        ),
                       ),
                       const SizedBox(height: 100), // margem inferior para o painel de validacao
                     ],
