@@ -16,7 +16,7 @@ extension GetPumpingReportModelCollection on Isar {
 
 const PumpingReportModelSchema = CollectionSchema(
   name: r'PumpingReportModel',
-  id: 631094232552471,
+  id: 6310942325524712654,
   properties: {
     r'createdAt': PropertySchema(
       id: 0,
@@ -89,7 +89,7 @@ const PumpingReportModelSchema = CollectionSchema(
   idName: r'id',
   indexes: {
     r'uuid': IndexSchema(
-      id: 213439734042772,
+      id: 2134397340427724972,
       name: r'uuid',
       unique: true,
       replace: true,
@@ -2595,7 +2595,7 @@ extension PumpingReportModelQueryProperty
 
 const PumpModelSchema = Schema(
   name: r'PumpModel',
-  id: 347272371417437,
+  id: 3472723714174372725,
   properties: {
     r'downtimeHours': PropertySchema(
       id: 0,
@@ -3970,7 +3970,7 @@ extension PumpModelQueryObject
 
 const WaterLevelModelSchema = Schema(
   name: r'WaterLevelModel',
-  id: 598904152704380,
+  id: 5989041527043805549,
   properties: {
     r'level': PropertySchema(id: 0, name: r'level', type: IsarType.string),
     r'location': PropertySchema(
@@ -4622,7 +4622,7 @@ extension WaterLevelModelQueryObject
 
 const PumpingMaterialModelSchema = Schema(
   name: r'PumpingMaterialModel',
-  id: -738581002994167,
+  id: -738581002994167389,
   properties: {
     r'item': PropertySchema(id: 0, name: r'item', type: IsarType.string),
     r'quantity': PropertySchema(
@@ -5166,7 +5166,7 @@ extension PumpingMaterialModelQueryObject
 
 const SafetyCheckModelSchema = Schema(
   name: r'SafetyCheckModel',
-  id: 460532979155474,
+  id: 4605329791554740874,
   properties: {
     r'gasMeasured': PropertySchema(
       id: 0,

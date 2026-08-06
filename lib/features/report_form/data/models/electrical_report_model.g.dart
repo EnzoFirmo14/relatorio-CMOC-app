@@ -16,7 +16,7 @@ extension GetElectricalReportModelCollection on Isar {
 
 const ElectricalReportModelSchema = CollectionSchema(
   name: r'ElectricalReportModel',
-  id: -871333955849508,
+  id: -8713339558495080299,
   properties: {
     r'activities': PropertySchema(
       id: 0,
@@ -70,7 +70,7 @@ const ElectricalReportModelSchema = CollectionSchema(
   idName: r'id',
   indexes: {
     r'uuid': IndexSchema(
-      id: 213439734042772,
+      id: 2134397340427724972,
       name: r'uuid',
       unique: true,
       replace: true,
@@ -2806,7 +2806,7 @@ extension ElectricalReportModelQueryProperty
 
 const ElectricalActivityModelSchema = Schema(
   name: r'ElectricalActivityModel',
-  id: -488404035178674,
+  id: -4884040351786745475,
   properties: {
     r'description': PropertySchema(
       id: 0,
@@ -4205,7 +4205,7 @@ extension ElectricalActivityModelQueryObject
 
 const ElectricalMaterialModelSchema = Schema(
   name: r'ElectricalMaterialModel',
-  id: -879989363539392,
+  id: -8799893635393923756,
   properties: {
     r'item': PropertySchema(id: 0, name: r'item', type: IsarType.string),
     r'partNumber': PropertySchema(

@@ -62,9 +62,11 @@ class IsarService {
       );
     } catch (e) {
       // Schema incompatível ou arquivo corrompido — apaga e recria do zero.
-      // Dados locais não sincronizados serão perdidos, mas o app não crasha.
       debugPrint('[IsarService] Falha ao abrir DB ($e) — recriando do zero.');
-      if (!kIsWeb && dirPath != null) {
+      final existingInstance = Isar.getInstance(dbName);
+      if (existingInstance != null) {
+        await existingInstance.close(deleteFromDisk: true);
+      } else if (!kIsWeb && dirPath != null) {
         await _deleteIsarFiles(dirPath, dbName);
       }
       _isar = await Isar.open(
