@@ -15,6 +15,7 @@ class LoginPage extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
+              const Spacer(),
               const Icon(
                 Icons.lock_person_outlined,
                 size: 64,
@@ -33,9 +34,14 @@ class LoginPage extends StatelessWidget {
               const SizedBox(height: 32),
               ElevatedButton(
                 onPressed: () {
-                  Navigator.pushReplacementNamed(context, '/form');
+                  Navigator.pushReplacementNamed(context, '/select-type');
                 },
                 child: const Text('Entrar como Operador'),
+              ),
+              const Spacer(),
+              const Text(
+                '| Dev by WP & EF',
+                style: TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.w500),
               ),
             ],
           ),

@@ -15,7 +15,7 @@ extension GetCollaboratorModelCollection on Isar {
 
 const CollaboratorModelSchema = CollectionSchema(
   name: r'CollaboratorModel',
-  id: 8824645008609805813,
+  id: 6596938218375624,
   properties: {
     r'isCustom': PropertySchema(id: 0, name: r'isCustom', type: IsarType.bool),
     r'name': PropertySchema(id: 1, name: r'name', type: IsarType.string),
@@ -33,7 +33,7 @@ const CollaboratorModelSchema = CollectionSchema(
   idName: r'id',
   indexes: {
     r'registration': IndexSchema(
-      id: 5339774487194984570,
+      id: 7512528388317898,
       name: r'registration',
       unique: true,
       replace: true,
