@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:workmanager/workmanager.dart';
 import 'core/navigation/app_routes.dart';
 import 'core/services/isar_service.dart';
@@ -20,18 +21,19 @@ void callbackDispatcher() {
   Workmanager().executeTask((taskName, inputData) async {
     try {
       WidgetsFlutterBinding.ensureInitialized();
+      try {
+        await dotenv.load(fileName: '.env');
+      } catch (_) {}
 
       // Inicializa o Firebase no isolate em segundo plano
       await Firebase.initializeApp(
         options: DefaultFirebaseOptions.currentPlatform,
       );
 
-      // Inicializa o Isar no isolate em segundo plano
-      await IsarService.instance.init();
+      final isarService = IsarService.instance;
+      await isarService.init();
 
-      // Cria as dependências de sincronização manualmente
-      final isar = IsarService.instance.isar;
-      final localDataSource = ReportLocalDataSource(isar);
+      final localDataSource = ReportLocalDataSource(isarService.isar);
       final localRepository = ReportRepositoryImpl(localDataSource);
       final remoteDataSource = ReportFirestoreDataSource();
       final connectivityService = ConnectivityService();
@@ -58,13 +60,19 @@ void callbackDispatcher() {
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Carrega variáveis de ambiente do .env
+  try {
+    await dotenv.load(fileName: '.env');
+  } catch (e) {
+    debugPrint('Aviso: Não foi possível carregar o arquivo .env: $e');
+  }
+
   // Inicializa o banco local Isar antes de construir qualquer widget.
   await IsarService.instance.init();
 
   // Inicializa o Firebase
   try {
     debugPrint('Plataforma Web? $kIsWeb');
-    debugPrint('Firebase Options Web apiKey: ${DefaultFirebaseOptions.web.apiKey}');
     final options = DefaultFirebaseOptions.currentPlatform;
     debugPrint('Current Platform Options: $options');
     await Firebase.initializeApp(

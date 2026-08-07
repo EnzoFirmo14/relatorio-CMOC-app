@@ -52,6 +52,14 @@ app.*.map.json
 # Local temporary analysis files
 /analyze_output.txt
 
-# Node and web
+# Node and web / Environment
 node_modules/
 .env
+.env.*
+!.env.example
+env
+
+# Sensitive Firebase configuration files
+google-services.json
+**/google-services.json
+**/GoogleService-Info.plist

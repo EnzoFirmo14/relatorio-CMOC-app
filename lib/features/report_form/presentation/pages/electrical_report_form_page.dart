@@ -183,8 +183,10 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
       _hasAPR = true;
       _hasLOTO = true;
       _gasMeasured = true;
-      _members = ['José Almeida'];
-      _activities = [
+      _members.clear();
+      _members.addAll(['José Almeida']);
+      _activities.clear();
+      _activities.addAll([
         {
           'description': 'Troca de disjuntor',
           'serviceType': 'Manutenção Preventiva',
@@ -194,15 +196,16 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
           'startTime': '08:00',
           'endTime': '10:00'
         }
-      ];
-      _materials = [
+      ]);
+      _materials.clear();
+      _materials.addAll([
         {
           'item': 'Disjuntor Tripolar 100A',
           'quantity': 1.0,
           'unit': 'Unidade',
           'partNumber': 'DJ-100-3P'
         }
-      ];
+      ]);
     });
   }
 

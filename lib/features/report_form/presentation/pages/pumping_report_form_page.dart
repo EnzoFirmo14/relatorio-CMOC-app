@@ -194,8 +194,10 @@ class _PumpingReportFormPageState extends ConsumerState<PumpingReportFormPage> {
       _hasAPR = true;
       _hasLOTO = true;
       _gasMeasured = true;
-      _members = ['Carlos Souza'];
-      _pumps = [
+      _members.clear();
+      _members.addAll(['Carlos Souza']);
+      _pumps.clear();
+      _pumps.addAll([
         {
           'pumpId': 'BOM-01',
           'location': 'Fundo da Cava',
@@ -207,22 +209,24 @@ class _PumpingReportFormPageState extends ConsumerState<PumpingReportFormPage> {
           'downtimeHours': 0.0,
           'observations': 'Sem vazamentos'
         }
-      ];
-      _waterLevels = [
+      ]);
+      _waterLevels.clear();
+      _waterLevels.addAll([
         {
           'pointId': 'Ponto A',
           'location': 'Cota 450',
           'level': '2.5',
           'trend': 'Estável',
         }
-      ];
-      _materials = [
+      ]);
+      _materials.clear();
+      _materials.addAll([
         {
           'item': 'Óleo Lubrificante',
           'quantity': 2.0,
           'unit': 'Litros',
         }
-      ];
+      ]);
     });
   }
 

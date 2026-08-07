@@ -157,14 +157,6 @@ class HistoryPage extends ConsumerWidget {
     final hasOperators = report.operators.isNotEmpty;
     final osCount = report.workOrders.length;
 
-    // ID único legível: CMOC-AAAAMMDD-XXXX
-    final dateTag =
-        '${report.date.year}'
-        '${report.date.month.toString().padLeft(2, '0')}'
-        '${report.date.day.toString().padLeft(2, '0')}';
-    final uuidSuffix = report.uuid.replaceAll('-', '').substring(0, 4).toUpperCase();
-    final reportDisplayId = 'CMOC-$dateTag-$uuidSuffix';
-
     // Definição de cores e ícones baseados no status
     String statusLabel = 'Rascunho';
     IconData statusIcon = Icons.edit_note;
@@ -265,17 +257,6 @@ class HistoryPage extends ConsumerWidget {
                     ),
                   ),
                 ],
-              ),
-              const SizedBox(height: 4),
-              // ID único do relatório
-              Text(
-                'ID: $reportDisplayId',
-                style: const TextStyle(
-                  fontSize: 10,
-                  color: AppTheme.textFaint,
-                  fontFamily: 'monospace',
-                  letterSpacing: 0.8,
-                ),
               ),
               const Divider(color: AppTheme.borderLight, height: 20),
 

@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../core/providers/dev_mode_provider.dart';
+import '../../../../core/providers/dev_mode_provider.dart';
 
 class SelectReportTypePage extends ConsumerStatefulWidget {
   const SelectReportTypePage({super.key});
