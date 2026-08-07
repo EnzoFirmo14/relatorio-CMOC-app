@@ -202,7 +202,7 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
         {
           'item': 'Disjuntor Tripolar 100A',
           'quantity': 1.0,
-          'unit': 'Unidade',
+          'unit': 'unidade',
           'partNumber': 'DJ-100-3P'
         }
       ]);
@@ -744,13 +744,16 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
                                           const SizedBox(width: 12),
                                           Expanded(
                                             child: DropdownButtonFormField<String>(
-                                              initialValue: mat['unit'],
+                                              initialValue: ['unidade', 'metros', 'pecas', 'rolos', 'Litros'].contains(mat['unit'])
+                                                  ? mat['unit']
+                                                  : 'unidade',
                                               decoration: const InputDecoration(labelText: 'Unidade'),
                                               items: const [
                                                 DropdownMenuItem(value: 'unidade', child: Text('unidade')),
                                                 DropdownMenuItem(value: 'metros', child: Text('metros')),
                                                 DropdownMenuItem(value: 'pecas', child: Text('peças')),
                                                 DropdownMenuItem(value: 'rolos', child: Text('rolos')),
+                                                DropdownMenuItem(value: 'Litros', child: Text('Litros')),
                                               ],
                                               onChanged: (val) => setState(() => mat['unit'] = val!),
                                             ),
