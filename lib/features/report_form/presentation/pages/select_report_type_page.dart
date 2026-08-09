@@ -132,22 +132,19 @@ class _SelectReportTypePageState extends ConsumerState<SelectReportTypePage> {
                       ),
                       const SizedBox(height: 48),
 
-                      // Grid
-                      isMobile
-                          ? Column(
-                              children: _buildProfiles(context),
-                            )
-                          : Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: _buildProfiles(context)
-                                  .map((card) => Expanded(
-                                        child: Padding(
-                                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                                          child: card,
-                                        ),
-                                      ))
-                                  .toList(),
-                            ),
+                      // Grid responsivo de 4 abas
+                      Wrap(
+                        alignment: WrapAlignment.center,
+                        spacing: 20,
+                        runSpacing: 20,
+                        children: _buildProfiles(context)
+                            .whereType<_ProfileCard>()
+                            .map((card) => SizedBox(
+                                  width: isMobile ? double.infinity : 270,
+                                  child: card,
+                                ))
+                            .toList(),
+                      ),
                       const SizedBox(height: 48),
 
                       // Safety Phrase/Slogan
@@ -226,29 +223,38 @@ class _SelectReportTypePageState extends ConsumerState<SelectReportTypePage> {
     return [
       _ProfileCard(
         title: 'Equipagem',
-        description: 'Manutenção e operação de maquinário pesado.',
+        description: 'Diário de bordo, turno e registro de máquinas pesadas.',
         icon: Icons.engineering_rounded,
         gradientColors: const [Color(0xFF5C3FA3), Color(0xFF321474)], // Roxo CMOC
         shadowColor: const Color(0xFF5C3FA3).withValues(alpha: 0.3),
         onTap: () => Navigator.pushNamed(context, '/form'),
       ),
-      const SizedBox(height: 24, width: 24),
+      const SizedBox(height: 20, width: 20),
       _ProfileCard(
-        title: 'Elétrica da Mina',
-        description: 'Subestações, fiação e infraestrutura elétrica.',
-        icon: Icons.bolt_rounded,
-        gradientColors: const [Color(0xFF23005B), Color(0xFF13003A)], // Azul CMOC
-        shadowColor: const Color(0xFF23005B).withValues(alpha: 0.3),
-        onTap: () => Navigator.pushNamed(context, '/form/electrical'),
-      ),
-      const SizedBox(height: 24, width: 24),
-      _ProfileCard(
-        title: 'Bombeamento',
-        description: 'Sistemas de drenagem, tubulações e reservatórios.',
+        title: 'Drenagem e Bombeamento',
+        description: 'Inspeção de bombas, níveis de água, pressão e vazão.',
         icon: Icons.water_drop_rounded,
         gradientColors: const [Color(0xFF74BE45), Color(0xFF1E3A0E)], // Verde CMOC
         shadowColor: const Color(0xFF74BE45).withValues(alpha: 0.3),
         onTap: () => Navigator.pushNamed(context, '/form/pumping'),
+      ),
+      const SizedBox(height: 20, width: 20),
+      _ProfileCard(
+        title: 'Manutenção Mecânica',
+        description: 'Ordens de manutenção, TAGs, checklists mecânicos e HH.',
+        icon: Icons.build_rounded,
+        gradientColors: const [Color(0xFF23005B), Color(0xFF13003A)], // Azul CMOC
+        shadowColor: const Color(0xFF23005B).withValues(alpha: 0.3),
+        onTap: () => Navigator.pushNamed(context, '/form/mechanical'),
+      ),
+      const SizedBox(height: 20, width: 20),
+      _ProfileCard(
+        title: 'Elétrica da Mina',
+        description: 'Subestações, fiação, equipamentos e manutenção elétrica.',
+        icon: Icons.bolt_rounded,
+        gradientColors: const [Color(0xFFD97706), Color(0xFF78350F)], // Dourado/Âmbar
+        shadowColor: const Color(0xFFD97706).withValues(alpha: 0.3),
+        onTap: () => Navigator.pushNamed(context, '/form/electrical'),
       ),
     ];
   }

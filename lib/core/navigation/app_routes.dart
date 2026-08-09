@@ -6,6 +6,7 @@ import '../../features/supervisor/presentation/pages/supervisor_dashboard_page.d
 import '../../features/report_form/presentation/pages/select_report_type_page.dart';
 import '../../features/report_form/presentation/pages/electrical_report_form_page.dart';
 import '../../features/report_form/presentation/pages/pumping_report_form_page.dart';
+import '../../features/report_form/presentation/pages/mechanical_report_form_page.dart';
 
 class AppRoutes {
   AppRoutes._();
@@ -18,6 +19,7 @@ class AppRoutes {
   static const String selectType = '/select-type';
   static const String electricalForm = '/form/electrical';
   static const String pumpingForm = '/form/pumping';
+  static const String mechanicalForm = '/form/mechanical';
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -37,6 +39,8 @@ class AppRoutes {
         return MaterialPageRoute(builder: (_) => const ElectricalReportFormPage());
       case pumpingForm:
         return MaterialPageRoute(builder: (_) => const PumpingReportFormPage());
+      case mechanicalForm:
+        return MaterialPageRoute(builder: (_) => const MechanicalReportFormPage());
       default:
         return MaterialPageRoute(
           builder: (_) => Scaffold(
