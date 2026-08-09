@@ -1,6 +1,9 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../../../core/services/firestore_cadastros_service.dart';
 
 class ElectricalReportFormPage extends ConsumerStatefulWidget {
   const ElectricalReportFormPage({super.key});
@@ -10,6 +13,8 @@ class ElectricalReportFormPage extends ConsumerStatefulWidget {
 }
 
 class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormPage> {
+  int _currentTab = 0; // 0: Relatório, 1: Cadastros & Locais
+
   // State matching relatorio-eletrica.html
   DateTime _selectedDate = DateTime.now();
   String _tipoRelatorio = 'Elétrica Rotina'; // 'Elétrica Rotina' | 'Elétrica Programada'
@@ -23,7 +28,7 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
   double _combustivel = 50.0;
   final _materiaisCtrl = TextEditingController();
 
-  // Executantes (Lista dinâmica com autocompletar)
+  // Executantes
   final List<Map<String, String>> _executantes = [
     {'nome': '', 'mat': ''}
   ];
@@ -35,8 +40,12 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
   bool _showValidationErrors = false;
   String _errorMessage = '';
 
-  // Standard Database of Executants from relatorio-eletrica.html
-  static const List<Map<String, String>> pessoasEletrica = [
+  // Listas Dinâmicas Persistentes
+  late List<Map<String, String>> _pessoasEletrica;
+  late List<String> _subestacoesEletrica;
+  late List<String> _equipamentosEletrica;
+
+  static const List<Map<String, String>> _pessoasPadrao = [
     {'nome': 'Acacio Oliveira Souza', 'mat': 'S/N'},
     {'nome': 'Adailton Silva Santos', 'mat': '99300599'},
     {'nome': 'Adonis Evaristo Sousa dos Santos', 'mat': '99300182'},
@@ -98,231 +107,225 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
     {'nome': 'Jose Milton Bispo dos Santos', 'mat': '70205586'},
     {'nome': 'Jose Nacirso Ferreira de Queiroz', 'mat': '99300378'},
     {'nome': 'Josevaldo Santos de Jesus', 'mat': '99300239'},
-    {'nome': 'José Alberto de Araujo Cristo', 'mat': 'S/N'},
-    {'nome': 'José Cerqueira dos Santos', 'mat': '70205556'},
-    {'nome': 'Jucineia Queiroz Oliveira', 'mat': 'S/N'},
-    {'nome': 'Kezya Queiroz Oliveira Borges', 'mat': '99300525'},
-    {'nome': 'Kleberlito Luciano Carneiro da Silva', 'mat': 'S/N'},
-    {'nome': 'Leonardo dos Santos Lima de Queiroz', 'mat': '99300264'},
-    {'nome': 'Leonardo Mota Nascimento', 'mat': 'S/N'},
-    {'nome': 'Lucas Evangelista Farias Cerqueira', 'mat': '99300295'},
-    {'nome': 'Lucas Moura de Mendonca', 'mat': '70205587'},
-    {'nome': 'Marcolino dos Santos', 'mat': 'S/N'},
-    {'nome': 'Marcos Cassiano Oliveira Santos', 'mat': '99300327'},
-    {'nome': 'Marcos Neves Moura', 'mat': '4933'},
-    {'nome': 'Marcos Real Mota', 'mat': '99300152'},
-    {'nome': 'Mateus Barreto Calvacante', 'mat': '99300061'},
-    {'nome': 'Matheus Silva Pastor', 'mat': '4795'},
-    {'nome': 'Natalino Paixao dos Santos', 'mat': '70206772'},
-    {'nome': 'Niel Pereira Rodrigues', 'mat': '99300589'},
-    {'nome': 'Pablo Oliveira Araujo', 'mat': '70207289'},
-    {'nome': 'Paulo Ditarso Guimaraes Porto Souza', 'mat': '99300461'},
-    {'nome': 'Paulo Henrique Lima de Santana', 'mat': 'S/N'},
-    {'nome': 'Pedro Henrique Alves De Souza', 'mat': 'S/N'},
-    {'nome': 'Rafael de Oliveira Cardoso', 'mat': 'S/N'},
-    {'nome': 'Rayane Silva Lima', 'mat': 'S/N'},
-    {'nome': 'Ricardo Moraes', 'mat': '99300440'},
-    {'nome': 'Ricardo Santos Lima', 'mat': '99300594'},
-    {'nome': 'Robenilson Cerqueira dos Santos', 'mat': 'S/N'},
-    {'nome': 'Roberto das Virgens Ferreira', 'mat': 'S/N'},
-    {'nome': 'Robson Ricardo Soares da Silva', 'mat': 'S/N'},
-    {'nome': 'Romilson Lima Oliveira', 'mat': '4758'},
-    {'nome': 'Romilson Santos de Jesus', 'mat': '99300699'},
-    {'nome': 'Ronaldo do Rosario Nascimento', 'mat': '99300677'},
-    {'nome': 'Sandro Pereira dos Santos', 'mat': '99300446'},
-    {'nome': 'Saul Vinicius de Jesus Souza', 'mat': 'S/N'},
-    {'nome': 'Venancio Araujo Queiroz', 'mat': 'S/N'},
-    {'nome': 'Verena Oliveira Lima', 'mat': 'S/N'},
-    {'nome': 'William Pereira da Silva', 'mat': 'S/N'},
   ];
 
-  static const List<String> equipamentos = [
-    'PT302',
-    'PT305',
-    'PT306',
-    'MT001',
-    'MT002',
-    'PT386'
+  static const List<String> _subestacoesPadrao = [
+    'Subestação S-01', 'Subestação S-02', 'Subestação S-03', 'Subestação S-04',
+    'Quadro Geral QG-01', 'Quadro Geral QG-02', 'Painel de Distribuição P-01',
+    'Oficina Elétrica Subterrânea', 'Superfície Eletro'
   ];
 
-  static const List<Map<String, String>> tagListEletrica = [
-    {'tag': 'SUB-01', 'name': 'Subestação Principal - Mina'},
-    {'tag': 'SUB-02', 'name': 'Subestação Secundária - Cava'},
-    {'tag': 'TRA-101', 'name': 'Transformador 13.8kV/440V - Britagem'},
-    {'tag': 'QUAD-201', 'name': 'Quadro de Distribuição Força QDF-01'},
-    {'tag': 'ILUM-01', 'name': 'Torre de Iluminação Portátil 01'},
-    {'tag': 'CAB-501', 'name': 'Cabo Flexível de Média Tensão 5kV'},
+  static const List<String> _equipamentosPadrao = [
+    'Transformador T-500kVA', 'Transformador T-1000kVA', 'Gerador G-01',
+    'Gerador G-02', 'Painel Soft-Starter', 'Nobreak Principal', 'Chave Seccionadora'
   ];
+
+  // Controllers para cadastros
+  final _novaSubestacaoCtrl = TextEditingController();
+  final _novoEquipCtrl = TextEditingController();
+  final _novoNomeEletCtrl = TextEditingController();
+  final _novaMatEletCtrl = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    _addNovaOS();
+    _pessoasEletrica = List.from(_pessoasPadrao);
+    _subestacoesEletrica = List.from(_subestacoesPadrao);
+    _equipamentosEletrica = List.from(_equipamentosPadrao);
+    _carregarCadastrosPersistidos();
+  }
+
+  Future<void> _carregarCadastrosPersistidos() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    final subsSaved = prefs.getStringList('eletrica_subestacoes');
+    if (subsSaved != null) {
+      _subestacoesEletrica = subsSaved;
+    }
+
+    final equipsSaved = prefs.getStringList('eletrica_equipamentos');
+    if (equipsSaved != null) {
+      _equipamentosEletrica = equipsSaved;
+    }
+
+    final pessoasSaved = prefs.getStringList('eletrica_pessoas');
+    if (pessoasSaved != null) {
+      _pessoasEletrica = pessoasSaved.map((item) {
+        final map = jsonDecode(item) as Map<String, dynamic>;
+        return {'nome': map['nome'].toString(), 'mat': map['mat'].toString()};
+      }).toList();
+    }
+
+    if (mounted) setState(() {});
+
+    // Escutar atualizações do Cloud Firestore em tempo real
+    FirestoreCadastrosService().escutarCadastrosArea(
+      area: 'eletrica',
+      onData: (data) {
+        if (!mounted) return;
+        setState(() {
+          if (data['subestacoes'] != null) {
+            _subestacoesEletrica = List<String>.from(data['subestacoes']);
+          }
+          if (data['equipamentos'] != null) {
+            _equipamentosEletrica = List<String>.from(data['equipamentos']);
+          }
+          if (data['colaboradores'] != null) {
+            _pessoasEletrica = (data['colaboradores'] as List).map((p) => Map<String, String>.from(p)).toList();
+          }
+        });
+      },
+    );
+  }
+
+  Future<void> _salvarCadastrosPersistidos() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList('eletrica_subestacoes', _subestacoesEletrica);
+    await prefs.setStringList('eletrica_equipamentos', _equipamentosEletrica);
+
+    final pessoasJson = _pessoasEletrica.map((p) => jsonEncode(p)).toList();
+    await prefs.setStringList('eletrica_pessoas', pessoasJson);
+
+    // Sincronizar com o Cloud Firestore
+    await FirestoreCadastrosService().salvarCadastrosArea(
+      area: 'eletrica',
+      data: {
+        'subestacoes': _subestacoesEletrica,
+        'equipamentos': _equipamentosEletrica,
+        'colaboradores': _pessoasEletrica,
+        'atualizadoEm': DateTime.now().toIso8601String(),
+      },
+    );
   }
 
   @override
   void dispose() {
     _localEquipCtrl.dispose();
     _materiaisCtrl.dispose();
+    _novaSubestacaoCtrl.dispose();
+    _novoEquipCtrl.dispose();
+    _novoNomeEletCtrl.dispose();
+    _novaMatEletCtrl.dispose();
     for (var os in _ordensServico) {
+      (os['numCtrl'] as TextEditingController).dispose();
       (os['tagCtrl'] as TextEditingController).dispose();
       (os['descCtrl'] as TextEditingController).dispose();
-      (os['startCtrl'] as TextEditingController).dispose();
-      (os['endCtrl'] as TextEditingController).dispose();
+      (os['localCtrl'] as TextEditingController).dispose();
     }
     super.dispose();
   }
 
-  void _addNovaOS() {
+  void _adicionarOS() {
     setState(() {
       _ordensServico.add({
-        'num': _ordensServico.length + 1,
+        'id': DateTime.now().millisecondsSinceEpoch.toString(),
+        'numCtrl': TextEditingController(text: 'OS-${(_ordensServico.length + 1).toString().padLeft(3, '0')}'),
         'tagCtrl': TextEditingController(),
-        'tipo': 'Preventiva', // Preventiva, Corretiva, Melhoria/Ajuste, Inspeção
-        'status': 'Liberada', // Liberada, Pendente
-        'instalacaoParada': false,
-        'naHorario': false,
-        'startCtrl': TextEditingController(text: '08:00'),
-        'endCtrl': TextEditingController(text: '12:00'),
         'descCtrl': TextEditingController(),
+        'localCtrl': TextEditingController(),
+        'status': 'CONCLUÍDA',
+        'fotos': <String>[],
       });
     });
   }
 
-  void _removeOS(int index) {
-    if (_ordensServico.length > 1) {
-      setState(() {
-        final os = _ordensServico.removeAt(index);
-        (os['tagCtrl'] as TextEditingController).dispose();
-        (os['descCtrl'] as TextEditingController).dispose();
-        (os['startCtrl'] as TextEditingController).dispose();
-        (os['endCtrl'] as TextEditingController).dispose();
-      });
-    }
-  }
-
-  void _addExecutante() {
-    setState(() => _executantes.add({'nome': '', 'mat': ''}));
-  }
-
-  void _removeExecutante(int index) {
-    if (_executantes.length > 1) {
-      setState(() => _executantes.removeAt(index));
-    }
-  }
-
-  String _formatDateBR(DateTime dt) {
-    final d = dt.day.toString().padLeft(2, '0');
-    final m = dt.month.toString().padLeft(2, '0');
-    final y = dt.year.toString();
-    return '$d/$m/$y';
-  }
-
-  void _limparFormulario() {
-    setState(() {
-      _selectedDate = DateTime.now();
-      _tipoRelatorio = 'Elétrica Rotina';
-      _turno = 'T1';
-      _turma = 'Turma A';
-      _semEquip = false;
-      _equipamento = '';
-      _localEquipCtrl.clear();
-      _combustivel = 50.0;
-      _materiaisCtrl.clear();
-      _executantes.clear();
-      _executantes.add({'nome': '', 'mat': ''});
-      _ordensServico.clear();
-      _addNovaOS();
-      _showValidationErrors = false;
-      _errorMessage = '';
-    });
-  }
-
-  bool _validar() {
-    List<String> erros = [];
-
-    if (_tipoRelatorio.isEmpty) erros.add('Tipo de Relatório é obrigatório');
-    if (_turno.isEmpty) erros.add('Turno é obrigatório');
-    if (_turma.isEmpty) erros.add('Turma é obrigatória');
-
-    if (!_semEquip) {
-      if (_equipamento.isEmpty) erros.add('Selecione o equipamento ou marque "Nenhum equipamento"');
-      if (_localEquipCtrl.text.trim().isEmpty) erros.add('Informe o local do equipamento');
-      if (_materiaisCtrl.text.trim().isEmpty) erros.add('Liste os materiais disponíveis');
-    }
-
-    bool temExecutanteValido = _executantes.any((e) => e['nome']!.trim().isNotEmpty);
-    if (!temExecutanteValido) {
-      erros.add('Informe ao menos 1 executante com nome');
-    }
-
-    for (int i = 0; i < _ordensServico.length; i++) {
-      final os = _ordensServico[i];
-      final tag = (os['tagCtrl'] as TextEditingController).text.trim();
-      final desc = (os['descCtrl'] as TextEditingController).text.trim();
-      if (tag.isEmpty) erros.add('OS #${i + 1}: Informe a TAG / Equipamento');
-      if (desc.isEmpty) erros.add('OS #${i + 1}: Informe a descrição da atividade');
-    }
-
-    if (erros.isNotEmpty) {
-      setState(() {
-        _showValidationErrors = true;
-        _errorMessage = '⚠️ ${erros.first}';
-      });
+  bool _validarFormulario() {
+    if (_tipoRelatorio.isEmpty) {
+      _errorMessage = 'Selecione o tipo de relatório.';
       return false;
     }
 
-    setState(() {
-      _showValidationErrors = false;
-      _errorMessage = '';
-    });
+    bool executantePreenchido = false;
+    for (var ex in _executantes) {
+      if (ex['nome'] != null && ex['nome']!.trim().isNotEmpty) {
+        executantePreenchido = true;
+        break;
+      }
+    }
+    if (!executantePreenchido) {
+      _errorMessage = 'Adicione ao menos um executante.';
+      return false;
+    }
+
+    if (!_semEquip && _equipamento.isEmpty) {
+      _errorMessage = 'Selecione o equipamento utilizado ou marque "Não se aplica".';
+      return false;
+    }
+
     return true;
   }
 
-  Future<void> _enviarWhatsApp() async {
-    if (!_validar()) return;
+  String _gerarTextoRelatorio() {
+    final StringBuffer sb = StringBuffer();
+    final String dataStr = '${_selectedDate.day.toString().padLeft(2, '0')}/${_selectedDate.month.toString().padLeft(2, '0')}/${_selectedDate.year}';
 
-    final dateStr = _formatDateBR(_selectedDate);
-    final execsListStr = _executantes
-        .where((e) => e['nome']!.trim().isNotEmpty)
-        .map((e) => '• ${e['nome']} (Mat: ${e['mat']})')
-        .join('\n');
+    sb.writeln('*RELATÓRIO DE MANUTENÇÃO ELÉTRICA*');
+    sb.writeln('Tipo: $_tipoRelatorio');
+    sb.writeln('Data: $dataStr | Turno: $_turno | $_turma');
+    sb.writeln('');
 
-    String text = '⚡ *RELATÓRIO DE TURNO ELÉTRICA - CMOC*\n';
-    text += '📅 *Data:* $dateStr\n';
-    text += '📋 *Tipo:* $_tipoRelatorio\n';
-    text += '🕐 *Turno:* $_turno | *Turma:* $_turma\n\n';
-
-    text += '👷 *EXECUTANTES:*\n$execsListStr\n\n';
-
-    text += '🔧 *EQUIPAMENTO:*\n';
+    sb.writeln('*EQUIPAMENTO:*');
     if (_semEquip) {
-      text += '🚫 Nenhum equipamento utilizado neste turno.\n\n';
+      sb.writeln('• Não se aplica');
     } else {
-      text += '• Equipamento: $_equipamento\n';
-      text += '• Local: ${_localEquipCtrl.text.trim()}\n';
-      text += '• Combustível: ${_combustivel.toInt()}%\n';
-      text += '• Materiais: ${_materiaisCtrl.text.trim()}\n\n';
+      sb.writeln('• Equipamento: $_equipamento');
+      if (_localEquipCtrl.text.isNotEmpty) sb.writeln('• Local: ${_localEquipCtrl.text}');
+      sb.writeln('• Nível Combustível: ${_combustivel.round()}%');
+    }
+    sb.writeln('');
+
+    sb.writeln('*EXECUTANTES (ELETRICISTAS):*');
+    for (var ex in _executantes) {
+      if (ex['nome'] != null && ex['nome']!.isNotEmpty) {
+        final matStr = ex['mat'] != null && ex['mat']!.isNotEmpty ? ' (${ex['mat']})' : '';
+        sb.writeln('• ${ex['nome']}$matStr');
+      }
+    }
+    sb.writeln('');
+
+    sb.writeln('*ACTIVIDADES / ORDENS DE SERVIÇO (${_ordensServico.length}):*');
+    if (_ordensServico.isEmpty) {
+      sb.writeln('• Nenhuma atividade registrada.');
+    } else {
+      for (var os in _ordensServico) {
+        final numOs = (os['numCtrl'] as TextEditingController).text;
+        final tag = (os['tagCtrl'] as TextEditingController).text;
+        final desc = (os['descCtrl'] as TextEditingController).text;
+        final local = (os['localCtrl'] as TextEditingController).text;
+        final st = os['status'] ?? 'CONCLUÍDA';
+
+        sb.writeln('• *$numOs* | Status: $st');
+        if (tag.isNotEmpty) sb.writeln('  TAG/Painel: $tag');
+        if (local.isNotEmpty) sb.writeln('  Local: $local');
+        if (desc.isNotEmpty) sb.writeln('  Descrição: $desc');
+        sb.writeln('');
+      }
     }
 
-    text += '📑 *ORDENS DE SERVIÇO (${_ordensServico.length}):*\n';
-    for (int i = 0; i < _ordensServico.length; i++) {
-      final os = _ordensServico[i];
-      final tag = (os['tagCtrl'] as TextEditingController).text.trim();
-      final desc = (os['descCtrl'] as TextEditingController).text.trim();
-      final start = (os['startCtrl'] as TextEditingController).text.trim();
-      final end = (os['endCtrl'] as TextEditingController).text.trim();
-
-      text += '\n*OS #${i + 1} - $tag*\n';
-      text += '• Tipo: ${os['tipo']} | Status: ${os['status']}\n';
-      text += '• Instalação Parada: ${os['instalacaoParada'] ? 'SIM' : 'NÃO'}\n';
-      if (!os['naHorario']) text += '• Horário: $start às $end\n';
-      text += '• Descrição: $desc\n';
+    if (_materiaisCtrl.text.isNotEmpty) {
+      sb.writeln('*MATERIAIS E OBSERVAÇÕES:*');
+      sb.writeln(_materiaisCtrl.text);
     }
 
-    final Uri url = Uri.parse('https://wa.me/?text=${Uri.encodeComponent(text)}');
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url, mode: LaunchMode.externalApplication);
+    return sb.toString();
+  }
+
+  void _enviarWhatsApp() async {
+    setState(() {
+      _showValidationErrors = true;
+    });
+
+    if (!_validarFormulario()) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_errorMessage), backgroundColor: Colors.redAccent),
+      );
+      return;
+    }
+
+    final texto = _gerarTextoRelatorio();
+    final uri = Uri.parse("whatsapp://send?text=${Uri.encodeComponent(texto)}");
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
     } else {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -334,720 +337,460 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
 
   @override
   Widget build(BuildContext context) {
-    const Color bgPage = Color(0xFFEEF1F7);
-    const Color cardBg = Colors.white;
-    const Color textColor = Color(0xFF2B2F3A);
-    const Color mutedColor = Color(0xFF8A90A2);
-    const Color accentPurple = Color(0xFF6366F1);
-    const Color accentGreen = Color(0xFF16A34A);
-    const Color borderColor = Color(0xFFE6E9F0);
+    const primaryNavy = Color(0xFF23005B);
+    const accentPurple = Color(0xFF5C3FA3);
+    const bgLight = Color(0xFFF5F7FA);
+    const textColor = Color(0xFF1F2937);
 
     return Scaffold(
-      backgroundColor: bgPage,
+      backgroundColor: bgLight,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 1,
-        shadowColor: Colors.black12,
-        foregroundColor: textColor,
-        title: const Row(
+        titleSpacing: 16,
+        title: Row(
           children: [
-            Text(
-              'CM',
-              style: TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF36A635), fontSize: 24),
+            Container(
+              width: 8,
+              height: 8,
+              decoration: const BoxDecoration(color: Color(0xFF1A9E4A), shape: BoxShape.circle),
             ),
-            Text(
-              'OC',
-              style: TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF5B2A8C), fontSize: 24),
-            ),
-            SizedBox(width: 10),
-            Text(
-              'Relatório de Turno',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF8A90A2)),
+            const SizedBox(width: 8),
+            const Text('CM', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: textColor)),
+            const Text('OC', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: accentPurple)),
+            const SizedBox(width: 10),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: const BoxDecoration(
+                color: Color(0xFFEDE9FF),
+                borderRadius: BorderRadius.all(Radius.circular(20)),
+              ),
+              child: const Text('⚡ ELÉTRICA', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: accentPurple)),
             ),
           ],
         ),
-        actions: [
-          TextButton.icon(
-            onPressed: () {
-              _validar();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('✓ Rascunho salvo localmente'), duration: Duration(seconds: 1)),
-              );
-            },
-            icon: const Icon(Icons.save_outlined, size: 16, color: accentPurple),
-            label: const Text('Salvar', style: TextStyle(color: accentPurple, fontWeight: FontWeight.bold, fontSize: 12)),
-          ),
-          IconButton(
-            icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 20),
-            onPressed: _limparFormulario,
-            tooltip: 'Limpar',
-          ),
+      ),
+      body: IndexedStack(
+        index: _currentTab,
+        children: [
+          _buildTabFormulario(primaryNavy, accentPurple, textColor),
+          _buildTabCadastros(primaryNavy, accentPurple, textColor),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ERRO BANNER
-            if (_showValidationErrors && _errorMessage.isNotEmpty)
-              Container(
-                width: double.infinity,
-                margin: const EdgeInsets.only(bottom: 16),
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFDEAEA),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFF3A3A3)),
-                ),
-                child: Text(
-                  _errorMessage,
-                  style: const TextStyle(color: Color(0xFFC0392B), fontWeight: FontWeight.bold, fontSize: 13),
-                  textAlign: TextAlign.center,
-                ),
-              ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _currentTab,
+        onTap: (idx) => setState(() => _currentTab = idx),
+        selectedItemColor: primaryNavy,
+        unselectedItemColor: Colors.grey,
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.assignment), label: 'Relatório'),
+          BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Cadastros & Locais'),
+        ],
+      ),
+    );
+  }
 
-            // SEÇÃO 1: IDENTIFICAÇÃO
-            _buildSectionHeader('IDENTIFICAÇÃO'),
-            _buildCard(
-              cardBg: cardBg,
-              borderColor: borderColor,
+  // =========================================================================
+  // ABA 1: FORMULÁRIO OPERACIONAL ELÉTRICA
+  // =========================================================================
+
+  Widget _buildTabFormulario(Color primaryNavy, Color accentPurple, Color textColor) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Tipo de Relatório
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+            child: Row(
               children: [
-                // Data
-                _buildLabel('🗓️', 'DATA'),
-                InkWell(
-                  onTap: () async {
-                    final picked = await showDatePicker(
-                      context: context,
-                      initialDate: _selectedDate,
-                      firstDate: DateTime(2020),
-                      lastDate: DateTime(2030),
-                    );
-                    if (picked != null) setState(() => _selectedDate = picked);
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF4F6FB),
-                      borderRadius: BorderRadius.circular(11),
-                      border: Border.all(color: borderColor, width: 1.5),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          _formatDateBR(_selectedDate),
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: textColor),
-                        ),
-                        const Icon(Icons.calendar_month, color: accentPurple),
-                      ],
-                    ),
+                Expanded(
+                  child: ChoiceChip(
+                    label: const Text('Elétrica Rotina'),
+                    selected: _tipoRelatorio == 'Elétrica Rotina',
+                    selectedColor: accentPurple.withValues(alpha: 0.2),
+                    onSelected: (val) => setState(() => _tipoRelatorio = 'Elétrica Rotina'),
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: ChoiceChip(
+                    label: const Text('Elétrica Programada'),
+                    selected: _tipoRelatorio == 'Elétrica Programada',
+                    selectedColor: accentPurple.withValues(alpha: 0.2),
+                    onSelected: (val) => setState(() => _tipoRelatorio = 'Elétrica Programada'),
+                  ),
+                ),
+              ],
+            ),
+          ),
 
-                // Tipo de Relatório
-                _buildLabel('⚡', 'TIPO DE RELATÓRIO *'),
+          const SizedBox(height: 14),
+
+          // Header Card (Data, Turno, Turma)
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.calendar_today, size: 16, color: primaryNavy),
+                    const SizedBox(width: 6),
+                    Text(
+                      '${_selectedDate.day.toString().padLeft(2, '0')}/${_selectedDate.month.toString().padLeft(2, '0')}/${_selectedDate.year}',
+                      style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
+                    ),
+                    const Spacer(),
+                    TextButton(
+                      onPressed: () async {
+                        final d = await showDatePicker(
+                          context: context,
+                          initialDate: _selectedDate,
+                          firstDate: DateTime(2020),
+                          lastDate: DateTime(2030),
+                        );
+                        if (d != null) setState(() => _selectedDate = d);
+                      },
+                      child: const Text('Alterar Data'),
+                    ),
+                  ],
+                ),
+                const Divider(),
                 Row(
                   children: [
                     Expanded(
-                      child: _buildToggleButton(
-                        label: '⚡ Elétrica Rotina',
-                        isSelected: _tipoRelatorio == 'Elétrica Rotina',
-                        activeColor: accentPurple,
-                        onTap: () => setState(() => _tipoRelatorio = 'Elétrica Rotina'),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: _buildToggleButton(
-                        label: '🛠️ Elétrica Programada',
-                        isSelected: _tipoRelatorio == 'Elétrica Programada',
-                        activeColor: accentPurple,
-                        onTap: () => setState(() => _tipoRelatorio = 'Elétrica Programada'),
+                      child: SegmentedButton<String>(
+                        segments: const [
+                          ButtonSegment(value: 'T1', label: Text('T1')),
+                          ButtonSegment(value: 'T2', label: Text('T2')),
+                          ButtonSegment(value: 'T3', label: Text('T3')),
+                        ],
+                        selected: {_turno},
+                        onSelectionChanged: (val) => setState(() => _turno = val.first),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
+              ],
+            ),
+          ),
 
-                // Executantes
-                _buildLabel('👥', 'EXECUTANTES *'),
-                ..._executantes.asMap().entries.map((entry) {
-                  final idx = entry.key;
-                  final exec = entry.value;
+          const SizedBox(height: 16),
 
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF4F6FB),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: borderColor),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'EXECUTANTE ${idx + 1}',
-                              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: mutedColor),
-                            ),
-                            if (_executantes.length > 1)
-                              InkWell(
-                                onTap: () => _removeExecutante(idx),
-                                child: const Text('Excluir', style: TextStyle(color: Colors.redAccent, fontSize: 12, fontWeight: FontWeight.bold)),
-                              ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
+          // Executantes
+          Text('⚡ ELETRICISTAS E EXECUTANTES', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: primaryNavy)),
+          const SizedBox(height: 6),
 
-                        // Autocomplete Executante
-                        RawAutocomplete<Map<String, String>>(
-                          optionsBuilder: (TextEditingValue textEditingValue) {
-                            if (textEditingValue.text.isEmpty) {
-                              return pessoasEletrica;
-                            }
-                            final q = textEditingValue.text.toLowerCase().trim();
-                            return pessoasEletrica.where((p) {
-                              return p['nome']!.toLowerCase().contains(q) || p['mat']!.contains(q);
-                            });
-                          },
-                          displayStringForOption: (option) => option['nome']!,
-                          fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
-                            if (controller.text.isEmpty && exec['nome']!.isNotEmpty) {
-                              controller.text = exec['nome']!;
-                            }
-                            return TextFormField(
-                              controller: controller,
-                              focusNode: focusNode,
-                              decoration: InputDecoration(
-                                hintText: 'Digite o nome ou matrícula...',
-                                fillColor: Colors.white,
-                                filled: true,
-                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                              ),
-                              onChanged: (val) {
-                                exec['nome'] = val;
-                                setState(() {});
-                              },
-                            );
-                          },
-                          optionsViewBuilder: (context, onSelected, options) {
-                            return Align(
-                              alignment: Alignment.topLeft,
-                              child: Material(
-                                elevation: 6,
-                                borderRadius: BorderRadius.circular(10),
-                                child: ConstrainedBox(
-                                  constraints: BoxConstraints(
-                                    maxWidth: MediaQuery.of(context).size.width - 64,
-                                    maxHeight: 200,
-                                  ),
-                                  child: ListView.builder(
-                                    padding: EdgeInsets.zero,
-                                    shrinkWrap: true,
-                                    itemCount: options.length,
-                                    itemBuilder: (context, index) {
-                                      final option = options.elementAt(index);
-                                      return ListTile(
-                                        title: Text(option['nome']!, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                                        subtitle: Text('Matrícula: ${option['mat']}', style: const TextStyle(fontSize: 12, color: mutedColor)),
-                                        onTap: () {
-                                          onSelected(option);
-                                          setState(() {
-                                            exec['nome'] = option['nome']!;
-                                            exec['mat'] = option['mat']!;
-                                          });
-                                        },
-                                      );
-                                    },
-                                  ),
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                        const SizedBox(height: 8),
-
-                        // Matrícula Badge
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: accentPurple.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Text('🪪 MATRÍCULA: ', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: accentPurple)),
-                              Text(
-                                exec['mat']!.isNotEmpty ? exec['mat']! : 'S/N',
-                                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: textColor),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
+          ...List.generate(_executantes.length, (idx) {
+            final currentItem = _executantes[idx];
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 8.0),
+              child: Autocomplete<Map<String, String>>(
+                optionsBuilder: (textEditingValue) {
+                  if (textEditingValue.text.isEmpty) return const Iterable.empty();
+                  return _pessoasEletrica.where((p) => p['nome']!.toLowerCase().contains(textEditingValue.text.toLowerCase()) || p['mat']!.contains(textEditingValue.text));
+                },
+                displayStringForOption: (option) => '${option['nome']} (${option['mat']})',
+                fieldViewBuilder: (context, controller, focusNode, onEditingComplete) {
+                  if (controller.text.isEmpty && currentItem['nome']!.isNotEmpty) {
+                    controller.text = '${currentItem['nome']} (${currentItem['mat']})';
+                  }
+                  return TextField(
+                    controller: controller,
+                    focusNode: focusNode,
+                    decoration: InputDecoration(
+                      hintText: 'Digite o nome do eletricista...',
+                      fillColor: Colors.white,
+                      filled: true,
+                      isDense: true,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                      suffixIcon: idx > 0
+                          ? IconButton(
+                              icon: const Icon(Icons.remove_circle, color: Colors.redAccent),
+                              onPressed: () => setState(() => _executantes.removeAt(idx)),
+                            )
+                          : null,
                     ),
                   );
-                }),
+                },
+                onSelected: (option) {
+                  setState(() {
+                    _executantes[idx] = {'nome': option['nome']!, 'mat': option['mat']!};
+                  });
+                },
+              ),
+            );
+          }),
 
-                ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFEEF0FF),
-                    foregroundColor: accentPurple,
-                    elevation: 0,
-                    side: const BorderSide(color: accentPurple),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    minimumSize: const Size(double.infinity, 44),
-                  ),
-                  onPressed: _addExecutante,
-                  icon: const Icon(Icons.add),
-                  label: const Text('Adicionar executante', style: TextStyle(fontWeight: FontWeight.bold)),
-                ),
-              ],
+          TextButton.icon(
+            onPressed: () => setState(() => _executantes.add({'nome': '', 'mat': ''})),
+            icon: Icon(Icons.add_circle_outline, color: accentPurple),
+            label: Text('Adicionar Eletricista', style: TextStyle(color: accentPurple, fontWeight: FontWeight.bold)),
+          ),
+
+          const SizedBox(height: 16),
+
+          // Ordens de Serviço
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('⚡ ATIVIDADES E ORDENS DE SERVIÇO', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: primaryNavy)),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(backgroundColor: primaryNavy, foregroundColor: Colors.white),
+                onPressed: _adicionarOS,
+                icon: const Icon(Icons.add, size: 16),
+                label: const Text('Nova Atividade'),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 8),
+
+          if (_ordensServico.isEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+              child: const Column(
+                children: [
+                  Icon(Icons.bolt, size: 40, color: Colors.grey),
+                  SizedBox(height: 8),
+                  Text('Nenhuma atividade elétrica adicionada.', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                ],
+              ),
+            )
+          else
+            ..._ordensServico.map((os) => _buildCardOS(os, primaryNavy)),
+
+          const SizedBox(height: 16),
+
+          // Materiais e Observações
+          Text('📦 MATERIAIS E OBSERVAÇÕES', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: primaryNavy)),
+          const SizedBox(height: 6),
+          TextField(
+            controller: _materiaisCtrl,
+            maxLines: 3,
+            decoration: InputDecoration(
+              hintText: 'Cabos substituídos, disjuntores trocados, pendências elétricas...',
+              fillColor: Colors.white,
+              filled: true,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
             ),
-            const SizedBox(height: 18),
+          ),
 
-            // SEÇÃO 2: TURNO & TURMA
-            _buildSectionHeader('TURNO & TURMA'),
-            _buildCard(
-              cardBg: cardBg,
-              borderColor: borderColor,
-              children: [
-                _buildLabel('🕐', 'TURNO *'),
-                Row(
-                  children: ['T1', 'T2', 'T3'].map((t) {
-                    return Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                        child: _buildToggleButton(
-                          label: t,
-                          isSelected: _turno == t,
-                          activeColor: accentPurple,
-                          onTap: () => setState(() => _turno = t),
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
-                const SizedBox(height: 16),
+          const SizedBox(height: 20),
 
-                _buildLabel('👥', 'TURMA *'),
-                Row(
-                  children: ['Turma A', 'Turma B', 'Turma C', 'Turma D'].map((t) {
-                    return Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 3),
-                        child: _buildToggleButton(
-                          label: t.replaceAll('Turma ', ''),
-                          isSelected: _turma == t,
-                          activeColor: accentGreen,
-                          onTap: () => setState(() => _turma = t),
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
-              ],
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF25D366),
+              foregroundColor: Colors.white,
+              minimumSize: const Size(double.infinity, 50),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
-            const SizedBox(height: 18),
+            onPressed: _enviarWhatsApp,
+            icon: const Icon(Icons.send),
+            label: const Text('Enviar Relatório via WhatsApp', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          ),
+        ],
+      ),
+    );
+  }
 
-            // SEÇÃO 3: EQUIPAMENTO
-            _buildSectionHeader('EQUIPAMENTO'),
-            _buildCard(
-              cardBg: cardBg,
-              borderColor: borderColor,
+  Widget _buildCardOS(Map<String, dynamic> os, Color primaryNavy) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10), border: Border.all(color: Colors.grey.shade300)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: os['numCtrl'] as TextEditingController,
+                  decoration: const InputDecoration(labelText: 'Nº Atividade / OS', isDense: true),
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                onPressed: () => setState(() => _ordensServico.remove(os)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: os['tagCtrl'] as TextEditingController,
+            decoration: const InputDecoration(labelText: 'TAG / Painel / Subestação', isDense: true),
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: os['descCtrl'] as TextEditingController,
+            decoration: const InputDecoration(labelText: 'Descrição do Serviço Elétrico', isDense: true),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // =========================================================================
+  // ABA 2: CADASTROS & CONFIGURAÇÕES (SUBESTAÇÕES, EQUIPAMENTOS, ELETRICISTAS)
+  // =========================================================================
+
+  Widget _buildTabCadastros(Color primaryNavy, Color accentPurple, Color textColor) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 1. Subestações e Locais Elétricos
+          _buildCardCadastroSection(
+            title: '⚡ Subestações e Locais Elétricos (${_subestacoesEletrica.length})',
+            primaryNavy: primaryNavy,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Expanded(
-                      child: Text(
-                        '🚫 Nenhum equipamento utilizado neste turno',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: textColor),
+                    Expanded(
+                      child: TextField(
+                        controller: _novaSubestacaoCtrl,
+                        decoration: const InputDecoration(hintText: 'Ex: Subestação S-05, Quadro QG-03'),
                       ),
                     ),
-                    Switch(
-                      value: _semEquip,
-                      activeThumbColor: const Color(0xFFF59E0B),
-                      onChanged: (val) => setState(() => _semEquip = val),
+                    const SizedBox(width: 8),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(backgroundColor: primaryNavy, foregroundColor: Colors.white),
+                      onPressed: () {
+                        final val = _novaSubestacaoCtrl.text.trim();
+                        if (val.isNotEmpty && !_subestacoesEletrica.contains(val)) {
+                          setState(() {
+                            _subestacoesEletrica.add(val);
+                            _novaSubestacaoCtrl.clear();
+                            _salvarCadastrosPersistidos();
+                          });
+                        }
+                      },
+                      child: const Text('Adicionar'),
                     ),
                   ],
                 ),
                 const SizedBox(height: 10),
-
-                Opacity(
-                  opacity: _semEquip ? 0.4 : 1.0,
-                  child: IgnorePointer(
-                    ignoring: _semEquip,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildLabel('🔧', 'EQUIPAMENTO *'),
-                        DropdownButtonFormField<String>(
-                          initialValue: equipamentos.contains(_equipamento) ? _equipamento : null,
-                          decoration: InputDecoration(
-                            hintText: '— Selecione —',
-                            fillColor: const Color(0xFFF4F6FB),
-                            filled: true,
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(11)),
-                          ),
-                          items: equipamentos.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
-                          onChanged: (val) => setState(() => _equipamento = val ?? ''),
-                        ),
-                        const SizedBox(height: 14),
-
-                        _buildLabel('📍', 'LOCAL *'),
-                        TextFormField(
-                          controller: _localEquipCtrl,
-                          decoration: InputDecoration(
-                            hintText: 'Ex: Galeria Norte, Poço 3...',
-                            fillColor: const Color(0xFFF4F6FB),
-                            filled: true,
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(11)),
-                          ),
-                        ),
-                        const SizedBox(height: 14),
-
-                        _buildLabel('⛽', 'NÍVEL DO COMBUSTÍVEL (%) *'),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Slider(
-                                value: _combustivel,
-                                min: 0,
-                                max: 100,
-                                divisions: 20,
-                                activeColor: accentPurple,
-                                label: '${_combustivel.toInt()}%',
-                                onChanged: (val) => setState(() => _combustivel = val),
-                              ),
-                            ),
-                            Text(
-                              '${_combustivel.toInt()}%',
-                              style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: textColor),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 14),
-
-                        _buildLabel('🧰', 'MATERIAIS DISPONÍVEIS *'),
-                        TextFormField(
-                          controller: _materiaisCtrl,
-                          maxLines: 3,
-                          decoration: InputDecoration(
-                            hintText: 'Liste os materiais disponíveis...',
-                            fillColor: const Color(0xFFF4F6FB),
-                            filled: true,
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(11)),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: _subestacoesEletrica.map((sub) {
+                    return Chip(
+                      label: Text(sub, style: const TextStyle(fontSize: 12)),
+                      onDeleted: () {
+                        setState(() {
+                          _subestacoesEletrica.remove(sub);
+                          _salvarCadastrosPersistidos();
+                        });
+                      },
+                    );
+                  }).toList(),
                 ),
               ],
             ),
-            const SizedBox(height: 18),
+          ),
 
-            // SEÇÃO 4: ORDENS DE SERVIÇO
-            _buildSectionHeader('ORDENS DE SERVIÇO'),
-            ..._ordensServico.asMap().entries.map((entry) {
-              final idx = entry.key;
-              final os = entry.value;
+          const SizedBox(height: 16),
 
-              return Container(
-                margin: const EdgeInsets.only(bottom: 14),
-                decoration: BoxDecoration(
-                  color: cardBg,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: borderColor),
-                  boxShadow: const [
-                    BoxShadow(color: Colors.black12, blurRadius: 8, offset: Offset(0, 3)),
-                  ],
-                ),
-                child: Column(
+          // 2. Equipamentos Elétricos
+          _buildCardCadastroSection(
+            title: '🔌 Equipamentos e Transformadores (${_equipamentosEletrica.length})',
+            primaryNavy: primaryNavy,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   children: [
-                    // OS Header (Gradiente azul)
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      decoration: const BoxDecoration(
-                        gradient: LinearGradient(colors: [Color(0xFF3B5BDB), Color(0xFF4C6EF5)]),
-                        borderRadius: BorderRadius.vertical(top: Radius.circular(15)),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Ordem de Serviço #${idx + 1}',
-                            style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 14),
-                          ),
-                          if (_ordensServico.length > 1)
-                            InkWell(
-                              onTap: () => _removeOS(idx),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: Colors.white24,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: const Text('Excluir', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
-                              ),
-                            ),
-                        ],
+                    Expanded(
+                      child: TextField(
+                        controller: _novoEquipCtrl,
+                        decoration: const InputDecoration(hintText: 'Ex: Transformador T-1500kVA'),
                       ),
                     ),
-
-                    Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Autocomplete TAG
-                          _buildLabel('🏷️', 'TAG / EQUIPAMENTO *'),
-                          RawAutocomplete<Map<String, String>>(
-                            optionsBuilder: (TextEditingValue val) {
-                              if (val.text.isEmpty) return tagListEletrica;
-                              final q = val.text.toLowerCase();
-                              return tagListEletrica.where((t) => t['tag']!.toLowerCase().contains(q) || t['name']!.toLowerCase().contains(q));
-                            },
-                            displayStringForOption: (opt) => '${opt['tag']} - ${opt['name']}',
-                            fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
-                              if (controller.text.isEmpty && (os['tagCtrl'] as TextEditingController).text.isNotEmpty) {
-                                controller.text = (os['tagCtrl'] as TextEditingController).text;
-                              }
-                              return TextFormField(
-                                controller: controller,
-                                focusNode: focusNode,
-                                decoration: InputDecoration(
-                                  hintText: 'Digite a TAG ou nome (Ex: SUB-01)...',
-                                  fillColor: const Color(0xFFF4F6FB),
-                                  filled: true,
-                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(11)),
-                                ),
-                                onChanged: (v) => (os['tagCtrl'] as TextEditingController).text = v,
-                              );
-                            },
-                            optionsViewBuilder: (context, onSelected, options) {
-                              return Align(
-                                alignment: Alignment.topLeft,
-                                child: Material(
-                                  elevation: 6,
-                                  borderRadius: BorderRadius.circular(10),
-                                  child: ConstrainedBox(
-                                    constraints: BoxConstraints(
-                                      maxWidth: MediaQuery.of(context).size.width - 64,
-                                      maxHeight: 180,
-                                    ),
-                                    child: ListView.builder(
-                                      padding: EdgeInsets.zero,
-                                      shrinkWrap: true,
-                                      itemCount: options.length,
-                                      itemBuilder: (context, i) {
-                                        final opt = options.elementAt(i);
-                                        return ListTile(
-                                          title: Text(opt['tag']!, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: accentPurple)),
-                                          subtitle: Text(opt['name']!, style: const TextStyle(fontSize: 12)),
-                                          onTap: () {
-                                            onSelected(opt);
-                                            (os['tagCtrl'] as TextEditingController).text = '${opt['tag']} - ${opt['name']}';
-                                          },
-                                        );
-                                      },
-                                    ),
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                          const SizedBox(height: 14),
-
-                          // Tipo de Serviço
-                          _buildLabel('🛠️', 'TIPO DE SERVIÇO *'),
-                          Wrap(
-                            spacing: 6,
-                            runSpacing: 6,
-                            children: ['Preventiva', 'Corretiva', 'Melhoria/Ajuste', 'Inspeção'].map((tipo) {
-                              final isSel = os['tipo'] == tipo;
-                              return ChoiceChip(
-                                label: Text(tipo),
-                                selected: isSel,
-                                selectedColor: accentPurple,
-                                labelStyle: TextStyle(color: isSel ? Colors.white : textColor, fontWeight: FontWeight.bold, fontSize: 12),
-                                onSelected: (_) => setState(() => os['tipo'] = tipo),
-                              );
-                            }).toList(),
-                          ),
-                          const SizedBox(height: 14),
-
-                          // Status OS & Instalação Parada
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    _buildLabel('📌', 'STATUS'),
-                                    Row(
-                                      children: [
-                                        Expanded(
-                                          child: _buildToggleButton(
-                                            label: 'Liberada',
-                                            isSelected: os['status'] == 'Liberada',
-                                            activeColor: accentGreen,
-                                            onTap: () => setState(() => os['status'] = 'Liberada'),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 6),
-                                        Expanded(
-                                          child: _buildToggleButton(
-                                            label: 'Pendente',
-                                            isSelected: os['status'] == 'Pendente',
-                                            activeColor: const Color(0xFFF59E0B),
-                                            onTap: () => setState(() => os['status'] = 'Pendente'),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 14),
-
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text('⚠️ Instalação Parada?', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                              Switch(
-                                value: os['instalacaoParada'],
-                                activeThumbColor: Colors.redAccent,
-                                onChanged: (val) => setState(() => os['instalacaoParada'] = val),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 10),
-
-                          // Horários
-                          Row(
-                            children: [
-                              Expanded(
-                                child: TextFormField(
-                                  controller: os['startCtrl'] as TextEditingController,
-                                  decoration: InputDecoration(
-                                    labelText: 'INÍCIO (HH:MM)',
-                                    fillColor: const Color(0xFFF4F6FB),
-                                    filled: true,
-                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(11)),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: TextFormField(
-                                  controller: os['endCtrl'] as TextEditingController,
-                                  decoration: InputDecoration(
-                                    labelText: 'FIM (HH:MM)',
-                                    fillColor: const Color(0xFFF4F6FB),
-                                    filled: true,
-                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(11)),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 14),
-
-                          // Descrição
-                          _buildLabel('📝', 'DESCRIÇÃO DA ATIVIDADE *'),
-                          TextFormField(
-                            controller: os['descCtrl'] as TextEditingController,
-                            maxLines: 3,
-                            decoration: InputDecoration(
-                              hintText: 'Descreva detalhadamente os testes, manutenção ou intervenção efetuada...',
-                              fillColor: const Color(0xFFF4F6FB),
-                              filled: true,
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(11)),
-                            ),
-                          ),
-                        ],
-                      ),
+                    const SizedBox(width: 8),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(backgroundColor: primaryNavy, foregroundColor: Colors.white),
+                      onPressed: () {
+                        final val = _novoEquipCtrl.text.trim();
+                        if (val.isNotEmpty && !_equipamentosEletrica.contains(val)) {
+                          setState(() {
+                            _equipamentosEletrica.add(val);
+                            _novoEquipCtrl.clear();
+                            _salvarCadastrosPersistidos();
+                          });
+                        }
+                      },
+                      child: const Text('Adicionar'),
                     ),
                   ],
                 ),
-              );
-            }),
-
-            ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFEEF0FF),
-                foregroundColor: accentPurple,
-                side: const BorderSide(color: accentPurple),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                minimumSize: const Size(double.infinity, 50),
-              ),
-              onPressed: _addNovaOS,
-              icon: const Icon(Icons.add),
-              label: const Text('Nova Ordem de Serviço', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-            ),
-            const SizedBox(height: 24),
-
-            // BOTÃO ENVIAR PARA WHATSAPP
-            SizedBox(
-              width: double.infinity,
-              height: 56,
-              child: ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF25D366),
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                  elevation: 6,
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: _equipamentosEletrica.map((eq) {
+                    return Chip(
+                      label: Text(eq, style: const TextStyle(fontSize: 12)),
+                      onDeleted: () {
+                        setState(() {
+                          _equipamentosEletrica.remove(eq);
+                          _salvarCadastrosPersistidos();
+                        });
+                      },
+                    );
+                  }).toList(),
                 ),
-                onPressed: _enviarWhatsApp,
-                icon: const Icon(Icons.send_rounded, size: 22),
-                label: const Text(
-                  'Enviar para o WhatsApp',
-                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
-                ),
-              ),
+              ],
             ),
-            const SizedBox(height: 10),
-            const Center(
-              child: Text(
-                '✓ Funciona 100% offline. O envio abre o WhatsApp com o relatório formatado.',
-                style: TextStyle(fontSize: 11, color: mutedColor),
-                textAlign: TextAlign.center,
-              ),
-            ),
-            const SizedBox(height: 40),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSectionHeader(String title) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        children: [
-          Text(
-            title,
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF8A90A2), letterSpacing: 1.2),
           ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Container(
-              height: 1,
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(colors: [Color(0xFFE6E9F0), Colors.transparent]),
-              ),
+
+          const SizedBox(height: 16),
+
+          // 3. Cadastrar Novo Eletricista
+          _buildCardCadastroSection(
+            title: '⚡ Cadastrar Eletricista / Colaborador (${_pessoasEletrica.length})',
+            primaryNavy: primaryNavy,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextField(
+                  controller: _novoNomeEletCtrl,
+                  decoration: const InputDecoration(labelText: 'Nome do Eletricista *'),
+                ),
+                TextField(
+                  controller: _novaMatEletCtrl,
+                  decoration: const InputDecoration(labelText: 'Matrícula'),
+                ),
+                const SizedBox(height: 8),
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(backgroundColor: accentPurple, foregroundColor: Colors.white),
+                  onPressed: () {
+                    final nome = _novoNomeEletCtrl.text.trim();
+                    if (nome.isNotEmpty) {
+                      setState(() {
+                        _pessoasEletrica.add({
+                          'nome': nome,
+                          'mat': _novaMatEletCtrl.text.trim().isEmpty ? 'S/N' : _novaMatEletCtrl.text.trim(),
+                        });
+                        _novoNomeEletCtrl.clear();
+                        _novaMatEletCtrl.clear();
+                        _salvarCadastrosPersistidos();
+                      });
+                    }
+                  },
+                  icon: const Icon(Icons.person_add),
+                  label: const Text('Salvar Colaborador'),
+                ),
+              ],
             ),
           ),
         ],
@@ -1055,73 +798,17 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
     );
   }
 
-  Widget _buildCard({
-    required Color cardBg,
-    required Color borderColor,
-    required List<Widget> children,
-  }) {
+  Widget _buildCardCadastroSection({required String title, required Color primaryNavy, required Widget child}) {
     return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: cardBg,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: borderColor),
-        boxShadow: const [
-          BoxShadow(color: Colors.black12, blurRadius: 6, offset: Offset(0, 2)),
-        ],
-      ),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade300)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: children,
-      ),
-    );
-  }
-
-  Widget _buildLabel(String icon, String title) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: Row(
         children: [
-          Text(icon, style: const TextStyle(fontSize: 14)),
-          const SizedBox(width: 6),
-          Text(
-            title,
-            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Color(0xFF8A90A2), letterSpacing: 0.8),
-          ),
+          Text(title, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: primaryNavy)),
+          const SizedBox(height: 10),
+          child,
         ],
-      ),
-    );
-  }
-
-  Widget _buildToggleButton({
-    required String label,
-    required bool isSelected,
-    required Color activeColor,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? activeColor : const Color(0xFFF4F6FB),
-          borderRadius: BorderRadius.circular(11),
-          border: Border.all(color: isSelected ? activeColor : const Color(0xFFE6E9F0)),
-          boxShadow: isSelected
-              ? [BoxShadow(color: activeColor.withValues(alpha: 0.35), blurRadius: 8, offset: const Offset(0, 3))]
-              : null,
-        ),
-        child: Center(
-          child: Text(
-            label,
-            style: TextStyle(
-              color: isSelected ? Colors.white : const Color(0xFF5A6072),
-              fontWeight: FontWeight.bold,
-              fontSize: 13,
-            ),
-          ),
-        ),
       ),
     );
   }

@@ -105,6 +105,103 @@ class ReportFormPage extends ConsumerWidget {
     );
   }
 
+  void _showCadastrosModal(BuildContext context, ReportFormController controller) {
+    final nameCtrl = TextEditingController();
+    final regCtrl = TextEditingController();
+    final osNumCtrl = TextEditingController();
+    final osLocCtrl = TextEditingController();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (context) {
+        return Padding(
+          padding: EdgeInsets.only(
+            left: 18,
+            right: 18,
+            top: 20,
+            bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2)),
+                ),
+              ),
+              const SizedBox(height: 14),
+              const Text('⚙️ Cadastros e Locais — Equipagem', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF23005B))),
+              const SizedBox(height: 16),
+
+              // 1. Novo Colaborador
+              const Text('👨‍🌾 Novo Colaborador / Equipador', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.accentPurple)),
+              const SizedBox(height: 6),
+              TextField(
+                controller: nameCtrl,
+                decoration: const InputDecoration(labelText: 'Nome Completo', isDense: true),
+              ),
+              TextField(
+                controller: regCtrl,
+                decoration: const InputDecoration(labelText: 'Matrícula', isDense: true),
+              ),
+              const SizedBox(height: 8),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(backgroundColor: AppTheme.accentPurple, foregroundColor: Colors.white),
+                onPressed: () {
+                  final name = nameCtrl.text.trim();
+                  if (name.isNotEmpty) {
+                    controller.registerCustomCollaborator(name, regCtrl.text.trim());
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Colaborador $name cadastrado!')));
+                  }
+                },
+                icon: const Icon(Icons.person_add, size: 16),
+                label: const Text('Salvar Colaborador'),
+              ),
+
+              const SizedBox(height: 16),
+              const Divider(),
+              const SizedBox(height: 8),
+
+              // 2. Nova Ordem de Serviço / Local
+              const Text('📍 Nova Frente de Trabalho / Ordem de Serviço', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF23005B))),
+              const SizedBox(height: 6),
+              TextField(
+                controller: osNumCtrl,
+                decoration: const InputDecoration(labelText: 'Nº da OS (Ex: OS-099)', isDense: true),
+              ),
+              TextField(
+                controller: osLocCtrl,
+                decoration: const InputDecoration(labelText: 'Local / Frente (Ex: Subterrânea K-10)', isDense: true),
+              ),
+              const SizedBox(height: 8),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF23005B), foregroundColor: Colors.white),
+                onPressed: () {
+                  final num = osNumCtrl.text.trim();
+                  final loc = osLocCtrl.text.trim();
+                  if (num.isNotEmpty && loc.isNotEmpty) {
+                    controller.addWorkOrder(loc, num);
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Ordem de Serviço $num adicionada!')));
+                  }
+                },
+                icon: const Icon(Icons.add_location, size: 16),
+                label: const Text('Adicionar Ordem de Serviço'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(reportFormControllerProvider);
@@ -124,6 +221,11 @@ class ReportFormPage extends ConsumerWidget {
         actions: [
           const SyncStatusBadge(),
           const SizedBox(width: 4),
+          IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            tooltip: 'Cadastros e Locais',
+            onPressed: () => _showCadastrosModal(context, controller),
+          ),
           if (ref.watch(devModeProvider))
             IconButton(
               icon: const Icon(Icons.bolt, color: AppTheme.accentPurple),

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../../../core/services/firestore_cadastros_service.dart';
 
 /// Tema de cores selecionável para a interface de Drenagem & Bombeamento
 class PumpingTheme {
@@ -316,8 +317,8 @@ class PumpingLineChartPainter extends CustomPainter {
       maxV = maxV + 5;
     }
 
-    final padL = 30.0;
-    final padB = 20.0;
+    const padL = 30.0;
+    const padB = 20.0;
     final w = size.width - padL - 10;
     final h = size.height - padB - 10;
 
@@ -496,6 +497,31 @@ class _PumpingReportFormPageState extends ConsumerState<PumpingReportFormPage> {
     }
 
     if (mounted) setState(() {});
+
+    // Iniciar escuta em tempo real do Cloud Firestore
+    FirestoreCadastrosService().escutarCadastrosArea(
+      area: 'bombeamento',
+      onData: (data) {
+        if (!mounted) return;
+        setState(() {
+          if (data['caixas'] != null) {
+            _caixas.clear();
+            _caixas.addAll((data['caixas'] as List).map((c) => CaixaModel.fromJson(Map<String, dynamic>.from(c))));
+          }
+          if (data['rampas'] != null) {
+            _rampas.clear();
+            _rampas.addAll((data['rampas'] as List).map((r) => RampaModel.fromJson(Map<String, dynamic>.from(r))));
+          }
+          if (data['colaboradores'] != null) {
+            _colaboradores.clear();
+            _colaboradores.addAll((data['colaboradores'] as List).map((c) => ColaboradorModel.fromJson(Map<String, dynamic>.from(c))));
+          }
+          if (data['zapNumero'] != null) _zapNumero = data['zapNumero'].toString();
+          if (data['zapControle'] != null) _zapControle = data['zapControle'].toString();
+          if (data['zapLider'] != null) _zapLider = data['zapLider'].toString();
+        });
+      },
+    );
   }
 
   Future<void> _salvarEstado() async {
@@ -511,115 +537,131 @@ class _PumpingReportFormPageState extends ConsumerState<PumpingReportFormPage> {
 
     final listJson = _inspecoes.map((i) => jsonEncode(i.toJson())).toList();
     await prefs.setStringList('bombeamento_inspecoes', listJson);
+
+    // Sincronizar em tempo real com Cloud Firestore
+    await FirestoreCadastrosService().salvarCadastrosArea(
+      area: 'bombeamento',
+      data: {
+        'caixas': _caixas.map((c) => c.toJson()).toList(),
+        'rampas': _rampas.map((r) => r.toJson()).toList(),
+        'colaboradores': _colaboradores.map((c) => c.toJson()).toList(),
+        'zapNumero': _zapNumero,
+        'zapControle': _zapControle,
+        'zapLider': _zapLider,
+        'limiteCaixaBaixo': _limiteCaixaBaixo,
+        'limiteCaixaAlto': _limiteCaixaAlto,
+        'atualizadoEm': DateTime.now().toIso8601String(),
+      },
+    );
   }
 
   List<ColaboradorModel> _carregarColaboradoresPadrao() {
     const raw = [
-      ["4786", "ACACIO OLIVEIRA SOUZA"],
-      ["99300599", "ADAILTON SILVA SANTOS"],
-      ["99300182", "ADONIS EVARISTO SOUSA DOS SANTOS"],
-      ["99300217", "ADRIANO DA FONSECA SANTANA"],
-      ["5115", "ADRIANO SILVA DE MATOS"],
-      ["4918", "ALEANDRO BONIFACIO DOS SANTOS 05"],
-      ["99300607", "ALTAIR DA SILVA ALMEIDA"],
-      ["99300855", "ANDERSON ANDREY GOMES"],
-      ["99300603", "ANDESON DE JESUS SANTOS"],
-      ["99300920", "CAMILLY SANTANA DA SILVA E SILVA"],
-      ["99300868", "CARLOS DANIEL DE QUEIROZ FIRMO"],
-      ["5252", "CELIO MARINHO CARVALHO JUNIOR"],
-      ["99300906", "CLAUDEMIRO GORDIANO CUNHA"],
-      ["99300377", "CLAUDIO AUGUSTO DO PRADO DE OLIVEIRA"],
-      ["70207063", "CLEBSON OLIVEIRA MOURA"],
-      ["5257", "CLEILSON ARAUJO DE JESUS"],
-      ["99300193", "CLEINILSON DA MOTA FIRMO"],
-      ["4895", "CRISTIANO RODRIGUES DIAS DE JESUS"],
-      ["99300582", "DANILO PEREIRA DA SILVA"],
-      ["608", "DENILSON ALVES MOREIRA"],
-      ["99300595", "DEYFERSON DE QUEIROZ FIRMO"],
-      ["99300164", "DIMELSON SOUZA DA SILVA"],
-      ["70207550", "EDCARIO NUNES DOS SANTOS"],
-      ["99300538", "EDIMARI BARRETO CRUZ"],
-      ["604", "EDMILSON FERREIRA DOS SANTOS"],
-      ["4771", "EDMUNDO SANTOS DE JESUS"],
-      ["99300869", "ELIONALDO MORAIS DE LUCENA"],
-      ["4753", "EMANUELLE SANTOS SILVA"],
-      ["99300606", "EMILIO MANAIA LIMA"],
-      ["99300432", "ERICK DE ARAUJO PIMENTEL"],
-      ["99300346", "ERIQUE DE MATOS SANTOS"],
-      ["99300635", "FABRICIO DE CARVALHO SANTOS"],
-      ["99300685", "FAGNER DE QUEIROZ MENDONÇA"],
-      ["99300144", "FELIPE MATOS SANTOS"],
-      ["4751", "FERNANDO DE JESUS SANTOS"],
-      ["99300389", "FERNANDO JURITI REIS"],
-      ["99300203", "FRANCISCO ELEXSANDRO DA SILVA"],
-      ["99300268", "FRANCISCO FAGNE OLIVEIRA SILVA"],
-      ["99300456", "GABRIEL ALVES QUEIROZ LOPES"],
-      ["607", "GABRIEL DA SILVA DAMIÃO"],
-      ["4929", "GENESIO MUNIZ DOS SANTOS"],
-      ["99300447", "GENILSON RIBEIRO DOS SANTOS"],
-      ["5255", "GEOVANE BISPO DOS SANTOS"],
-      ["4774", "GEOVANE OLIVEIRA ARAUJO"],
-      ["99300532", "GILDENOR LOPES DE OLIVEIRA"],
-      ["99300535", "GILMAR NASCIMENTO MOREIRA"],
-      ["99300575", "GILMAR OLIVEIRA DE JESUS"],
-      ["99300383", "GILVANDRO DAMIÃO DE JESUS"],
-      ["4788", "GIRLAN QUEIROZ DOS SANTOS"],
-      ["99300433", "GUSTAVO OLIVEIRA SANTANA"],
-      ["99300598", "GUTIERRY SANTOS MATOS"],
-      ["99300491", "HAMILTON ARAUJO DOS SANTOS"],
-      ["5178", "ISAAC VALERIO DOS SANTOS"],
-      ["5353", "ITALO DA COSTA DUTRA"],
-      ["5247", "IVANILSON DE JESUS SANTOS"],
-      ["4775", "JACKSON DE JESUS SILVA"],
-      ["5254", "JAILTON OLIVEIRA DOS SANTOS"],
-      ["99300149", "JENIVALDO SILVA DOS SANTOS"],
-      ["5256", "JOANDERSON SILVA GONÇALVES"],
-      ["605", "JOAO MICAEL SANTOS SIMOES"],
-      ["99300472", "JOELSON PEREIRA DA SILVA"],
-      ["99300619", "JONATHAN GORDIANO RODRIGUES"],
-      ["4748", "JOSÉ ALBERTO DE ARAUJO CRISTO"],
-      ["4782", "JOSÉ CERQUEIRA DOS SANTOS"],
-      ["4784", "JOSE MILTON BISPO DOS SANTOS"],
-      ["882", "JOSE NARCISO FERREIRA DE QUEIROZ"],
-      ["606", "JOSEMY NUNES SANTOS"],
-      ["99300239", "JOSEVALDO SANTOS DE JESUS"],
-      ["5170", "JUCINEIA QUEIROZ OLIVEIRA"],
-      ["99300525", "KEZYA QUEIROZ OLIVEIRA"],
-      ["5236", "KLEBERLITO LUCIANO CARNEIRO DA SILVA"],
-      ["99300264", "LEONARDO DOS SANTOS LIMA DE QUEIROZ"],
-      ["4752", "LEONARDO MOTA NASCIMENTO"],
-      ["99300827", "LEONARDO PINTO DE ABREU VILLA NOVA"],
-      ["611", "LUCAS DE JESUS NUNES"],
-      ["99300295", "LUCAS EVANGELISTA F CERQUEIRA"],
-      ["4791", "LUCAS MOURA DE MENDONCA"],
-      ["609", "MAICOM SANTOS DA SILVA"],
-      ["4793", "MARCOLINO DOS SANTOS"],
-      ["99300327", "MARCOS CASSIANO OLIVEIRA"],
-      ["4933", "MARCOS NEVES MOURA"],
-      ["99300152", "MARCOS REAL MOTA"],
-      ["99300306", "MARINALDO GONÇALVES SOUZA"],
-      ["99300061", "MATEUS BARRETO CALVACANTE"],
-      ["4795", "MATHEUS SILVA PASTOR"],
-      ["610", "MAYKO FIEL DOS ANJOS SANTOS"],
-      ["4794", "NATALINO PAIXÃO DOS SANTOS"],
-      ["99300589", "NIEL PEREIRA RODRIGUES"],
-      ["5100", "PABLO OLIVEIRA ARAUJO"],
-      ["99300461", "PAULO DITARSO GUIMARAES PORTO SOUZA"],
-      ["5248", "PAULO HENRIQUE LIMA DE JESUS"],
-      ["5251", "RAFAEL DE OLIVEIRA CARDOSO"],
-      ["5233", "RAYANE SILVA LIMA"],
-      ["99300440", "RICARDO MORAES"],
-      ["99300594", "RICARDO SANTOS LIMA"],
-      ["4797", "ROBENILSON CERQUEIRA DOS SANTOS"],
-      ["4798", "ROBERTO DAS VIRGENS FERREIRA"],
-      ["5258", "ROBSON RICARDO SOARES DA SILVA"],
-      ["4758", "ROMILSON LIMA OLIVEIRA"],
-      ["99300699", "ROMILSON SANTOS DE JESUS"],
-      ["99300677", "RONALDO DO ROSARIO NASCIMENTO"],
-      ["99300446", "SANDRO PEREIRA DOS SANTOS"],
-      ["4899", "SAUL VINICIUS DE JESUS SOUZA"],
-      ["4800", "VENANCIO ARAÚJO QUEIROZ"],
-      ["4802", "WILLIAM PEREIRA DA SILVA"]
+      ['4786', 'ACACIO OLIVEIRA SOUZA'],
+      ['99300599', 'ADAILTON SILVA SANTOS'],
+      ['99300182', 'ADONIS EVARISTO SOUSA DOS SANTOS'],
+      ['99300217', 'ADRIANO DA FONSECA SANTANA'],
+      ['5115', 'ADRIANO SILVA DE MATOS'],
+      ['4918', 'ALEANDRO BONIFACIO DOS SANTOS 05'],
+      ['99300607', 'ALTAIR DA SILVA ALMEIDA'],
+      ['99300855', 'ANDERSON ANDREY GOMES'],
+      ['99300603', 'ANDESON DE JESUS SANTOS'],
+      ['99300920', 'CAMILLY SANTANA DA SILVA E SILVA'],
+      ['99300868', 'CARLOS DANIEL DE QUEIROZ FIRMO'],
+      ['5252', 'CELIO MARINHO CARVALHO JUNIOR'],
+      ['99300906', 'CLAUDEMIRO GORDIANO CUNHA'],
+      ['99300377', 'CLAUDIO AUGUSTO DO PRADO DE OLIVEIRA'],
+      ['70207063', 'CLEBSON OLIVEIRA MOURA'],
+      ['5257', 'CLEILSON ARAUJO DE JESUS'],
+      ['99300193', 'CLEINILSON DA MOTA FIRMO'],
+      ['4895', 'CRISTIANO RODRIGUES DIAS DE JESUS'],
+      ['99300582', 'DANILO PEREIRA DA SILVA'],
+      ['608', 'DENILSON ALVES MOREIRA'],
+      ['99300595', 'DEYFERSON DE QUEIROZ FIRMO'],
+      ['99300164', 'DIMELSON SOUZA DA SILVA'],
+      ['70207550', 'EDCARIO NUNES DOS SANTOS'],
+      ['99300538', 'EDIMARI BARRETO CRUZ'],
+      ['604', 'EDMILSON FERREIRA DOS SANTOS'],
+      ['4771', 'EDMUNDO SANTOS DE JESUS'],
+      ['99300869', 'ELIONALDO MORAIS DE LUCENA'],
+      ['4753', 'EMANUELLE SANTOS SILVA'],
+      ['99300606', 'EMILIO MANAIA LIMA'],
+      ['99300432', 'ERICK DE ARAUJO PIMENTEL'],
+      ['99300346', 'ERIQUE DE MATOS SANTOS'],
+      ['99300635', 'FABRICIO DE CARVALHO SANTOS'],
+      ['99300685', 'FAGNER DE QUEIROZ MENDONÇA'],
+      ['99300144', 'FELIPE MATOS SANTOS'],
+      ['4751', 'FERNANDO DE JESUS SANTOS'],
+      ['99300389', 'FERNANDO JURITI REIS'],
+      ['99300203', 'FRANCISCO ELEXSANDRO DA SILVA'],
+      ['99300268', 'FRANCISCO FAGNE OLIVEIRA SILVA'],
+      ['99300456', 'GABRIEL ALVES QUEIROZ LOPES'],
+      ['607', 'GABRIEL DA SILVA DAMIÃO'],
+      ['4929', 'GENESIO MUNIZ DOS SANTOS'],
+      ['99300447', 'GENILSON RIBEIRO DOS SANTOS'],
+      ['5255', 'GEOVANE BISPO DOS SANTOS'],
+      ['4774', 'GEOVANE OLIVEIRA ARAUJO'],
+      ['99300532', 'GILDENOR LOPES DE OLIVEIRA'],
+      ['99300535', 'GILMAR NASCIMENTO MOREIRA'],
+      ['99300575', 'GILMAR OLIVEIRA DE JESUS'],
+      ['99300383', 'GILVANDRO DAMIÃO DE JESUS'],
+      ['4788', 'GIRLAN QUEIROZ DOS SANTOS'],
+      ['99300433', 'GUSTAVO OLIVEIRA SANTANA'],
+      ['99300598', 'GUTIERRY SANTOS MATOS'],
+      ['99300491', 'HAMILTON ARAUJO DOS SANTOS'],
+      ['5178', 'ISAAC VALERIO DOS SANTOS'],
+      ['5353', 'ITALO DA COSTA DUTRA'],
+      ['5247', 'IVANILSON DE JESUS SANTOS'],
+      ['4775', 'JACKSON DE JESUS SILVA'],
+      ['5254', 'JAILTON OLIVEIRA DOS SANTOS'],
+      ['99300149', 'JENIVALDO SILVA DOS SANTOS'],
+      ['5256', 'JOANDERSON SILVA GONÇALVES'],
+      ['605', 'JOAO MICAEL SANTOS SIMOES'],
+      ['99300472', 'JOELSON PEREIRA DA SILVA'],
+      ['99300619', 'JONATHAN GORDIANO RODRIGUES'],
+      ['4748', 'JOSÉ ALBERTO DE ARAUJO CRISTO'],
+      ['4782', 'JOSÉ CERQUEIRA DOS SANTOS'],
+      ['4784', 'JOSE MILTON BISPO DOS SANTOS'],
+      ['882', 'JOSE NARCISO FERREIRA DE QUEIROZ'],
+      ['606', 'JOSEMY NUNES SANTOS'],
+      ['99300239', 'JOSEVALDO SANTOS DE JESUS'],
+      ['5170', 'JUCINEIA QUEIROZ OLIVEIRA'],
+      ['99300525', 'KEZYA QUEIROZ OLIVEIRA'],
+      ['5236', 'KLEBERLITO LUCIANO CARNEIRO DA SILVA'],
+      ['99300264', 'LEONARDO DOS SANTOS LIMA DE QUEIROZ'],
+      ['4752', 'LEONARDO MOTA NASCIMENTO'],
+      ['99300827', 'LEONARDO PINTO DE ABREU VILLA NOVA'],
+      ['611', 'LUCAS DE JESUS NUNES'],
+      ['99300295', 'LUCAS EVANGELISTA F CERQUEIRA'],
+      ['4791', 'LUCAS MOURA DE MENDONCA'],
+      ['609', 'MAICOM SANTOS DA SILVA'],
+      ['4793', 'MARCOLINO DOS SANTOS'],
+      ['99300327', 'MARCOS CASSIANO OLIVEIRA'],
+      ['4933', 'MARCOS NEVES MOURA'],
+      ['99300152', 'MARCOS REAL MOTA'],
+      ['99300306', 'MARINALDO GONÇALVES SOUZA'],
+      ['99300061', 'MATEUS BARRETO CALVACANTE'],
+      ['4795', 'MATHEUS SILVA PASTOR'],
+      ['610', 'MAYKO FIEL DOS ANJOS SANTOS'],
+      ['4794', 'NATALINO PAIXÃO DOS SANTOS'],
+      ['99300589', 'NIEL PEREIRA RODRIGUES'],
+      ['5100', 'PABLO OLIVEIRA ARAUJO'],
+      ['99300461', 'PAULO DITARSO GUIMARAES PORTO SOUZA'],
+      ['5248', 'PAULO HENRIQUE LIMA DE JESUS'],
+      ['5251', 'RAFAEL DE OLIVEIRA CARDOSO'],
+      ['5233', 'RAYANE SILVA LIMA'],
+      ['99300440', 'RICARDO MORAES'],
+      ['99300594', 'RICARDO SANTOS LIMA'],
+      ['4797', 'ROBENILSON CERQUEIRA DOS SANTOS'],
+      ['4798', 'ROBERTO DAS VIRGENS FERREIRA'],
+      ['5258', 'ROBSON RICARDO SOARES DA SILVA'],
+      ['4758', 'ROMILSON LIMA OLIVEIRA'],
+      ['99300699', 'ROMILSON SANTOS DE JESUS'],
+      ['99300677', 'RONALDO DO ROSARIO NASCIMENTO'],
+      ['99300446', 'SANDRO PEREIRA DOS SANTOS'],
+      ['4899', 'SAUL VINICIUS DE JESUS SOUZA'],
+      ['4800', 'VENANCIO ARAÚJO QUEIROZ'],
+      ['4802', 'WILLIAM PEREIRA DA SILVA']
     ];
 
     return raw.map((item) => ColaboradorModel(
