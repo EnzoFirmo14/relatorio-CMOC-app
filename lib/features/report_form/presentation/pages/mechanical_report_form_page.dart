@@ -4,6 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/services/firestore_cadastros_service.dart';
+import '../../../../core/providers/dev_mode_provider.dart';
+import '../../../../core/theme/theme_provider.dart';
+import '../../../sync/presentation/widgets/sync_status_badge.dart';
 
 class MechanicalReportFormPage extends ConsumerStatefulWidget {
   const MechanicalReportFormPage({super.key});
@@ -478,6 +481,53 @@ class _MechanicalReportFormPageState extends ConsumerState<MechanicalReportFormP
     }
   }
 
+  void _preencherModoDev() {
+    setState(() {
+      _selectedDate = DateTime.now();
+      _turno = 'T1';
+      _turma = 'A';
+      _executantes.clear();
+      _executantes.add({'nome': 'Acacio Oliveira Souza', 'mat': '4786'});
+      _executantes.add({'nome': 'Adailton Silva Santos', 'mat': '99300599'});
+
+      _ordensManutencao.clear();
+      _ordensManutencao.add({
+        'id': '101',
+        'omNumCtrl': TextEditingController(text: 'OM-3012'),
+        'local': 'Subestação S-01',
+        'tagCtrl': TextEditingController(text: 'MC-101'),
+        'descCtrl': TextEditingController(text: 'Inspeção mecânica das bombas principais e lubrificação de rolamentos'),
+        'status': 'CONCLUÍDA',
+        'concluida': true,
+        'startCtrl': TextEditingController(text: '08:00'),
+        'endCtrl': TextEditingController(text: '10:00'),
+        'fotos': <String>[],
+      });
+      _ordensManutencao.add({
+        'id': '102',
+        'omNumCtrl': TextEditingController(text: 'OM-3015'),
+        'local': 'Oficina Subterrânea',
+        'tagCtrl': TextEditingController(text: 'PT-302'),
+        'descCtrl': TextEditingController(text: 'Troca de vedações hidráulicas e teste de pressão do sistema'),
+        'status': 'CONCLUÍDA',
+        'concluida': true,
+        'startCtrl': TextEditingController(text: '10:30'),
+        'endCtrl': TextEditingController(text: '12:00'),
+        'fotos': <String>[],
+      });
+
+      _observacoesCtrl.text = 'Manutenção preventiva realizada com sucesso. Equipamentos liberados sem pendências.';
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('⚙️ [Modo Dev] Dados de Mecânica preenchidos com sucesso!'),
+        backgroundColor: Color(0xFF23005B),
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     const primaryNavy = Color(0xFF23005B);
@@ -485,21 +535,20 @@ class _MechanicalReportFormPageState extends ConsumerState<MechanicalReportFormP
     const bgLight = Color(0xFFF5F7FA);
     const textColor = Color(0xFF1F2937);
 
+    final themeMode = ref.watch(themeModeProvider);
+    final isDark = themeMode == ThemeMode.dark;
+
     return Scaffold(
-      backgroundColor: bgLight,
+      backgroundColor: isDark ? const Color(0xFF121212) : bgLight,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
         elevation: 1,
         titleSpacing: 16,
         title: Row(
           children: [
-            Container(
-              width: 8,
-              height: 8,
-              decoration: const BoxDecoration(color: Color(0xFF1A9E4A), shape: BoxShape.circle),
-            ),
+            const SyncStatusBadge(),
             const SizedBox(width: 8),
-            const Text('CM', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: textColor)),
+            Text('CM', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: isDark ? Colors.white : textColor)),
             const Text('OC', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: accentPurple)),
             const SizedBox(width: 10),
             Container(
@@ -512,6 +561,25 @@ class _MechanicalReportFormPageState extends ConsumerState<MechanicalReportFormP
             ),
           ],
         ),
+        actions: [
+          IconButton(
+            icon: Icon(
+              isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+              color: isDark ? Colors.amber : accentPurple,
+            ),
+            tooltip: isDark ? 'Modo Claro' : 'Modo Escuro CMOC',
+            onPressed: () {
+              ref.read(themeModeProvider.notifier).state =
+                  isDark ? ThemeMode.light : ThemeMode.dark;
+            },
+          ),
+          if (ref.watch(devModeProvider))
+            IconButton(
+              icon: const Icon(Icons.flash_on_rounded, color: Color(0xFFF59E0B)),
+              tooltip: 'Preencher Automático (Modo Dev)',
+              onPressed: _preencherModoDev,
+            ),
+        ],
       ),
       body: IndexedStack(
         index: _currentTab,

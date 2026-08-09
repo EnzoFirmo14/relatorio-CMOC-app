@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/providers/dev_mode_provider.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/theme_provider.dart';
 import '../controllers/report_form_controller.dart';
 import '../widgets/add_colab_dialog.dart';
 import '../widgets/autocomplete_operator.dart';
@@ -221,6 +222,23 @@ class ReportFormPage extends ConsumerWidget {
         actions: [
           const SyncStatusBadge(),
           const SizedBox(width: 4),
+          Consumer(
+            builder: (context, ref, _) {
+              final themeMode = ref.watch(themeModeProvider);
+              final isDark = themeMode == ThemeMode.dark;
+              return IconButton(
+                icon: Icon(
+                  isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+                  color: isDark ? Colors.amber : AppTheme.primaryPurple,
+                ),
+                tooltip: isDark ? 'Modo Claro' : 'Modo Escuro CMOC',
+                onPressed: () {
+                  ref.read(themeModeProvider.notifier).state =
+                      isDark ? ThemeMode.light : ThemeMode.dark;
+                },
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.settings_outlined),
             tooltip: 'Cadastros e Locais',
@@ -228,13 +246,14 @@ class ReportFormPage extends ConsumerWidget {
           ),
           if (ref.watch(devModeProvider))
             IconButton(
-              icon: const Icon(Icons.bolt, color: AppTheme.accentPurple),
-              tooltip: 'Preencher Automático (Testes)',
+              icon: const Icon(Icons.bolt, color: Colors.amber),
+              tooltip: 'Preencher Automático (Modo Dev)',
               onPressed: () {
                 controller.fillMockData();
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text('Formulário preenchido com dados de teste!'),
+                    content: Text('⚡ Formulário preenchido com dados de teste!'),
+                    backgroundColor: AppTheme.primaryPurple,
                     duration: Duration(seconds: 2),
                   ),
                 );

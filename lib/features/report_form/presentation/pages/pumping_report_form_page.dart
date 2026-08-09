@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/services/firestore_cadastros_service.dart';
+import '../../../../core/providers/dev_mode_provider.dart';
+import '../../../sync/presentation/widgets/sync_status_badge.dart';
 
 /// Tema de cores selecionável para a interface de Drenagem & Bombeamento
 class PumpingTheme {
@@ -941,6 +943,33 @@ class _PumpingReportFormPageState extends ConsumerState<PumpingReportFormPage> {
           ],
         ),
         actions: [
+          const Padding(
+            padding: EdgeInsets.only(right: 4.0),
+            child: SyncStatusBadge(),
+          ),
+          if (ref.watch(devModeProvider))
+            IconButton(
+              icon: const Icon(Icons.flash_on_rounded, color: Colors.amber),
+              tooltip: 'Preencher Automático (Modo Dev)',
+              onPressed: () {
+                setState(() {
+                  if (_colaboradores.isNotEmpty) {
+                    _rascunho.equipe = [_colaboradores.first.id];
+                  }
+                  if (_caixas.isNotEmpty) {
+                    _rascunho.caixas[_caixas.first.id] = 45.0;
+                  }
+                  _rascunho.observacoes = 'Inspeção de rotina do sistema de bombeamento e caixas d\'água. Nível estabilizado.';
+                  _salvarEstado();
+                });
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('⚡ [Modo Dev] Dados de Bombeamento preenchidos!'),
+                    backgroundColor: Color(0xFF0F4C81),
+                  ),
+                );
+              },
+            ),
           IconButton(
             icon: Icon(Icons.palette_outlined, color: theme.agua),
             tooltip: 'Alterar Tema de Fundo',
@@ -1192,15 +1221,17 @@ class _PumpingReportFormPageState extends ConsumerState<PumpingReportFormPage> {
                   label: const Text('Encerrar Turno e Gerar Relatório', style: TextStyle(fontWeight: FontWeight.bold)),
                 ),
                 const SizedBox(height: 6),
-                TextButton(
-                  onPressed: () {
-                    setState(() {
-                      _iniciarRascunho();
-                      _salvarEstado();
-                    });
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Formulário limpo.')));
-                  },
-                  child: const Text('Limpar Formulário', style: TextStyle(color: Colors.redAccent)),
+                Center(
+                  child: TextButton(
+                    onPressed: () {
+                      setState(() {
+                        _iniciarRascunho();
+                        _salvarEstado();
+                      });
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Formulário limpo.')));
+                    },
+                    child: const Text('Limpar Formulário', style: TextStyle(color: Colors.redAccent)),
+                  ),
                 ),
               ],
             ),
