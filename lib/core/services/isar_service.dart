@@ -38,6 +38,15 @@ class IsarService {
   /// ou alteração de modelo), deleta o arquivo antigo e recria do zero.
   Future<void> init() async {
     if (kIsWeb) return;
+    const dbName = 'cmoc_db';
+
+    // 1. Se o banco já estiver aberto no Isar neste isolate, reutiliza a instância.
+    final activeInstance = Isar.getInstance(dbName);
+    if (activeInstance != null && activeInstance.isOpen) {
+      _isar = activeInstance;
+      return;
+    }
+
     if (isInitialized) return;
 
     String? dirPath;
@@ -45,7 +54,6 @@ class IsarService {
       final dir = await getApplicationDocumentsDirectory();
       dirPath = dir.path;
     }
-    const dbName = 'cmoc_db';
 
     try {
       _isar = await Isar.open(
@@ -57,27 +65,54 @@ class IsarService {
         name: dbName,
       );
     } catch (e) {
-      // Schema incompatível ou arquivo corrompido — apaga e recria do zero.
-      // Dados locais não sincronizados serão perdidos, mas o app não crasha.
-      debugPrint('[IsarService] Falha ao abrir DB ($e) — recriando do zero.');
+      debugPrint('[IsarService] Aviso ao abrir DB ($e) — tentando recuperar ou limpar.');
+
+      // Se o banco foi aberto concorrentemente por outro fluxo/isolate (ex: Workmanager), reutiliza.
+      final currentInstance = Isar.getInstance(dbName);
+      if (currentInstance != null && currentInstance.isOpen) {
+        _isar = currentInstance;
+        return;
+      }
+
+      if (currentInstance != null) {
+        try {
+          await currentInstance.close();
+        } catch (_) {}
+      }
+
       if (!kIsWeb && dirPath != null) {
         await _deleteIsarFiles(dirPath, dbName);
       }
-      _isar = await Isar.open(
-        [
-          ReportModelSchema,
-          CollaboratorModelSchema,
-        ],
-        directory: dirPath ?? '',
-        name: dbName,
-      );
+
+      try {
+        _isar = await Isar.open(
+          [
+            ReportModelSchema,
+            CollaboratorModelSchema,
+          ],
+          directory: dirPath ?? '',
+          name: dbName,
+        );
+      } catch (e2) {
+        debugPrint('[IsarService] Tentativa de fallback para instância Isar: $e2');
+        final fallback = Isar.getInstance(dbName);
+        if (fallback != null && fallback.isOpen) {
+          _isar = fallback;
+        } else {
+          rethrow;
+        }
+      }
     }
   }
 
   /// Deleta os arquivos físicos do banco Isar com o nome dado.
   Future<void> _deleteIsarFiles(String dirPath, String dbName) async {
     if (kIsWeb) return;
-    for (final fileName in ['$dbName.isar', '$dbName.isar.lock']) {
+    for (final fileName in [
+      '$dbName.isar',
+      '$dbName.isar.lock',
+      '$dbName.isar.management',
+    ]) {
       final file = File('$dirPath/$fileName');
       try {
         if (await file.exists()) await file.delete();

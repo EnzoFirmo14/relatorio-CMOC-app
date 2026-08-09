@@ -11,7 +11,7 @@ part of 'work_order_model.dart';
 
 const WorkOrderModelSchema = Schema(
   name: r'WorkOrderModel',
-  id: -6459331886316744,
+  id: -5680994862373141074,
   properties: {
     r'activities': PropertySchema(
       id: 0,
