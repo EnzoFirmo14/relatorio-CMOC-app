@@ -7,6 +7,7 @@ import 'package:workmanager/workmanager.dart';
 import 'core/navigation/app_routes.dart';
 import 'core/services/isar_service.dart';
 import 'core/theme/app_theme.dart';
+import 'core/theme/theme_provider.dart';
 import 'core/services/connectivity_service.dart';
 import 'core/services/cloudinary_service.dart';
 import 'features/sync/domain/services/sync_service.dart';
@@ -119,12 +120,13 @@ class MyApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     // Eagerly initialize SyncController on app startup
     ref.watch(syncControllerProvider);
+    final themeMode = ref.watch(themeModeProvider);
 
     return MaterialApp(
       title: 'InfraLog CMOC (beta)',
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
-      themeMode: ThemeMode.system,
+      themeMode: themeMode,
       initialRoute: AppRoutes.initial,
       onGenerateRoute: AppRoutes.onGenerateRoute,
       debugShowCheckedModeBanner: false,

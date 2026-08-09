@@ -48,6 +48,7 @@ app.*.map.json
 *.isar
 *.isar-lck
 /isar.dll
+*.dll
 
 # Local temporary analysis files
 /analyze_output.txt
