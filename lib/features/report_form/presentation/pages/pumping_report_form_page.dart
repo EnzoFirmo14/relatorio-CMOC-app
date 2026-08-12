@@ -1,8 +1,10 @@
 import 'dart:convert';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../../core/services/firestore_cadastros_service.dart';
 import '../../../../core/providers/dev_mode_provider.dart';
 import '../../../sync/presentation/widgets/sync_status_badge.dart';
@@ -1829,9 +1831,108 @@ class _PumpingReportFormPageState extends ConsumerState<PumpingReportFormPage> {
     );
   }
 
+  String _gerarCodigoPumping() {
+    final rand = Random();
+    final code = rand.nextInt(900000) + 100000;
+    return 'BOM-$code';
+  }
+
+  Future<void> _enviarPumpingReportFirestore(InspecaoModel insp) async {
+    try {
+      final db = FirebaseFirestore.instance;
+
+      // Map operators
+      final operatorsList = insp.equipe.map((colabId) {
+        final colab = _colaboradores.firstWhere(
+          (c) => c.id == colabId,
+          orElse: () => ColaboradorModel(id: colabId, nome: colabId, matricula: colabId),
+        );
+        return {
+          'id': colab.id,
+          'registration': colab.matricula,
+          'name': colab.nome,
+        };
+      }).toList();
+
+      // Map caixas and rampas to workOrders
+      final List<Map<String, dynamic>> workOrders = [];
+
+      insp.caixas.forEach((caixaId, value) {
+        final r = _caixas.firstWhere(
+          (c) => c.id == caixaId,
+          orElse: () => CaixaModel(id: caixaId, nome: caixaId, setor: ''),
+        );
+        final detalhe = insp.detalhesCaixas[caixaId];
+        workOrders.add({
+          'id': caixaId,
+          'number': 'CX-${r.nome}',
+          'location': r.setor,
+          'maintenanceType': 'BOMBEAMENTO_CAIXA',
+          'cause': 'Inspeção de Caixa',
+          'activities': 'Nível: ${value != null ? '$value%' : 'N/A'}. Obs: ${detalhe?.obs ?? ''}. Ambos: ${detalhe?.ambosObs ?? ''}',
+          'materialsUsed': '',
+          'quantityMeters': 0.0,
+          'quantityPieces': 0,
+          'startTime': '',
+          'endTime': '',
+          'status': 'Vaz: ${detalhe?.vaz == true ? 'Sim' : 'Não'} | Abast: ${detalhe?.abastec == true ? 'Sim' : 'Não'}',
+          'osStatus': detalhe != null && detalhe.avisouLider ? 'Avisou Líder' : 'Normal',
+          'photoPaths': <String>[],
+        });
+      });
+
+      insp.rampas.forEach((rampaId, detalhe) {
+        final r = _rampas.firstWhere(
+          (rm) => rm.id == rampaId,
+          orElse: () => RampaModel(id: rampaId, nome: rampaId),
+        );
+        workOrders.add({
+          'id': rampaId,
+          'number': 'RP-${r.nome}',
+          'location': 'Rampa',
+          'maintenanceType': 'BOMBEAMENTO_RAMPA',
+          'cause': 'Inspeção de Rampa',
+          'activities': 'Metragem: ${detalhe.metragem != null ? '${detalhe.metragem}m' : 'N/A'}. Limpeza: ${detalhe.limpeza == true ? 'Precisa' : 'Não precisa'}. Ocorrências: ${detalhe.ocorrencias.join(', ')}',
+          'materialsUsed': '',
+          'quantityMeters': 0.0,
+          'quantityPieces': 0,
+          'startTime': '',
+          'endTime': '',
+          'status': 'Bomba: ${detalhe.bomba == true ? 'Sim' : 'Não'}',
+          'osStatus': detalhe.avisouLider ? 'Avisou Líder' : 'Normal',
+          'photoPaths': <String>[],
+        });
+      });
+
+      // Assemble payload matching ReportEntity format
+      final payload = {
+        'uuid': insp.id,
+        'date': DateTime.tryParse(insp.data)?.toIso8601String() ?? DateTime.now().toIso8601String(),
+        'shift': insp.turno,
+        'team': insp.turma,
+        'globalEquipment': 'Bombeamento',
+        'globalLocation': 'Mina',
+        'fuelLevel': 0.0,
+        'availableMaterials': '',
+        'observations': insp.observacoes,
+        'syncStatus': 'synced',
+        'createdAt': DateTime.now().toIso8601String(),
+        'updatedAt': DateTime.now().toIso8601String(),
+        'operators': operatorsList,
+        'workOrders': workOrders,
+        'pumpingRawData': insp.toJson(),
+      };
+
+      await db.collection('pumping_reports').doc(insp.id).set(payload, SetOptions(merge: true));
+      debugPrint('Relatório de bombeamento enviado à coleção pumping_reports com sucesso: ${insp.id}');
+    } catch (e) {
+      debugPrint('Erro ao enviar relatório de bombeamento: $e');
+    }
+  }
+
   void _encerrarTurno() {
     final insp = InspecaoModel.fromJson(_rascunho.toJson());
-    insp.id = 'insp_${DateTime.now().millisecondsSinceEpoch}';
+    insp.id = _gerarCodigoPumping();
     insp.criadoEm = DateTime.now().toIso8601String();
 
     setState(() {
@@ -1839,6 +1940,8 @@ class _PumpingReportFormPageState extends ConsumerState<PumpingReportFormPage> {
       _iniciarRascunho();
       _salvarEstado();
     });
+
+    _enviarPumpingReportFirestore(insp);
 
     _abrirModalRelatorio(insp);
   }

@@ -1,8 +1,10 @@
 import 'dart:convert';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../../core/services/firestore_cadastros_service.dart';
 import '../../../../core/providers/dev_mode_provider.dart';
 import '../../../../core/theme/theme_provider.dart';
@@ -582,6 +584,67 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
     return L.join("\n");
   }
 
+  Future<void> _enviarEletricaReportFirestore() async {
+    try {
+      final db = FirebaseFirestore.instance;
+      
+      // Gerar ID no padrão EL-977929 (EL- + 6 dígitos)
+      final rand = Random();
+      final code = rand.nextInt(900000) + 100000;
+      final reportId = 'EL-$code';
+
+      // Map operators
+      final operatorsList = _execs.map((e) => {
+        'id': e['mat'] ?? '',
+        'registration': e['mat'] ?? '',
+        'name': e['nome'] ?? '',
+      }).toList();
+
+      // Map work orders
+      final List<Map<String, dynamic>> workOrders = _osList.map((os) {
+        return {
+          'id': os.tag,
+          'number': os.tipo,
+          'location': os.local,
+          'maintenanceType': os.tipo,
+          'cause': os.causa + (os.causaOutros.isNotEmpty ? ' - ${os.causaOutros}' : ''),
+          'activities': os.atividades,
+          'materialsUsed': os.materiais + (os.matNA ? ' (N/A)' : ''),
+          'quantityMeters': 0.0,
+          'quantityPieces': 0,
+          'startTime': os.horaIni + (os.parado ? ' [Parado Ini: ${os.paradoIni}]' : ''),
+          'endTime': os.horaFim + (os.parado ? ' [Parado Fim: ${os.paradoFim}]' : ''),
+          'status': os.status,
+          'osStatus': os.pendencia.isNotEmpty ? 'Pendente: ${os.pendencia}' : 'OK',
+          'photoPaths': <String>[],
+        };
+      }).toList();
+
+      final payload = {
+        'uuid': reportId,
+        'date': _selectedDate.toIso8601String(),
+        'shift': _turno,
+        'team': _turma,
+        'globalEquipment': _semEquip ? 'Nenhum' : _equipamento,
+        'globalLocation': _semEquip ? '' : _localEquipCtrl.text,
+        'fuelLevel': _semEquip ? 0.0 : _combustivel,
+        'availableMaterials': _semEquip ? '' : _materiaisCtrl.text,
+        'observations': '',
+        'syncStatus': 'synced',
+        'createdAt': DateTime.now().toIso8601String(),
+        'updatedAt': DateTime.now().toIso8601String(),
+        'operators': operatorsList,
+        'workOrders': workOrders,
+        'electricalRawData': _osList.map((os) => os.toJson()).toList(),
+      };
+
+      await db.collection('electrical_reports').doc(reportId).set(payload, SetOptions(merge: true));
+      debugPrint('Relatório elétrico enviado à coleção electrical_reports com sucesso: $reportId');
+    } catch (e) {
+      debugPrint('Erro ao enviar relatório elétrico: $e');
+    }
+  }
+
   void _enviarWhatsApp() async {
     setState(() {
       _showValidationErrors = true;
@@ -598,6 +661,7 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
     }
 
     final texto = _buildMensagemWhatsApp();
+    _enviarEletricaReportFirestore();
     final uri = Uri.parse("whatsapp://send?text=${Uri.encodeComponent(texto)}");
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri);

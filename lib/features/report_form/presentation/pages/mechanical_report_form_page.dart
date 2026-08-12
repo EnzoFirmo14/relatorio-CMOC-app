@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../../core/services/firestore_cadastros_service.dart';
 import '../../../../core/providers/dev_mode_provider.dart';
 import '../../../../core/theme/theme_provider.dart';
@@ -467,8 +468,69 @@ class _MechanicalReportFormPageState extends ConsumerState<MechanicalReportFormP
     return sb.toString();
   }
 
+  Future<void> _enviarMecanicaReportFirestore() async {
+    try {
+      final db = FirebaseFirestore.instance;
+      
+      final snap = await db.collection('mechanical_reports').get();
+      final count = snap.docs.length + 1;
+      final reportId = 'MC${count.toString().padLeft(7, '0')}';
+
+      // Map operators
+      final operatorsList = _executantes.map((e) => {
+        'id': e['mat'] ?? '',
+        'registration': e['mat'] ?? '',
+        'name': e['nome'] ?? '',
+      }).toList();
+
+      // Map work orders
+      final List<Map<String, dynamic>> workOrders = _ordensManutencao.map((om) {
+        final concluida = om['concluida'] ?? false;
+        return {
+          'id': om['id'] ?? '',
+          'number': (om['omNumCtrl'] as TextEditingController).text,
+          'location': om['local'] ?? '',
+          'maintenanceType': 'MECANICA',
+          'cause': '',
+          'activities': (om['descCtrl'] as TextEditingController).text,
+          'materialsUsed': '',
+          'quantityMeters': 0.0,
+          'quantityPieces': 0,
+          'startTime': (om['startCtrl'] as TextEditingController).text,
+          'endTime': (om['endCtrl'] as TextEditingController).text,
+          'status': om['status'] ?? 'ABERTA',
+          'osStatus': concluida ? 'CONCLUÍDA' : 'ABERTA',
+          'photoPaths': List<String>.from(om['fotos'] ?? []),
+        };
+      }).toList();
+
+      final payload = {
+        'uuid': reportId,
+        'date': _selectedDate.toIso8601String(),
+        'shift': _turno,
+        'team': _turma,
+        'globalEquipment': 'Manutenção Mecânica',
+        'globalLocation': '',
+        'fuelLevel': 0.0,
+        'availableMaterials': '',
+        'observations': _observacoesCtrl.text,
+        'syncStatus': 'synced',
+        'createdAt': DateTime.now().toIso8601String(),
+        'updatedAt': DateTime.now().toIso8601String(),
+        'operators': operatorsList,
+        'workOrders': workOrders,
+      };
+
+      await db.collection('mechanical_reports').doc(reportId).set(payload, SetOptions(merge: true));
+      debugPrint('Relatório mecânico enviado à coleção mechanical_reports com sucesso: $reportId');
+    } catch (e) {
+      debugPrint('Erro ao enviar relatório mecânico: $e');
+    }
+  }
+
   void _enviarWhatsApp() async {
     final texto = _gerarTextoRelatorio();
+    _enviarMecanicaReportFirestore();
     final uri = Uri.parse("whatsapp://send?text=${Uri.encodeComponent(texto)}");
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri);
