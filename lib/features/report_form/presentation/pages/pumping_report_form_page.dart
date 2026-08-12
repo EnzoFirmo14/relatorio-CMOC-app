@@ -1320,7 +1320,7 @@ class _PumpingReportFormPageState extends ConsumerState<PumpingReportFormPage> {
                     foregroundColor: Colors.black,
                     minimumSize: const Size(double.infinity, 48),
                   ),
-                  onPressed: () async { await _encerrarTurno(); },
+                  onPressed: () { _encerrarTurno(); },
                   icon: const Icon(Icons.check_circle_outline),
                   label: const Text('Encerrar Turno e Gerar Relatório', style: TextStyle(fontWeight: FontWeight.bold)),
                 ),
@@ -2032,7 +2032,7 @@ class _PumpingReportFormPageState extends ConsumerState<PumpingReportFormPage> {
     }
   }
 
-  void _encerrarTurno() {
+  Future<void> _encerrarTurno() async {
     final insp = InspecaoModel.fromJson(_rascunho.toJson());
     insp.id = _gerarCodigoPumping();
     insp.criadoEm = DateTime.now().toIso8601String();
