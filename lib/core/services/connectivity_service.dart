@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 
 class ConnectivityService {
@@ -14,15 +15,17 @@ class ConnectivityService {
 
   /// Verifica pontualmente se o dispositivo está conectado no momento.
   Future<bool> checkHasInternet() async {
+    if (kIsWeb) return true;
     try {
       final results = await _connectivity.checkConnectivity();
       return _hasConnection(results);
     } catch (_) {
-      return false;
+      return true;
     }
   }
 
   bool _hasConnection(List<ConnectivityResult> results) {
+    if (kIsWeb) return true;
     if (results.isEmpty) return false;
     return results.any((result) => result != ConnectivityResult.none);
   }

@@ -63,14 +63,15 @@ const ReportModelSchema = CollectionSchema(
       enumMap: _ReportModelsyncStatusEnumValueMap,
     ),
     r'team': PropertySchema(id: 10, name: r'team', type: IsarType.string),
+    r'type': PropertySchema(id: 11, name: r'type', type: IsarType.string),
     r'updatedAt': PropertySchema(
-      id: 11,
+      id: 12,
       name: r'updatedAt',
       type: IsarType.dateTime,
     ),
-    r'uuid': PropertySchema(id: 12, name: r'uuid', type: IsarType.string),
+    r'uuid': PropertySchema(id: 13, name: r'uuid', type: IsarType.string),
     r'workOrders': PropertySchema(
-      id: 13,
+      id: 14,
       name: r'workOrders',
       type: IsarType.objectList,
 
@@ -135,6 +136,7 @@ int _reportModelEstimateSize(
   bytesCount += 3 + object.shift.length * 3;
   bytesCount += 3 + object.syncStatus.name.length * 3;
   bytesCount += 3 + object.team.length * 3;
+  bytesCount += 3 + object.type.length * 3;
   bytesCount += 3 + object.uuid.length * 3;
   bytesCount += 3 + object.workOrders.length * 3;
   {
@@ -173,10 +175,11 @@ void _reportModelSerialize(
   writer.writeString(offsets[8], object.shift);
   writer.writeString(offsets[9], object.syncStatus.name);
   writer.writeString(offsets[10], object.team);
-  writer.writeDateTime(offsets[11], object.updatedAt);
-  writer.writeString(offsets[12], object.uuid);
+  writer.writeString(offsets[11], object.type);
+  writer.writeDateTime(offsets[12], object.updatedAt);
+  writer.writeString(offsets[13], object.uuid);
   writer.writeObjectList<WorkOrderModel>(
-    offsets[13],
+    offsets[14],
     allOffsets,
     WorkOrderModelSchema.serialize,
     object.workOrders,
@@ -211,11 +214,12 @@ ReportModel _reportModelDeserialize(
       _ReportModelsyncStatusValueEnumMap[reader.readStringOrNull(offsets[9])] ??
       ReportModelSyncStatus.draft;
   object.team = reader.readString(offsets[10]);
-  object.updatedAt = reader.readDateTime(offsets[11]);
-  object.uuid = reader.readString(offsets[12]);
+  object.type = reader.readString(offsets[11]);
+  object.updatedAt = reader.readDateTime(offsets[12]);
+  object.uuid = reader.readString(offsets[13]);
   object.workOrders =
       reader.readObjectList<WorkOrderModel>(
-        offsets[13],
+        offsets[14],
         WorkOrderModelSchema.deserialize,
         allOffsets,
         WorkOrderModel(),
@@ -265,10 +269,12 @@ P _reportModelDeserializeProp<P>(
     case 10:
       return (reader.readString(offset)) as P;
     case 11:
-      return (reader.readDateTime(offset)) as P;
-    case 12:
       return (reader.readString(offset)) as P;
+    case 12:
+      return (reader.readDateTime(offset)) as P;
     case 13:
+      return (reader.readString(offset)) as P;
+    case 14:
       return (reader.readObjectList<WorkOrderModel>(
                 offset,
                 WorkOrderModelSchema.deserialize,
@@ -1807,6 +1813,153 @@ extension ReportModelQueryFilter
     });
   }
 
+  QueryBuilder<ReportModel, ReportModel, QAfterFilterCondition> typeEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'type',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<ReportModel, ReportModel, QAfterFilterCondition> typeGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'type',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<ReportModel, ReportModel, QAfterFilterCondition> typeLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'type',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<ReportModel, ReportModel, QAfterFilterCondition> typeBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'type',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<ReportModel, ReportModel, QAfterFilterCondition> typeStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'type',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<ReportModel, ReportModel, QAfterFilterCondition> typeEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'type',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<ReportModel, ReportModel, QAfterFilterCondition> typeContains(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'type',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<ReportModel, ReportModel, QAfterFilterCondition> typeMatches(
+    String pattern, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'type',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<ReportModel, ReportModel, QAfterFilterCondition> typeIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'type', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<ReportModel, ReportModel, QAfterFilterCondition>
+  typeIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'type', value: ''),
+      );
+    });
+  }
+
   QueryBuilder<ReportModel, ReportModel, QAfterFilterCondition>
   updatedAtEqualTo(DateTime value) {
     return QueryBuilder.apply(this, (query) {
@@ -2210,6 +2363,18 @@ extension ReportModelQuerySortBy
     });
   }
 
+  QueryBuilder<ReportModel, ReportModel, QAfterSortBy> sortByType() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'type', Sort.asc);
+    });
+  }
+
+  QueryBuilder<ReportModel, ReportModel, QAfterSortBy> sortByTypeDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'type', Sort.desc);
+    });
+  }
+
   QueryBuilder<ReportModel, ReportModel, QAfterSortBy> sortByUpdatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'updatedAt', Sort.asc);
@@ -2374,6 +2539,18 @@ extension ReportModelQuerySortThenBy
     });
   }
 
+  QueryBuilder<ReportModel, ReportModel, QAfterSortBy> thenByType() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'type', Sort.asc);
+    });
+  }
+
+  QueryBuilder<ReportModel, ReportModel, QAfterSortBy> thenByTypeDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'type', Sort.desc);
+    });
+  }
+
   QueryBuilder<ReportModel, ReportModel, QAfterSortBy> thenByUpdatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'updatedAt', Sort.asc);
@@ -2483,6 +2660,14 @@ extension ReportModelQueryWhereDistinct
     });
   }
 
+  QueryBuilder<ReportModel, ReportModel, QDistinct> distinctByType({
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'type', caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<ReportModel, ReportModel, QDistinct> distinctByUpdatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'updatedAt');
@@ -2573,6 +2758,12 @@ extension ReportModelQueryProperty
   QueryBuilder<ReportModel, String, QQueryOperations> teamProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'team');
+    });
+  }
+
+  QueryBuilder<ReportModel, String, QQueryOperations> typeProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'type');
     });
   }
 

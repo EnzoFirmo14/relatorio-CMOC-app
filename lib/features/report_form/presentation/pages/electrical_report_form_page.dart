@@ -9,6 +9,11 @@ import '../../../../core/services/firestore_cadastros_service.dart';
 import '../../../../core/providers/dev_mode_provider.dart';
 import '../../../../core/theme/theme_provider.dart';
 import '../../../sync/presentation/widgets/sync_status_badge.dart';
+import '../../domain/entities/report_entity.dart';
+import '../../domain/entities/collaborator_entity.dart';
+import '../../domain/entities/work_order_entity.dart';
+import '../../../sync/presentation/controllers/sync_controller.dart';
+import '../controllers/report_form_controller.dart';
 
 class ElectricalWorkOrder {
   String tipo;
@@ -93,44 +98,44 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
   int _currentTab = 0; // 0: Relatório, 1: Cadastros & Locais
 
   // Constantes de Opções idênticas ao relatorio-eletrica.html
-  static const List<String> _tiposOS = ["Corretiva", "Avanço", "Recuo", "Transporte", "Apoio"];
+  static const List<String> _tiposOS = ['Corretiva', 'Avanço', 'Recuo', 'Transporte', 'Apoio'];
 
   static const Map<String, List<String>> _causasMap = {
-    "Corretiva": [
-      "Tomada desarmada",
-      "Painel desarmado",
-      "Painel com falha",
-      "Sem comunicação",
-      "Comunicação ruim",
-      "Cabo de comunicação machucado",
-      "Bomba desarmada",
-      "Cabo acidentado",
-      "Cabo arriado",
-      "Extensão danificada",
-      "Outros"
+    'Corretiva': [
+      'Tomada desarmada',
+      'Painel desarmado',
+      'Painel com falha',
+      'Sem comunicação',
+      'Comunicação ruim',
+      'Cabo de comunicação machucado',
+      'Bomba desarmada',
+      'Cabo acidentado',
+      'Cabo arriado',
+      'Extensão danificada',
+      'Outros'
     ],
-    "Avanço": [
-      "Avançar tomada",
-      "Avançar painel de bomba",
-      "Avançar comunicação",
-      "Avançar tomada e comunicação",
-      "Outros"
+    'Avanço': [
+      'Avançar tomada',
+      'Avançar painel de bomba',
+      'Avançar comunicação',
+      'Avançar tomada e comunicação',
+      'Outros'
     ],
-    "Recuo": [
-      "Recuar tomada",
-      "Recuar painel de bomba",
-      "Recuar comunicação",
-      "Recuar tomada e comunicação",
-      "Outros"
+    'Recuo': [
+      'Recuar tomada',
+      'Recuar painel de bomba',
+      'Recuar comunicação',
+      'Recuar tomada e comunicação',
+      'Outros'
     ],
-    "Transporte": [],
-    "Apoio": [],
+    'Transporte': [],
+    'Apoio': [],
   };
 
   static final List<String> _tagsPadrao = (() {
     final List<String> list = [];
     String p3(int n) => n.toString().padLeft(3, '0');
-    for (var prefix in ["TMJI3", "PNVI3", "PNBI3"]) {
+    for (var prefix in ['TMJI3', 'PNVI3', 'PNBI3']) {
       for (var i = 1; i <= 90; i++) {
         list.add('$prefix${p3(i)}');
       }
@@ -138,7 +143,7 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
     return list;
   })();
 
-  static const List<String> _equipamentosDrop = ["PT302", "PT305", "PT306", "MT001", "MT002", "PT386"];
+  static const List<String> _equipamentosDrop = ['PT302', 'PT305', 'PT306', 'MT001', 'MT002', 'PT386'];
 
   static const List<Map<String, String>> _pessoasPadrao = [
     {'nome': 'Acacio Oliveira Souza', 'mat': 'S/N'},
@@ -519,45 +524,45 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
 
   String _buildMensagemWhatsApp() {
     final List<String> L = [];
-    L.add("*RELATÓRIO ELÉTRICA*");
-    L.add("📅 Data: ${_fmtBR(_selectedDate)}");
+    L.add('*RELATÓRIO ELÉTRICA*');
+    L.add('📅 Data: ${_fmtBR(_selectedDate)}');
     L.add("⚡ Tipo: ${_tipo.isNotEmpty ? _tipo : '—'}");
     L.add("🕐 Turno: ${_turno.isNotEmpty ? _turno : '—'}   |   👥 Turma: ${_turma.isNotEmpty ? _turma : '—'}");
-    L.add("");
-    L.add("👷 *Executantes:*");
+    L.add('');
+    L.add('👷 *Executantes:*');
     for (var e in _execs) {
       if (e['nome']!.isNotEmpty) {
-        final matStr = e['mat']!.isNotEmpty ? " (${e['mat']})" : "";
+        final matStr = e['mat']!.isNotEmpty ? " (${e['mat']})" : '';
         L.add("• ${e['nome']}$matStr");
       }
     }
-    L.add("");
-    L.add("🔧 *Equipamento:*");
+    L.add('');
+    L.add('🔧 *Equipamento:*');
     if (_semEquip) {
-      L.add("• Nenhum equipamento utilizado neste turno");
+      L.add('• Nenhum equipamento utilizado neste turno');
     } else {
       L.add("• Equipamento: ${_equipamento.isNotEmpty ? _equipamento : '—'}");
       L.add("• Local: ${_localEquipCtrl.text.isNotEmpty ? _localEquipCtrl.text : '—'}");
-      L.add("• Nível de combustível: ${_combustivel.round()}%");
+      L.add('• Nível de combustível: ${_combustivel.round()}%');
       L.add("• Materiais disponíveis: ${_materiaisCtrl.text.isNotEmpty ? _materiaisCtrl.text : '—'}");
     }
-    L.add("");
-    L.add("📋 *Ordens de Serviço (${_osList.length}):*");
+    L.add('');
+    L.add('📋 *Ordens de Serviço (${_osList.length}):*');
 
     for (var i = 0; i < _osList.length; i++) {
       final o = _osList[i];
       final numStr = (i + 1).toString().padLeft(4, '0');
-      L.add("");
-      L.add("*OS-$numStr*");
+      L.add('');
+      L.add('*OS-$numStr*');
       L.add("• Tipo: ${o.tipo.isNotEmpty ? o.tipo : '—'}");
 
       final causas = _causasMap[o.tipo] ?? [];
       if (causas.isNotEmpty) {
-        String c = o.causa.isNotEmpty ? o.causa : "—";
+        String c = o.causa.isNotEmpty ? o.causa : '—';
         if (o.causa == 'Outros' && o.causaOutros.isNotEmpty) {
-          c = "Outros: ${o.causaOutros}";
+          c = 'Outros: ${o.causaOutros}';
         }
-        L.add("• Causa: $c");
+        L.add('• Causa: $c');
       }
 
       L.add("• Local: ${o.local.isNotEmpty ? o.local : '—'}");
@@ -566,22 +571,22 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
         L.add("• Tag: ${o.tag.isNotEmpty ? o.tag : '—'}");
         final paradoStr = o.parado
             ? "Sim (${o.paradoIni.isNotEmpty ? o.paradoIni : '--'} às ${o.paradoFim.isNotEmpty ? o.paradoFim : '--'})"
-            : "Não";
-        L.add("• Equipamento parado: $paradoStr");
+            : 'Não';
+        L.add('• Equipamento parado: $paradoStr');
       }
 
       L.add("• Atividades: ${o.atividades.isNotEmpty ? o.atividades : '—'}");
       L.add("• Materiais: ${o.matNA ? 'Não se aplica' : (o.materiais.isNotEmpty ? o.materiais : '—')}");
       L.add("• Horário: ${o.horaIni.isNotEmpty ? o.horaIni : '--'} às ${o.horaFim.isNotEmpty ? o.horaFim : '--'}");
 
-      String st = o.status.isNotEmpty ? o.status : "—";
+      String st = o.status.isNotEmpty ? o.status : '—';
       if (o.status == 'Pendente') {
         st = "Pendente — ${o.pendencia.isNotEmpty ? o.pendencia : ''}";
       }
-      L.add("• Status: $st");
+      L.add('• Status: $st');
     }
 
-    return L.join("\n");
+    return L.join('\n');
   }
 
   Future<void> _enviarEletricaReportFirestore() async {
@@ -666,7 +671,7 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri);
     } else {
-      final webUri = Uri.parse("https://wa.me/?text=${Uri.encodeComponent(texto)}");
+      final webUri = Uri.parse('https://wa.me/?text=${Uri.encodeComponent(texto)}');
       if (await canLaunchUrl(webUri)) {
         await launchUrl(webUri, mode: LaunchMode.externalApplication);
       } else {

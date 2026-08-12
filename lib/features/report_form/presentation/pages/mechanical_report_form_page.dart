@@ -7,6 +7,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../../core/services/firestore_cadastros_service.dart';
 import '../../../../core/providers/dev_mode_provider.dart';
 import '../../../../core/theme/theme_provider.dart';
+import '../../domain/entities/report_entity.dart';
+import '../../domain/entities/collaborator_entity.dart';
+import '../../domain/entities/work_order_entity.dart';
+import '../../../sync/presentation/controllers/sync_controller.dart';
+import '../controllers/report_form_controller.dart';
 import '../../../sync/presentation/widgets/sync_status_badge.dart';
 
 class MechanicalReportFormPage extends ConsumerStatefulWidget {
@@ -613,13 +618,15 @@ class _MechanicalReportFormPageState extends ConsumerState<MechanicalReportFormP
             Text('CM', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: isDark ? Colors.white : textColor)),
             const Text('OC', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: accentPurple)),
             const SizedBox(width: 10),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: const BoxDecoration(
-                color: Color(0xFFEDE9FF),
-                borderRadius: BorderRadius.all(Radius.circular(20)),
+            Flexible(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFEDE9FF),
+                  borderRadius: BorderRadius.all(Radius.circular(20)),
+                ),
+                child: const Text('⚙️ MECÂNICA', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: accentPurple), overflow: TextOverflow.ellipsis),
               ),
-              child: const Text('⚙️ MECÂNICA', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: accentPurple)),
             ),
           ],
         ),

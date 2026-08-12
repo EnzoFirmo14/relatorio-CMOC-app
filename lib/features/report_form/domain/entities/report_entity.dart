@@ -25,6 +25,7 @@ class ReportEntity {
   final List<CollaboratorEntity> operators;
   final List<WorkOrderEntity> workOrders;
   final ReportSyncStatus syncStatus;
+  final String type;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -41,6 +42,7 @@ class ReportEntity {
     this.operators = const [],
     this.workOrders = const [],
     this.syncStatus = ReportSyncStatus.draft,
+    this.type = 'Equipagem',
     required this.createdAt,
     required this.updatedAt,
   });
@@ -62,6 +64,7 @@ class ReportEntity {
     List<CollaboratorEntity>? operators,
     List<WorkOrderEntity>? workOrders,
     ReportSyncStatus? syncStatus,
+    String? type,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -78,6 +81,7 @@ class ReportEntity {
       operators: operators ?? this.operators,
       workOrders: workOrders ?? this.workOrders,
       syncStatus: syncStatus ?? this.syncStatus,
+      type: type ?? this.type,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
