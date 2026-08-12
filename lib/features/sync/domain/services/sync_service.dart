@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import '../../../../core/services/connectivity_service.dart';
 import '../../../../core/services/cloudinary_service.dart';
 import '../../../../core/services/image_service.dart';
@@ -77,12 +78,17 @@ class SyncService {
           bool osHasChanges = false;
 
           for (final path in os.photoPaths) {
-            if (!path.startsWith('http://') && !path.startsWith('https://')) {
-              // É uma foto local. Realiza o upload para o Cloudinary.
-              final absolutePath = await ImageService.getAbsolutePath(path);
-              final secureUrl = await cloudinaryService.uploadImage(absolutePath);
-              updatedPhotoPaths.add(secureUrl);
-              osHasChanges = true;
+            if (path.isNotEmpty && !path.startsWith('http://') && !path.startsWith('https://')) {
+              try {
+                // É uma foto local. Realiza o upload para o Cloudinary.
+                final absolutePath = await ImageService.getAbsolutePath(path);
+                final secureUrl = await cloudinaryService.uploadImage(absolutePath);
+                updatedPhotoPaths.add(secureUrl);
+                osHasChanges = true;
+              } catch (e) {
+                debugPrint('Erro ao fazer upload da imagem para o Cloudinary: $e');
+                updatedPhotoPaths.add(path);
+              }
             } else {
               updatedPhotoPaths.add(path);
             }
@@ -106,7 +112,9 @@ class SyncService {
         await remoteDataSource.sendReport(normalizedReport);
         await localRepository.markAsSynced(normalizedReport.uuid);
         syncedCount++;
-      } catch (_) {
+      } catch (e, stack) {
+        debugPrint('CRITICAL SYNC ERROR: $e');
+        debugPrint(stack.toString());
         // Marca como erro para retentativa posterior
         await localRepository.updateSyncStatus(
             report.uuid, ReportSyncStatus.error);

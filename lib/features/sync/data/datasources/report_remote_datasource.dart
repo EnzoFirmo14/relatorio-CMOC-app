@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 
 import '../../../report_form/domain/entities/collaborator_entity.dart';
 import '../../../report_form/domain/entities/report_entity.dart';
@@ -11,7 +12,8 @@ abstract class IReportRemoteDataSource {
   Future<List<ReportEntity>> fetchAllRemoteReports();
 }
 
-/// Implementação remota via Firebase Firestore com fallback em memória quando offline/não configurado.
+/// Implementação remota via Firebase Firestore com roteamento para as coleções específicas
+/// (`electrical_reports`, `pumping_reports`, `mechanical_reports` e `reports`).
 class ReportFirestoreDataSource implements IReportRemoteDataSource {
   final FirebaseFirestore? _firestore;
   final Map<String, ReportEntity> _inMemoryMockStore = {};
@@ -28,21 +30,42 @@ class ReportFirestoreDataSource implements IReportRemoteDataSource {
 
   FirebaseFirestore get _db => _firestore ?? FirebaseFirestore.instance;
 
+  String _getCollectionName(String type) {
+    switch (type.trim().toLowerCase()) {
+      case 'elétrica':
+      case 'eletrica':
+      case 'electrical':
+        return 'electrical_reports';
+      case 'bombeamento':
+      case 'pumping':
+      case 'drenagem & bombeamento':
+        return 'pumping_reports';
+      case 'mecânica':
+      case 'mecanica':
+      case 'mechanical':
+        return 'mechanical_reports';
+      case 'equipagem':
+      default:
+        return 'reports';
+    }
+  }
+
   @override
   Future<void> sendReport(ReportEntity report) async {
     if (!_isFirebaseAvailable) {
-      // Fallback para mock store quando o Firebase não está configurado localmente
+      debugPrint('CRITICAL WARNING: Firebase is NOT available! Falling back to in-memory mock store for sendReport.');
       _inMemoryMockStore[report.uuid] = report;
       await Future.delayed(const Duration(milliseconds: 200));
       return;
     }
 
     try {
-      final docRef = _db.collection('reports').doc(report.uuid);
+      final collectionName = _getCollectionName(report.type);
+      final docRef = _db.collection(collectionName).doc(report.uuid);
       final jsonPayload = _reportToJson(report);
       await docRef.set(jsonPayload, SetOptions(merge: true));
     } catch (e) {
-      throw Exception('Falha ao enviar relatório para o Firestore: $e');
+      throw Exception('Falha ao enviar relatório para o Firestore ($e)');
     }
   }
 
@@ -53,11 +76,14 @@ class ReportFirestoreDataSource implements IReportRemoteDataSource {
     }
 
     try {
-      final docSnap = await _db.collection('reports').doc(uuid).get();
-      if (!docSnap.exists || docSnap.data() == null) {
-        return null;
+      final collections = ['reports', 'electrical_reports', 'pumping_reports', 'mechanical_reports'];
+      for (final col in collections) {
+        final docSnap = await _db.collection(col).doc(uuid).get();
+        if (docSnap.exists && docSnap.data() != null) {
+          return _jsonToReport(docSnap.data()!);
+        }
       }
-      return _jsonToReport(docSnap.data()!);
+      return null;
     } catch (e) {
       throw Exception('Falha ao buscar relatório remoto: $e');
     }
@@ -70,8 +96,13 @@ class ReportFirestoreDataSource implements IReportRemoteDataSource {
     }
 
     try {
-      final querySnap = await _db.collection('reports').get();
-      return querySnap.docs.map((doc) => _jsonToReport(doc.data())).toList();
+      final List<ReportEntity> all = [];
+      final collections = ['reports', 'electrical_reports', 'pumping_reports', 'mechanical_reports'];
+      for (final col in collections) {
+        final querySnap = await _db.collection(col).get();
+        all.addAll(querySnap.docs.map((doc) => _jsonToReport(doc.data())));
+      }
+      return all;
     } catch (e) {
       throw Exception('Falha ao buscar todos os relatórios remotos: $e');
     }
@@ -80,11 +111,21 @@ class ReportFirestoreDataSource implements IReportRemoteDataSource {
   // ─── JSON Mappers ──────────────────────────────────────────────────────────
 
   Map<String, dynamic> _reportToJson(ReportEntity report) {
+    final leaderName = report.operators.isNotEmpty ? report.operators.first.name : '';
+    final memberNames = report.operators.map((o) => o.name).where((n) => n.isNotEmpty).toList();
+
     return {
       'uuid': report.uuid,
+      'id': report.uuid,
       'date': report.date.toIso8601String(),
       'shift': report.shift,
       'team': report.team,
+      'type': report.type,
+      'leader': leaderName,
+      'members': memberNames,
+      'location': report.globalLocation.isNotEmpty
+          ? report.globalLocation
+          : (report.workOrders.isNotEmpty ? report.workOrders.first.location : ''),
       'globalEquipment': report.globalEquipment,
       'globalLocation': report.globalLocation,
       'fuelLevel': report.fuelLevel,
@@ -118,20 +159,32 @@ class ReportFirestoreDataSource implements IReportRemoteDataSource {
                 'photoPaths': os.photoPaths,
               })
           .toList(),
+      'activities': report.workOrders
+          .map((os) => {
+                'description': os.activities,
+                'serviceType': os.maintenanceType,
+                'equipment': report.globalEquipment,
+                'location': os.location,
+                'status': os.status.isNotEmpty ? os.status : 'Concluído',
+                'startTime': os.startTime,
+                'endTime': os.endTime,
+              })
+          .toList(),
     };
   }
 
   ReportEntity _jsonToReport(Map<String, dynamic> json) {
     return ReportEntity(
-      uuid: json['uuid'] as String? ?? '',
+      uuid: json['uuid'] as String? ?? json['id'] as String? ?? '',
       date: DateTime.tryParse(json['date'] as String? ?? '') ?? DateTime.now(),
       shift: json['shift'] as String? ?? '',
       team: json['team'] as String? ?? '',
       globalEquipment: json['globalEquipment'] as String? ?? '',
-      globalLocation: json['globalLocation'] as String? ?? '',
+      globalLocation: json['globalLocation'] as String? ?? json['location'] as String? ?? '',
       fuelLevel: (json['fuelLevel'] as num?)?.toDouble() ?? 0.0,
       availableMaterials: json['availableMaterials'] as String? ?? '',
       observations: json['observations'] as String? ?? '',
+      type: json['type'] as String? ?? 'Equipagem',
       syncStatus: ReportSyncStatus.synced,
       createdAt:
           DateTime.tryParse(json['createdAt'] as String? ?? '') ?? DateTime.now(),

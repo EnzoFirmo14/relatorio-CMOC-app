@@ -6,6 +6,11 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/services/firestore_cadastros_service.dart';
 import '../../../../core/providers/dev_mode_provider.dart';
 import '../../../../core/theme/theme_provider.dart';
+import '../../domain/entities/report_entity.dart';
+import '../../domain/entities/collaborator_entity.dart';
+import '../../domain/entities/work_order_entity.dart';
+import '../../../sync/presentation/controllers/sync_controller.dart';
+import '../controllers/report_form_controller.dart';
 import '../../../sync/presentation/widgets/sync_status_badge.dart';
 
 class MechanicalReportFormPage extends ConsumerStatefulWidget {
@@ -469,7 +474,57 @@ class _MechanicalReportFormPageState extends ConsumerState<MechanicalReportFormP
 
   void _enviarWhatsApp() async {
     final texto = _gerarTextoRelatorio();
-    final uri = Uri.parse("whatsapp://send?text=${Uri.encodeComponent(texto)}");
+
+    // Mapear para ReportEntity e salvar no banco local para o SyncController sincronizar
+    try {
+      final report = ReportEntity(
+        uuid: 'insp_${DateTime.now().millisecondsSinceEpoch}',
+        date: _selectedDate,
+        shift: _turno,
+        team: _turma,
+        type: 'Mecânica',
+        observations: texto,
+        operators: _executantes
+            .where((e) => (e['nome'] ?? '').isNotEmpty)
+            .map((e) => CollaboratorEntity(
+                  id: e['mat'] ?? '',
+                  registration: e['mat'] ?? '',
+                  name: e['nome'] ?? '',
+                ))
+            .toList(),
+        workOrders: _ordensManutencao.map<WorkOrderEntity>((os) {
+          final omNum = (os['omNumCtrl'] as TextEditingController).text;
+          final tag = (os['tagCtrl'] as TextEditingController).text;
+          final desc = (os['descCtrl'] as TextEditingController).text;
+          return WorkOrderEntity(
+            id: 'os_${DateTime.now().millisecondsSinceEpoch}_${os['id']}',
+            number: omNum,
+            location: os['local'] ?? '',
+            maintenanceType: '',
+            cause: tag, // Utilizando tag como motivo/equipamento
+            activities: desc,
+            materialsUsed: const [],
+            quantityMeters: '',
+            quantityPieces: '',
+            startTime: '',
+            endTime: '',
+            osStatus: os['status'] ?? '',
+            photoPaths: const [],
+          );
+        }).toList(),
+        syncStatus: ReportSyncStatus.pending,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+
+      final repository = ref.read(reportRepositoryProvider);
+      await repository.saveReport(report);
+      await ref.read(syncControllerProvider.notifier).triggerSync();
+    } catch (e) {
+      debugPrint('Erro ao salvar relatório de mecânica no Firebase: $e');
+    }
+
+    final uri = Uri.parse('whatsapp://send?text=${Uri.encodeComponent(texto)}');
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri);
     } else {
@@ -551,13 +606,15 @@ class _MechanicalReportFormPageState extends ConsumerState<MechanicalReportFormP
             Text('CM', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: isDark ? Colors.white : textColor)),
             const Text('OC', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: accentPurple)),
             const SizedBox(width: 10),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: const BoxDecoration(
-                color: Color(0xFFEDE9FF),
-                borderRadius: BorderRadius.all(Radius.circular(20)),
+            Flexible(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFEDE9FF),
+                  borderRadius: BorderRadius.all(Radius.circular(20)),
+                ),
+                child: const Text('⚙️ MECÂNICA', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: accentPurple), overflow: TextOverflow.ellipsis),
               ),
-              child: const Text('⚙️ MECÂNICA', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: accentPurple)),
             ),
           ],
         ),

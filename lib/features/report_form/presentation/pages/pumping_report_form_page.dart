@@ -6,6 +6,11 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/services/firestore_cadastros_service.dart';
 import '../../../../core/providers/dev_mode_provider.dart';
 import '../../../sync/presentation/widgets/sync_status_badge.dart';
+import '../../domain/entities/report_entity.dart';
+import '../../domain/entities/collaborator_entity.dart';
+import '../../domain/entities/work_order_entity.dart';
+import '../../../sync/presentation/controllers/sync_controller.dart';
+import '../controllers/report_form_controller.dart';
 
 /// Tema de cores selecionável para a interface de Drenagem & Bombeamento
 class PumpingTheme {
@@ -744,13 +749,13 @@ class _PumpingReportFormPageState extends ConsumerState<PumpingReportFormPage> {
     if (isoDate.isEmpty) return '—';
     final parts = isoDate.split('-');
     if (parts.length != 3) return isoDate;
-    return "${parts[2]}/${parts[1]}/${parts[0]}";
+    return '${parts[2]}/${parts[1]}/${parts[0]}';
   }
 
   String _nomeColaborador(String id) {
     final col = _colaboradores.firstWhere((c) => c.id == id, orElse: () => ColaboradorModel(id: '', nome: ''));
     if (col.id.isEmpty) return '—';
-    return col.matricula.isNotEmpty ? "${col.nome} (${col.matricula})" : col.nome;
+    return col.matricula.isNotEmpty ? '${col.nome} (${col.matricula})' : col.nome;
   }
 
   Map<String, String> _estadoCaixa(double? p) {
@@ -793,12 +798,12 @@ class _PumpingReportFormPageState extends ConsumerState<PumpingReportFormPage> {
     }
     if (d.vaz == true) {
       final ex = <String>[];
-      if (d.vazLocal.trim().isNotEmpty) ex.add("local: ${d.vazLocal.trim()}");
-      if (d.vazMotivo.trim().isNotEmpty) ex.add("motivo: ${d.vazMotivo.trim()}");
+      if (d.vazLocal.trim().isNotEmpty) ex.add('local: ${d.vazLocal.trim()}');
+      if (d.vazMotivo.trim().isNotEmpty) ex.add('motivo: ${d.vazMotivo.trim()}');
       L.add("Vazamento no circuito${ex.isNotEmpty ? ' — ${ex.join(', ')}' : ''}");
     }
     if (d.abastec == true && d.vaz == true && d.ambosObs.trim().isNotEmpty) {
-      L.add("Abastecida com vazamento — ${d.ambosObs.trim()}");
+      L.add('Abastecida com vazamento — ${d.ambosObs.trim()}');
     }
     if (d.obs.trim().isNotEmpty) L.add(d.obs.trim());
     return L.join(' · ');
@@ -838,6 +843,88 @@ class _PumpingReportFormPageState extends ConsumerState<PumpingReportFormPage> {
 
   // --- WHATSAPP & AÇÕES ---
 
+  Future<void> _salvarESincronizarRelatorio(InspecaoModel insp, String txt) async {
+    try {
+      final equipeOps = insp.equipe.map((id) {
+        final nome = _nomeColaborador(id);
+        return CollaboratorEntity(
+          id: id,
+          registration: id,
+          name: nome != '—' ? nome : id,
+        );
+      }).toList();
+
+      final List<WorkOrderEntity> workOrders = [];
+
+      // Mapeia caixas de distribuição para leituras de Nível
+      for (final c in _caixas) {
+        final val = insp.caixas[c.id];
+        final det = insp.detalhesCaixas[c.id];
+        if (val != null || det != null) {
+          workOrders.add(WorkOrderEntity(
+            id: 'cx_${c.id}',
+            number: c.nome,
+            location: '${c.setor} — ${c.nome}',
+            maintenanceType: 'Nível',
+            cause: 'Caixa',
+            activities: det != null ? (det.obs.isNotEmpty ? det.obs : 'Leitura de nível: ${val?.toInt() ?? 0}%') : 'Leitura de nível: ${val?.toInt() ?? 0}%',
+            materialsUsed: const [],
+            quantityMeters: val != null ? '${val.toInt()}' : '0',
+            quantityPieces: '1',
+            startTime: '',
+            endTime: '',
+            osStatus: (det?.vaz == true) ? 'Alerta' : 'Estável',
+            photoPaths: const [],
+          ));
+        }
+      }
+
+      // Mapeia fins de rampa para status de bombas
+      for (final r in _rampas) {
+        final det = insp.rampas[r.id];
+        if (det != null) {
+          final st = det.bomba == true ? 'Operando' : (det.bomba == false ? 'Parada' : 'Stand-by');
+          workOrders.add(WorkOrderEntity(
+            id: 'rmp_${r.id}',
+            number: r.nome,
+            location: r.nome,
+            maintenanceType: 'Bomba',
+            cause: r.nome,
+            activities: det.ocorrencias.isNotEmpty ? det.ocorrencias.join(', ') : 'Operação de rampa',
+            materialsUsed: const [],
+            quantityMeters: det.metragem != null ? '${det.metragem}' : '0',
+            quantityPieces: '1',
+            startTime: '',
+            endTime: '',
+            osStatus: st,
+            photoPaths: const [],
+          ));
+        }
+      }
+
+      final report = ReportEntity(
+        uuid: insp.id.startsWith('insp_') ? insp.id : 'insp_pumping_${DateTime.now().millisecondsSinceEpoch}',
+        date: DateTime.tryParse(insp.data) ?? DateTime.now(),
+        shift: insp.turno,
+        team: insp.turma,
+        type: 'Bombeamento',
+        globalLocation: _caixas.isNotEmpty ? _caixas.first.setor : 'Mina Subterrânea',
+        observations: txt,
+        operators: equipeOps,
+        workOrders: workOrders,
+        syncStatus: ReportSyncStatus.pending,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+
+      final repository = ref.read(reportRepositoryProvider);
+      await repository.saveReport(report);
+      await ref.read(syncControllerProvider.notifier).triggerSync();
+    } catch (e) {
+      debugPrint('Erro ao salvar relatório de bombeamento no Firestore: $e');
+    }
+  }
+
   Future<void> _abrirWhatsApp(String text, String phone) async {
     final cleanPhone = phone.replaceAll(RegExp(r'\D'), '');
     final uri = Uri.parse("whatsapp://send?${cleanPhone.isNotEmpty ? 'phone=$cleanPhone&' : ''}text=${Uri.encodeComponent(text)}");
@@ -859,11 +946,11 @@ class _PumpingReportFormPageState extends ConsumerState<PumpingReportFormPage> {
     final vals = _caixas.map((c) => i.caixas[c.id]).where((v) => v != null).cast<double>().toList();
     final media = vals.isNotEmpty ? (vals.reduce((a, b) => a + b) / vals.length).round() : 0;
 
-    L.add("*RELATÓRIO DE DRENAGEM E BOMBEAMENTO*");
-    L.add("${_formatDateBR(i.data)}  |  ${i.turno}  |  Turma ${i.turma}");
+    L.add('*RELATÓRIO DE DRENAGEM E BOMBEAMENTO*');
+    L.add('${_formatDateBR(i.data)}  |  ${i.turno}  |  Turma ${i.turma}');
     L.add("Executantes: ${equipeNames.isNotEmpty ? equipeNames.join(', ') : 'não informados'}");
-    L.add("");
-    L.add("*CAIXAS DE DISTRIBUIÇÃO*  (média $media%)");
+    L.add('');
+    L.add('*CAIXAS DE DISTRIBUIÇÃO*  (média $media%)');
     for (var st in _setores) {
       final lista = _caixas.where((c) => c.setor == st && i.caixas[c.id] != null).toList();
       if (lista.isEmpty) continue;
@@ -873,41 +960,41 @@ class _PumpingReportFormPageState extends ConsumerState<PumpingReportFormPage> {
         final e = _estadoCaixa(i.caixas[c.id]);
         final anot = _resumoCaixa(i.detalhesCaixas[c.id]);
         final m = anot.isNotEmpty ? ' ⚠' : (e['selo'] == 'crit' ? ' 🔴' : (e['selo'] == 'aten' ? ' 🟡' : ''));
-        L.add("• ${c.nome}: $val%$m");
-        if (anot.isNotEmpty) L.add("   ↳ $anot");
+        L.add('• ${c.nome}: $val%$m');
+        if (anot.isNotEmpty) L.add('   ↳ $anot');
       }
     }
     final semLeitura = _caixas.where((c) => i.caixas[c.id] == null).map((c) => c.nome).toList();
     if (semLeitura.isNotEmpty) L.add("_Sem leitura:_ ${semLeitura.join(', ')}");
 
-    L.add("");
-    L.add("*ÁGUAS DE FIM DE RAMPA*");
+    L.add('');
+    L.add('*ÁGUAS DE FIM DE RAMPA*');
     for (var r in _rampas) {
       final d = i.rampas[r.id];
       if (d == null) continue;
       final e = _estadoRampa(r, d.metragem, d);
       final m = e['selo'] == 'crit' ? ' 🔴' : (e['selo'] == 'aten' ? ' 🟡' : '');
       final metTxt = r.semMetragem ? 'sem medição' : (d.metragem == null ? 'sem leitura' : '${d.metragem} m');
-      L.add("• ${r.nome}: $metTxt$m");
+      L.add('• ${r.nome}: $metTxt$m');
       final bombaTxt = d.bomba == true ? 'operando' : (d.bomba == false ? '*PARADA*' : 'não informado');
       final limpTxt = d.limpeza == true ? '*NECESSÁRIA*' : (d.limpeza == false ? 'não' : 'não informado');
-      L.add("   ↳ Bomba: $bombaTxt  |  Limpeza: $limpTxt");
+      L.add('   ↳ Bomba: $bombaTxt  |  Limpeza: $limpTxt');
       if (d.ocorrencias.isNotEmpty) L.add("   ↳ Ocorrência: ${d.ocorrencias.join(', ')}");
     }
 
-    L.add("");
-    L.add("*PONTOS CRÍTICOS*");
+    L.add('');
+    L.add('*PONTOS CRÍTICOS*');
     if (crit.isNotEmpty) {
       for (var c in crit) {
         L.add("🔴 ${c['ponto']} — ${c['valor']} (${c['motivo']})");
       }
     } else {
-      L.add("Nenhum ponto fora dos limites.");
+      L.add('Nenhum ponto fora dos limites.');
     }
 
-    L.add("");
-    L.add("*OBSERVAÇÕES*");
-    L.add(i.observacoes.trim().isNotEmpty ? i.observacoes.trim() : "Sem observações registradas.");
+    L.add('');
+    L.add('*OBSERVAÇÕES*');
+    L.add(i.observacoes.trim().isNotEmpty ? i.observacoes.trim() : 'Sem observações registradas.');
 
     return L.join('\n');
   }
@@ -930,9 +1017,12 @@ class _PumpingReportFormPageState extends ConsumerState<PumpingReportFormPage> {
               children: [
                 Icon(Icons.water_drop, color: theme.agua, size: 20),
                 const SizedBox(width: 6),
-                Text(
-                  'Drenagem & Bombeamento',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: theme.isDark ? Colors.white : Colors.black87),
+                Flexible(
+                  child: Text(
+                    'Drenagem & Bombeamento',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: theme.isDark ? Colors.white : Colors.black87),
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
               ],
             ),
@@ -954,12 +1044,24 @@ class _PumpingReportFormPageState extends ConsumerState<PumpingReportFormPage> {
               onPressed: () {
                 setState(() {
                   if (_colaboradores.isNotEmpty) {
-                    _rascunho.equipe = [_colaboradores.first.id];
+                    _rascunho.equipe = _colaboradores.take(2).map((c) => c.id).toList();
                   }
-                  if (_caixas.isNotEmpty) {
-                    _rascunho.caixas[_caixas.first.id] = 45.0;
+                  for (var caixa in _caixas) {
+                    _rascunho.caixas[caixa.id] = 85.0;
+                    _rascunho.detalhesCaixas[caixa.id] = DetalheCaixa(
+                      abastec: true,
+                      vaz: false,
+                      obs: 'Nível normal, sem vazamentos.',
+                    );
                   }
-                  _rascunho.observacoes = 'Inspeção de rotina do sistema de bombeamento e caixas d\'água. Nível estabilizado.';
+                  for (var rampa in _rampas) {
+                    _rascunho.rampas[rampa.id] = DetalheRampa(
+                      metragem: rampa.semMetragem ? null : 15.0,
+                      bomba: true,
+                      limpeza: false,
+                    );
+                  }
+                  _rascunho.observacoes = 'Inspeção completa de rotina do sistema de bombeamento e caixas d\'água. Todos os equipamentos operacionais.';
                   _salvarEstado();
                 });
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -1216,7 +1318,7 @@ class _PumpingReportFormPageState extends ConsumerState<PumpingReportFormPage> {
                     foregroundColor: Colors.black,
                     minimumSize: const Size(double.infinity, 48),
                   ),
-                  onPressed: _encerrarTurno,
+                  onPressed: () async { await _encerrarTurno(); },
                   icon: const Icon(Icons.check_circle_outline),
                   label: const Text('Encerrar Turno e Gerar Relatório', style: TextStyle(fontWeight: FontWeight.bold)),
                 ),
@@ -1260,7 +1362,7 @@ class _PumpingReportFormPageState extends ConsumerState<PumpingReportFormPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(colab.nome, style: TextStyle(fontWeight: FontWeight.bold, color: textColor)),
-                  Text(colab.matricula.isNotEmpty ? "Matrícula ${colab.matricula}" : 'Sem matrícula', style: TextStyle(fontSize: 11, color: theme.isDark ? Colors.white54 : Colors.black54)),
+                  Text(colab.matricula.isNotEmpty ? 'Matrícula ${colab.matricula}' : 'Sem matrícula', style: TextStyle(fontSize: 11, color: theme.isDark ? Colors.white54 : Colors.black54)),
                 ],
               ),
             ),
@@ -1326,7 +1428,7 @@ class _PumpingReportFormPageState extends ConsumerState<PumpingReportFormPage> {
                 return ListTile(
                   dense: true,
                   title: Text(col.nome, style: TextStyle(fontSize: 13, color: textColor)),
-                  subtitle: Text(col.matricula.isNotEmpty ? "Matrícula: ${col.matricula}" : '', style: TextStyle(fontSize: 11, color: theme.agua)),
+                  subtitle: Text(col.matricula.isNotEmpty ? 'Matrícula: ${col.matricula}' : '', style: TextStyle(fontSize: 11, color: theme.agua)),
                   onTap: () {
                     setState(() {
                       _rascunho.equipe[idx] = col.id;
@@ -1829,7 +1931,7 @@ class _PumpingReportFormPageState extends ConsumerState<PumpingReportFormPage> {
     );
   }
 
-  void _encerrarTurno() {
+  Future<void> _encerrarTurno() async {
     final insp = InspecaoModel.fromJson(_rascunho.toJson());
     insp.id = 'insp_${DateTime.now().millisecondsSinceEpoch}';
     insp.criadoEm = DateTime.now().toIso8601String();
@@ -1841,6 +1943,27 @@ class _PumpingReportFormPageState extends ConsumerState<PumpingReportFormPage> {
     });
 
     _abrirModalRelatorio(insp);
+
+    // Mapear para ReportEntity e salvar no banco local para o SyncController sincronizar
+    try {
+      final txt = _gerarTextoRelatorio(insp);
+      final report = ReportEntity(
+        uuid: insp.id,
+        date: DateTime.now(),
+        shift: insp.turno,
+        type: 'Bombeamento',
+        observations: txt, // Todo o relatório vai em observações para flexibilidade
+        syncStatus: ReportSyncStatus.pending,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+
+      final repository = ref.read(reportRepositoryProvider);
+      await repository.saveReport(report);
+      ref.read(syncControllerProvider.notifier).triggerSync();
+    } catch (e) {
+      debugPrint('Erro ao salvar relatório de bombeamento no Firebase: $e');
+    }
   }
 
   void _abrirModalRelatorio(InspecaoModel insp) {
@@ -1873,7 +1996,10 @@ class _PumpingReportFormPageState extends ConsumerState<PumpingReportFormPage> {
                   const SizedBox(height: 12),
                   ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF25D366), foregroundColor: Colors.white),
-                    onPressed: () => _abrirWhatsApp(txt, _zapNumero),
+                    onPressed: () async {
+                      await _salvarESincronizarRelatorio(insp, txt);
+                      _abrirWhatsApp(txt, _zapNumero);
+                    },
                     icon: const Icon(Icons.send),
                     label: const Text('Enviar por WhatsApp', style: TextStyle(fontWeight: FontWeight.bold)),
                   ),

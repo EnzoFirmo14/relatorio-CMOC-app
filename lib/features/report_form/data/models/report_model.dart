@@ -63,9 +63,11 @@ class ReportModel {
   late String observations;
 
   @Enumerated(EnumType.name)
-  late ReportModelSyncStatus syncStatus;
+  ReportModelSyncStatus syncStatus = ReportModelSyncStatus.draft;
 
-  late DateTime createdAt;
+  String type = 'Equipagem';
+
+  DateTime createdAt = DateTime.now();
   late DateTime updatedAt;
 
   late List<EmbeddedCollaboratorModel> operators;
@@ -84,6 +86,7 @@ class ReportModel {
       ..fuelLevel = entity.fuelLevel
       ..availableMaterials = entity.availableMaterials
       ..observations = entity.observations
+      ..type = entity.type
       ..syncStatus = _entityStatusToModel(entity.syncStatus)
       ..createdAt = entity.createdAt
       ..updatedAt = entity.updatedAt
@@ -106,6 +109,7 @@ class ReportModel {
       fuelLevel: fuelLevel,
       availableMaterials: availableMaterials,
       observations: observations,
+      type: type,
       syncStatus: _modelStatusToEntity(syncStatus),
       createdAt: createdAt,
       updatedAt: updatedAt,
