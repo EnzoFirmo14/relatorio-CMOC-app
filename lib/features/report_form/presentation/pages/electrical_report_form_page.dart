@@ -9,11 +9,6 @@ import '../../../../core/services/firestore_cadastros_service.dart';
 import '../../../../core/providers/dev_mode_provider.dart';
 import '../../../../core/theme/theme_provider.dart';
 import '../../../sync/presentation/widgets/sync_status_badge.dart';
-import '../../domain/entities/report_entity.dart';
-import '../../domain/entities/collaborator_entity.dart';
-import '../../domain/entities/work_order_entity.dart';
-import '../../../sync/presentation/controllers/sync_controller.dart';
-import '../controllers/report_form_controller.dart';
 
 class ElectricalWorkOrder {
   String tipo;
@@ -667,7 +662,7 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
 
     final texto = _buildMensagemWhatsApp();
     _enviarEletricaReportFirestore();
-    final uri = Uri.parse("whatsapp://send?text=${Uri.encodeComponent(texto)}");
+    final uri = Uri.parse('whatsapp://send?text=${Uri.encodeComponent(texto)}');
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri);
     } else {
