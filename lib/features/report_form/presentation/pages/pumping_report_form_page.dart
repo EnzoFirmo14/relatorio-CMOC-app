@@ -1,16 +1,17 @@
 import 'dart:convert';
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:uuid/uuid.dart';
 import '../../../../core/services/firestore_cadastros_service.dart';
 import '../../../../core/providers/dev_mode_provider.dart';
 import '../../../sync/presentation/widgets/sync_status_badge.dart';
 import '../../domain/entities/report_entity.dart';
 import '../../domain/entities/collaborator_entity.dart';
 import '../../domain/entities/work_order_entity.dart';
+import '../../domain/entities/water_level_entity.dart';
+import '../../domain/entities/pump_entity.dart';
 import '../../../sync/presentation/controllers/sync_controller.dart';
 import '../controllers/report_form_controller.dart';
 
@@ -861,19 +862,37 @@ class _PumpingReportFormPageState extends ConsumerState<PumpingReportFormPage> {
       }).toList();
 
       final List<WorkOrderEntity> workOrders = [];
+      final List<WaterLevelEntity> waterLevels = [];
+      final List<PumpEntity> pumps = [];
 
       // Mapeia caixas de distribuição para leituras de Nível
       for (final c in _caixas) {
         final val = insp.caixas[c.id];
         final det = insp.detalhesCaixas[c.id];
         if (val != null || det != null) {
+          final obsText = [det?.obs, det?.ambosObs]
+            .where((e) => e != null && e.trim().isNotEmpty)
+            .join(' | ');
+
+          waterLevels.add(WaterLevelEntity(
+            pointId: c.id,
+            location: c.setor,
+            level: val != null ? '$val%' : '',
+            abastec: det?.abastec,
+            abastecMotivo: det?.abastecMotivo ?? '',
+            vaz: det?.vaz,
+            vazLocal: det?.vazLocal ?? '',
+            trend: '',
+            observations: obsText,
+          ));
+
           workOrders.add(WorkOrderEntity(
             id: 'cx_${c.id}',
             number: c.nome,
             location: '${c.setor} — ${c.nome}',
             maintenanceType: 'Nível',
             cause: 'Caixa',
-            activities: det != null ? (det.obs.isNotEmpty ? det.obs : 'Leitura de nível: ${val?.toInt() ?? 0}%') : 'Leitura de nível: ${val?.toInt() ?? 0}%',
+            activities: obsText.isNotEmpty ? obsText : 'Leitura de nível: ${val?.toInt() ?? 0}%',
             materialsUsed: const [],
             quantityMeters: val != null ? '${val.toInt()}' : '0',
             quantityPieces: '1',
@@ -889,6 +908,16 @@ class _PumpingReportFormPageState extends ConsumerState<PumpingReportFormPage> {
       for (final r in _rampas) {
         final det = insp.rampas[r.id];
         if (det != null) {
+          final ocorrenciasText = det.ocorrencias.join(', ');
+
+          pumps.add(PumpEntity(
+            name: r.nome,
+            metragem: det.metragem != null ? '${det.metragem} m' : '',
+            bombaStatus: det.bomba == true ? 'operando' : (det.bomba == false ? 'parada' : ''),
+            limpeza: det.limpeza == true ? 'necessária' : (det.limpeza == false ? 'não' : ''),
+            ocorrencias: ocorrenciasText,
+          ));
+
           final st = det.bomba == true ? 'Operando' : (det.bomba == false ? 'Parada' : 'Stand-by');
           workOrders.add(WorkOrderEntity(
             id: 'rmp_${r.id}',
@@ -896,7 +925,7 @@ class _PumpingReportFormPageState extends ConsumerState<PumpingReportFormPage> {
             location: r.nome,
             maintenanceType: 'Bomba',
             cause: r.nome,
-            activities: det.ocorrencias.isNotEmpty ? det.ocorrencias.join(', ') : 'Operação de rampa',
+            activities: ocorrenciasText.isNotEmpty ? ocorrenciasText : 'Operação de rampa',
             materialsUsed: const [],
             quantityMeters: det.metragem != null ? '${det.metragem}' : '0',
             quantityPieces: '1',
@@ -909,7 +938,7 @@ class _PumpingReportFormPageState extends ConsumerState<PumpingReportFormPage> {
       }
 
       final report = ReportEntity(
-        uuid: insp.id.startsWith('insp_') ? insp.id : 'insp_pumping_${DateTime.now().millisecondsSinceEpoch}',
+        uuid: insp.id,
         date: DateTime.tryParse(insp.data) ?? DateTime.now(),
         shift: insp.turno,
         team: insp.turma,
@@ -918,6 +947,8 @@ class _PumpingReportFormPageState extends ConsumerState<PumpingReportFormPage> {
         observations: txt,
         operators: equipeOps,
         workOrders: workOrders,
+        waterLevels: waterLevels,
+        pumps: pumps,
         syncStatus: ReportSyncStatus.pending,
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
@@ -937,10 +968,15 @@ class _PumpingReportFormPageState extends ConsumerState<PumpingReportFormPage> {
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     } else {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Se o WhatsApp não abrir, use o botão Copiar texto.')),
-        );
+      final webUri = Uri.parse("https://wa.me/${cleanPhone.isNotEmpty ? cleanPhone : ''}?text=${Uri.encodeComponent(text)}");
+      if (await canLaunchUrl(webUri)) {
+        await launchUrl(webUri, mode: LaunchMode.externalApplication);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Se o WhatsApp não abrir, use o botão Copiar texto.')),
+          );
+        }
       }
     }
   }
@@ -1938,140 +1974,7 @@ class _PumpingReportFormPageState extends ConsumerState<PumpingReportFormPage> {
   }
 
   String _gerarCodigoPumping() {
-    final rand = Random();
-    final code = rand.nextInt(900000) + 100000;
-    return 'BOM-$code';
-  }
-
-  Future<void> _enviarPumpingReportFirestore(InspecaoModel insp) async {
-    try {
-      final db = FirebaseFirestore.instance;
-
-      // Map operators
-      final operatorsList = insp.equipe.map((colabId) {
-        final colab = _colaboradores.firstWhere(
-          (c) => c.id == colabId,
-          orElse: () => ColaboradorModel(id: colabId, nome: colabId, matricula: colabId),
-        );
-        return {
-          'id': colab.id,
-          'registration': colab.matricula,
-          'name': colab.nome,
-        };
-      }).toList();
-
-      // Map caixas and rampas to workOrders, waterLevels, and pumps
-      final List<Map<String, dynamic>> workOrders = [];
-      final List<Map<String, dynamic>> waterLevels = [];
-      final List<Map<String, dynamic>> pumps = [];
-
-      insp.caixas.forEach((caixaId, value) {
-        final r = _caixas.firstWhere(
-          (c) => c.id == caixaId,
-          orElse: () => CaixaModel(id: caixaId, nome: caixaId, setor: ''),
-        );
-        final detalhe = insp.detalhesCaixas[caixaId];
-        
-        final observationsText = [detalhe?.obs, detalhe?.ambosObs]
-            .where((e) => e != null && e.trim().isNotEmpty)
-            .join(' | ');
-
-        waterLevels.add({
-          'pointId': caixaId,
-          'location': r.setor,
-          'level': value != null ? '$value%' : '',
-          'abastec': detalhe?.abastec,
-          'abastecMotivo': detalhe?.abastecMotivo ?? '',
-          'vaz': detalhe?.vaz,
-          'vazLocal': detalhe?.vazLocal ?? '',
-          'trend': '',
-          'observations': observationsText,
-        });
-
-        workOrders.add({
-          'id': caixaId,
-          'number': 'CX-${r.nome}',
-          'location': r.setor,
-          'maintenanceType': 'BOMBEAMENTO_CAIXA',
-          'cause': 'Inspeção de Caixa',
-          'activities': observationsText,
-          'level': value != null ? '$value%' : '',
-          'abastec': detalhe?.abastec,
-          'vaz': detalhe?.vaz,
-          'materialsUsed': <String>[],
-          'quantityMeters': '0',
-          'quantityPieces': '0',
-          'startTime': '',
-          'endTime': '',
-          'status': 'Normal',
-          'osStatus': detalhe != null && detalhe.avisouLider ? 'Avisou Líder' : 'Normal',
-          'photoPaths': <String>[],
-        });
-      });
-
-      insp.rampas.forEach((rampaId, detalhe) {
-        final r = _rampas.firstWhere(
-          (rm) => rm.id == rampaId,
-          orElse: () => RampaModel(id: rampaId, nome: rampaId),
-        );
-        
-        final ocorrenciasText = detalhe.ocorrencias.join(', ');
-
-        pumps.add({
-          'name': r.nome,
-          'metragem': detalhe.metragem != null ? '${detalhe.metragem} m' : '',
-          'bombaStatus': detalhe.bomba == true ? 'operando' : (detalhe.bomba == false ? 'parada' : ''),
-          'limpeza': detalhe.limpeza == true ? 'necessária' : (detalhe.limpeza == false ? 'não' : ''),
-          'ocorrencias': ocorrenciasText,
-        });
-
-        workOrders.add({
-          'id': rampaId,
-          'number': 'RP-${r.nome}',
-          'location': 'Rampa',
-          'maintenanceType': 'BOMBEAMENTO_RAMPA',
-          'cause': 'Inspeção de Rampa',
-          'activities': ocorrenciasText,
-          'metragem': detalhe.metragem,
-          'bombaStatus': detalhe.bomba,
-          'limpeza': detalhe.limpeza,
-          'materialsUsed': <String>[],
-          'quantityMeters': '0',
-          'quantityPieces': '0',
-          'startTime': '',
-          'endTime': '',
-          'status': 'Normal',
-          'osStatus': detalhe.avisouLider ? 'Avisou Líder' : 'Normal',
-          'photoPaths': <String>[],
-        });
-      });
-
-      // Assemble payload matching ReportEntity format
-      final payload = {
-        'uuid': insp.id,
-        'date': DateTime.tryParse(insp.data)?.toIso8601String() ?? DateTime.now().toIso8601String(),
-        'shift': insp.turno,
-        'team': insp.turma,
-        'globalEquipment': 'Bombeamento',
-        'globalLocation': 'Mina',
-        'fuelLevel': 0.0,
-        'availableMaterials': '',
-        'observations': insp.observacoes,
-        'syncStatus': 'synced',
-        'createdAt': DateTime.now().toIso8601String(),
-        'updatedAt': DateTime.now().toIso8601String(),
-        'operators': operatorsList,
-        'workOrders': workOrders,
-        'waterLevels': waterLevels,
-        'pumps': pumps,
-        'pumpingRawData': insp.toJson(),
-      };
-
-      await db.collection('pumping_reports').doc(insp.id).set(payload, SetOptions(merge: true));
-      debugPrint('Relatório de bombeamento enviado à coleção pumping_reports com sucesso: ${insp.id}');
-    } catch (e) {
-      debugPrint('Erro ao enviar relatório de bombeamento: $e');
-    }
+    return const Uuid().v4();
   }
 
   Future<void> _encerrarTurno() async {
@@ -2085,19 +1988,110 @@ class _PumpingReportFormPageState extends ConsumerState<PumpingReportFormPage> {
       _salvarEstado();
     });
 
-    await _enviarPumpingReportFirestore(insp);
-
     _abrirModalRelatorio(insp);
 
     // Mapear para ReportEntity e salvar no banco local para o SyncController sincronizar
     try {
+      final equipeOps = insp.equipe.map((id) {
+        final nome = _nomeColaborador(id);
+        return CollaboratorEntity(
+          id: id,
+          registration: id,
+          name: nome != '—' ? nome : id,
+        );
+      }).toList();
+
+      final List<WorkOrderEntity> workOrders = [];
+      final List<WaterLevelEntity> waterLevels = [];
+      final List<PumpEntity> pumps = [];
+
+      insp.caixas.forEach((caixaId, value) {
+        final r = _caixas.firstWhere(
+          (c) => c.id == caixaId,
+          orElse: () => CaixaModel(id: caixaId, nome: caixaId, setor: ''),
+        );
+        final detalhe = insp.detalhesCaixas[caixaId];
+        
+        final observationsText = [detalhe?.obs, detalhe?.ambosObs]
+            .where((e) => e != null && e.trim().isNotEmpty)
+            .join(' | ');
+
+        waterLevels.add(WaterLevelEntity(
+          pointId: caixaId,
+          location: r.setor,
+          level: value != null ? '$value%' : '',
+          abastec: detalhe?.abastec,
+          abastecMotivo: detalhe?.abastecMotivo ?? '',
+          vaz: detalhe?.vaz,
+          vazLocal: detalhe?.vazLocal ?? '',
+          trend: '',
+          observations: observationsText,
+        ));
+
+        workOrders.add(WorkOrderEntity(
+          id: caixaId,
+          number: 'CX-${r.nome}',
+          location: r.setor,
+          maintenanceType: 'BOMBEAMENTO_CAIXA',
+          cause: 'Inspeção de Caixa',
+          activities: observationsText,
+          materialsUsed: const [],
+          quantityMeters: '0',
+          quantityPieces: '0',
+          startTime: '',
+          endTime: '',
+          osStatus: detalhe != null && detalhe.avisouLider ? 'Avisou Líder' : 'Normal',
+          photoPaths: const [],
+        ));
+      });
+
+      insp.rampas.forEach((rampaId, detalhe) {
+        final r = _rampas.firstWhere(
+          (rm) => rm.id == rampaId,
+          orElse: () => RampaModel(id: rampaId, nome: rampaId),
+        );
+        
+        final ocorrenciasText = detalhe.ocorrencias.join(', ');
+
+        pumps.add(PumpEntity(
+          name: r.nome,
+          metragem: detalhe.metragem != null ? '${detalhe.metragem} m' : '',
+          bombaStatus: detalhe.bomba == true ? 'operando' : (detalhe.bomba == false ? 'parada' : ''),
+          limpeza: detalhe.limpeza == true ? 'necessária' : (detalhe.limpeza == false ? 'não' : ''),
+          ocorrencias: ocorrenciasText,
+        ));
+
+        workOrders.add(WorkOrderEntity(
+          id: rampaId,
+          number: 'RP-${r.nome}',
+          location: 'Rampa',
+          maintenanceType: 'BOMBEAMENTO_RAMPA',
+          cause: 'Inspeção de Rampa',
+          activities: ocorrenciasText,
+          materialsUsed: const [],
+          quantityMeters: '0',
+          quantityPieces: '0',
+          startTime: '',
+          endTime: '',
+          osStatus: detalhe.avisouLider ? 'Avisou Líder' : 'Normal',
+          photoPaths: const [],
+        ));
+      });
+
       final txt = _gerarTextoRelatorio(insp);
       final report = ReportEntity(
         uuid: insp.id,
-        date: DateTime.now(),
+        date: DateTime.tryParse(insp.data) ?? DateTime.now(),
         shift: insp.turno,
+        team: insp.turma,
         type: 'Bombeamento',
+        globalEquipment: 'Bombeamento',
+        globalLocation: 'Mina',
         observations: txt, // Todo o relatório vai em observações para flexibilidade
+        operators: equipeOps,
+        workOrders: workOrders,
+        waterLevels: waterLevels,
+        pumps: pumps,
         syncStatus: ReportSyncStatus.pending,
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),

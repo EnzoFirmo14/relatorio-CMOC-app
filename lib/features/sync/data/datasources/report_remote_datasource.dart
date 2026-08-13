@@ -5,7 +5,9 @@ import 'package:flutter/foundation.dart';
 import '../../../report_form/domain/entities/collaborator_entity.dart';
 import '../../../report_form/domain/entities/report_entity.dart';
 import '../../../report_form/domain/entities/work_order_entity.dart';
-
+import '../../../report_form/domain/entities/water_level_entity.dart';
+import '../../../report_form/domain/entities/pump_entity.dart';
+import '../../../report_form/domain/entities/material_entity.dart';
 abstract class IReportRemoteDataSource {
   Future<void> sendReport(ReportEntity report);
   Future<ReportEntity?> fetchRemoteReport(String uuid);
@@ -170,6 +172,34 @@ class ReportFirestoreDataSource implements IReportRemoteDataSource {
                 'endTime': os.endTime,
               })
           .toList(),
+      'waterLevels': report.waterLevels
+          .map((wl) => {
+                'pointId': wl.pointId,
+                'location': wl.location,
+                'level': wl.level,
+                'abastec': wl.abastec,
+                'abastecMotivo': wl.abastecMotivo,
+                'vaz': wl.vaz,
+                'vazLocal': wl.vazLocal,
+                'trend': wl.trend,
+                'observations': wl.observations,
+              })
+          .toList(),
+      'pumps': report.pumps
+          .map((p) => {
+                'name': p.name,
+                'metragem': p.metragem,
+                'bombaStatus': p.bombaStatus,
+                'limpeza': p.limpeza,
+                'ocorrencias': p.ocorrencias,
+              })
+          .toList(),
+      'materialsUsedList': report.materialsUsed
+          .map((m) => {
+                'name': m.name,
+                'quantity': m.quantity,
+              })
+          .toList(),
     };
   }
 
@@ -234,6 +264,43 @@ class ReportFirestoreDataSource implements IReportRemoteDataSource {
                 status: os['status']?.toString() ?? '',
                 osStatus: os['osStatus']?.toString() ?? '',
                 photoPaths: photosList,
+              );
+            }).toList()
+          : [],
+      waterLevels: (json['waterLevels'] is List)
+          ? (json['waterLevels'] as List).map((wl) {
+              if (wl is! Map) return const WaterLevelEntity(pointId: '', location: '', level: '');
+              return WaterLevelEntity(
+                pointId: wl['pointId']?.toString() ?? '',
+                location: wl['location']?.toString() ?? '',
+                level: wl['level']?.toString() ?? '',
+                abastec: wl['abastec'] as bool?,
+                abastecMotivo: wl['abastecMotivo']?.toString() ?? '',
+                vaz: wl['vaz'] as bool?,
+                vazLocal: wl['vazLocal']?.toString() ?? '',
+                trend: wl['trend']?.toString() ?? '',
+                observations: wl['observations']?.toString() ?? '',
+              );
+            }).toList()
+          : [],
+      pumps: (json['pumps'] is List)
+          ? (json['pumps'] as List).map((p) {
+              if (p is! Map) return const PumpEntity(name: '', metragem: '', bombaStatus: '', limpeza: '', ocorrencias: '');
+              return PumpEntity(
+                name: p['name']?.toString() ?? '',
+                metragem: p['metragem']?.toString() ?? '',
+                bombaStatus: p['bombaStatus']?.toString() ?? '',
+                limpeza: p['limpeza']?.toString() ?? '',
+                ocorrencias: p['ocorrencias']?.toString() ?? '',
+              );
+            }).toList()
+          : [],
+      materialsUsed: (json['materialsUsedList'] is List)
+          ? (json['materialsUsedList'] as List).map((m) {
+              if (m is! Map) return const MaterialEntity(name: '');
+              return MaterialEntity(
+                name: m['name']?.toString() ?? '',
+                quantity: m['quantity']?.toString() ?? '',
               );
             }).toList()
           : [],

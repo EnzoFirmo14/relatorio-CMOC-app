@@ -15,7 +15,7 @@ extension GetReportModelCollection on Isar {
 
 const ReportModelSchema = CollectionSchema(
   name: r'ReportModel',
-  id: 3139160268685868544,
+  id: 3139160268685868681,
   properties: {
     r'availableMaterials': PropertySchema(
       id: 0,
@@ -43,35 +43,56 @@ const ReportModelSchema = CollectionSchema(
       name: r'globalLocation',
       type: IsarType.string,
     ),
-    r'observations': PropertySchema(
+    r'materialsUsed': PropertySchema(
       id: 6,
+      name: r'materialsUsed',
+      type: IsarType.objectList,
+
+      target: r'EmbeddedMaterialModel',
+    ),
+    r'observations': PropertySchema(
+      id: 7,
       name: r'observations',
       type: IsarType.string,
     ),
     r'operators': PropertySchema(
-      id: 7,
+      id: 8,
       name: r'operators',
       type: IsarType.objectList,
 
       target: r'EmbeddedCollaboratorModel',
     ),
-    r'shift': PropertySchema(id: 8, name: r'shift', type: IsarType.string),
-    r'syncStatus': PropertySchema(
+    r'pumps': PropertySchema(
       id: 9,
+      name: r'pumps',
+      type: IsarType.objectList,
+
+      target: r'EmbeddedPumpModel',
+    ),
+    r'shift': PropertySchema(id: 10, name: r'shift', type: IsarType.string),
+    r'syncStatus': PropertySchema(
+      id: 11,
       name: r'syncStatus',
       type: IsarType.string,
       enumMap: _ReportModelsyncStatusEnumValueMap,
     ),
-    r'team': PropertySchema(id: 10, name: r'team', type: IsarType.string),
-    r'type': PropertySchema(id: 11, name: r'type', type: IsarType.string),
+    r'team': PropertySchema(id: 12, name: r'team', type: IsarType.string),
+    r'type': PropertySchema(id: 13, name: r'type', type: IsarType.string),
     r'updatedAt': PropertySchema(
-      id: 12,
+      id: 14,
       name: r'updatedAt',
       type: IsarType.dateTime,
     ),
-    r'uuid': PropertySchema(id: 13, name: r'uuid', type: IsarType.string),
+    r'uuid': PropertySchema(id: 15, name: r'uuid', type: IsarType.string),
+    r'waterLevels': PropertySchema(
+      id: 16,
+      name: r'waterLevels',
+      type: IsarType.objectList,
+
+      target: r'EmbeddedWaterLevelModel',
+    ),
     r'workOrders': PropertySchema(
-      id: 14,
+      id: 17,
       name: r'workOrders',
       type: IsarType.objectList,
 
@@ -86,7 +107,7 @@ const ReportModelSchema = CollectionSchema(
   idName: r'id',
   indexes: {
     r'uuid': IndexSchema(
-      id: 2134397340427725056,
+      id: 2134397340427724972,
       name: r'uuid',
       unique: true,
       replace: true,
@@ -103,6 +124,9 @@ const ReportModelSchema = CollectionSchema(
   embeddedSchemas: {
     r'EmbeddedCollaboratorModel': EmbeddedCollaboratorModelSchema,
     r'WorkOrderModel': WorkOrderModelSchema,
+    r'EmbeddedWaterLevelModel': EmbeddedWaterLevelModelSchema,
+    r'EmbeddedPumpModel': EmbeddedPumpModelSchema,
+    r'EmbeddedMaterialModel': EmbeddedMaterialModelSchema,
   },
 
   getId: _reportModelGetId,
@@ -120,6 +144,18 @@ int _reportModelEstimateSize(
   bytesCount += 3 + object.availableMaterials.length * 3;
   bytesCount += 3 + object.globalEquipment.length * 3;
   bytesCount += 3 + object.globalLocation.length * 3;
+  bytesCount += 3 + object.materialsUsed.length * 3;
+  {
+    final offsets = allOffsets[EmbeddedMaterialModel]!;
+    for (var i = 0; i < object.materialsUsed.length; i++) {
+      final value = object.materialsUsed[i];
+      bytesCount += EmbeddedMaterialModelSchema.estimateSize(
+        value,
+        offsets,
+        allOffsets,
+      );
+    }
+  }
   bytesCount += 3 + object.observations.length * 3;
   bytesCount += 3 + object.operators.length * 3;
   {
@@ -133,11 +169,35 @@ int _reportModelEstimateSize(
       );
     }
   }
+  bytesCount += 3 + object.pumps.length * 3;
+  {
+    final offsets = allOffsets[EmbeddedPumpModel]!;
+    for (var i = 0; i < object.pumps.length; i++) {
+      final value = object.pumps[i];
+      bytesCount += EmbeddedPumpModelSchema.estimateSize(
+        value,
+        offsets,
+        allOffsets,
+      );
+    }
+  }
   bytesCount += 3 + object.shift.length * 3;
   bytesCount += 3 + object.syncStatus.name.length * 3;
   bytesCount += 3 + object.team.length * 3;
   bytesCount += 3 + object.type.length * 3;
   bytesCount += 3 + object.uuid.length * 3;
+  bytesCount += 3 + object.waterLevels.length * 3;
+  {
+    final offsets = allOffsets[EmbeddedWaterLevelModel]!;
+    for (var i = 0; i < object.waterLevels.length; i++) {
+      final value = object.waterLevels[i];
+      bytesCount += EmbeddedWaterLevelModelSchema.estimateSize(
+        value,
+        offsets,
+        allOffsets,
+      );
+    }
+  }
   bytesCount += 3 + object.workOrders.length * 3;
   {
     final offsets = allOffsets[WorkOrderModel]!;
@@ -165,21 +225,39 @@ void _reportModelSerialize(
   writer.writeDouble(offsets[3], object.fuelLevel);
   writer.writeString(offsets[4], object.globalEquipment);
   writer.writeString(offsets[5], object.globalLocation);
-  writer.writeString(offsets[6], object.observations);
+  writer.writeObjectList<EmbeddedMaterialModel>(
+    offsets[6],
+    allOffsets,
+    EmbeddedMaterialModelSchema.serialize,
+    object.materialsUsed,
+  );
+  writer.writeString(offsets[7], object.observations);
   writer.writeObjectList<EmbeddedCollaboratorModel>(
-    offsets[7],
+    offsets[8],
     allOffsets,
     EmbeddedCollaboratorModelSchema.serialize,
     object.operators,
   );
-  writer.writeString(offsets[8], object.shift);
-  writer.writeString(offsets[9], object.syncStatus.name);
-  writer.writeString(offsets[10], object.team);
-  writer.writeString(offsets[11], object.type);
-  writer.writeDateTime(offsets[12], object.updatedAt);
-  writer.writeString(offsets[13], object.uuid);
+  writer.writeObjectList<EmbeddedPumpModel>(
+    offsets[9],
+    allOffsets,
+    EmbeddedPumpModelSchema.serialize,
+    object.pumps,
+  );
+  writer.writeString(offsets[10], object.shift);
+  writer.writeString(offsets[11], object.syncStatus.name);
+  writer.writeString(offsets[12], object.team);
+  writer.writeString(offsets[13], object.type);
+  writer.writeDateTime(offsets[14], object.updatedAt);
+  writer.writeString(offsets[15], object.uuid);
+  writer.writeObjectList<EmbeddedWaterLevelModel>(
+    offsets[16],
+    allOffsets,
+    EmbeddedWaterLevelModelSchema.serialize,
+    object.waterLevels,
+  );
   writer.writeObjectList<WorkOrderModel>(
-    offsets[14],
+    offsets[17],
     allOffsets,
     WorkOrderModelSchema.serialize,
     object.workOrders,
@@ -200,26 +278,52 @@ ReportModel _reportModelDeserialize(
   object.globalEquipment = reader.readString(offsets[4]);
   object.globalLocation = reader.readString(offsets[5]);
   object.id = id;
-  object.observations = reader.readString(offsets[6]);
+  object.materialsUsed =
+      reader.readObjectList<EmbeddedMaterialModel>(
+        offsets[6],
+        EmbeddedMaterialModelSchema.deserialize,
+        allOffsets,
+        EmbeddedMaterialModel(),
+      ) ??
+      [];
+  object.observations = reader.readString(offsets[7]);
   object.operators =
       reader.readObjectList<EmbeddedCollaboratorModel>(
-        offsets[7],
+        offsets[8],
         EmbeddedCollaboratorModelSchema.deserialize,
         allOffsets,
         EmbeddedCollaboratorModel(),
       ) ??
       [];
-  object.shift = reader.readString(offsets[8]);
+  object.pumps =
+      reader.readObjectList<EmbeddedPumpModel>(
+        offsets[9],
+        EmbeddedPumpModelSchema.deserialize,
+        allOffsets,
+        EmbeddedPumpModel(),
+      ) ??
+      [];
+  object.shift = reader.readString(offsets[10]);
   object.syncStatus =
-      _ReportModelsyncStatusValueEnumMap[reader.readStringOrNull(offsets[9])] ??
+      _ReportModelsyncStatusValueEnumMap[reader.readStringOrNull(
+        offsets[11],
+      )] ??
       ReportModelSyncStatus.draft;
-  object.team = reader.readString(offsets[10]);
-  object.type = reader.readString(offsets[11]);
-  object.updatedAt = reader.readDateTime(offsets[12]);
-  object.uuid = reader.readString(offsets[13]);
+  object.team = reader.readString(offsets[12]);
+  object.type = reader.readString(offsets[13]);
+  object.updatedAt = reader.readDateTime(offsets[14]);
+  object.uuid = reader.readString(offsets[15]);
+  object.waterLevels =
+      reader.readObjectList<EmbeddedWaterLevelModel>(
+        offsets[16],
+        EmbeddedWaterLevelModelSchema.deserialize,
+        allOffsets,
+        EmbeddedWaterLevelModel(),
+      ) ??
+      [];
   object.workOrders =
       reader.readObjectList<WorkOrderModel>(
-        offsets[14],
+        offsets[17],
         WorkOrderModelSchema.deserialize,
         allOffsets,
         WorkOrderModel(),
@@ -248,8 +352,17 @@ P _reportModelDeserializeProp<P>(
     case 5:
       return (reader.readString(offset)) as P;
     case 6:
-      return (reader.readString(offset)) as P;
+      return (reader.readObjectList<EmbeddedMaterialModel>(
+                offset,
+                EmbeddedMaterialModelSchema.deserialize,
+                allOffsets,
+                EmbeddedMaterialModel(),
+              ) ??
+              [])
+          as P;
     case 7:
+      return (reader.readString(offset)) as P;
+    case 8:
       return (reader.readObjectList<EmbeddedCollaboratorModel>(
                 offset,
                 EmbeddedCollaboratorModelSchema.deserialize,
@@ -258,23 +371,41 @@ P _reportModelDeserializeProp<P>(
               ) ??
               [])
           as P;
-    case 8:
-      return (reader.readString(offset)) as P;
     case 9:
+      return (reader.readObjectList<EmbeddedPumpModel>(
+                offset,
+                EmbeddedPumpModelSchema.deserialize,
+                allOffsets,
+                EmbeddedPumpModel(),
+              ) ??
+              [])
+          as P;
+    case 10:
+      return (reader.readString(offset)) as P;
+    case 11:
       return (_ReportModelsyncStatusValueEnumMap[reader.readStringOrNull(
                 offset,
               )] ??
               ReportModelSyncStatus.draft)
           as P;
-    case 10:
-      return (reader.readString(offset)) as P;
-    case 11:
-      return (reader.readString(offset)) as P;
     case 12:
-      return (reader.readDateTime(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 13:
       return (reader.readString(offset)) as P;
     case 14:
+      return (reader.readDateTime(offset)) as P;
+    case 15:
+      return (reader.readString(offset)) as P;
+    case 16:
+      return (reader.readObjectList<EmbeddedWaterLevelModel>(
+                offset,
+                EmbeddedWaterLevelModelSchema.deserialize,
+                allOffsets,
+                EmbeddedWaterLevelModel(),
+              ) ??
+              [])
+          as P;
+    case 17:
       return (reader.readObjectList<WorkOrderModel>(
                 offset,
                 WorkOrderModelSchema.deserialize,
@@ -1184,6 +1315,59 @@ extension ReportModelQueryFilter
   }
 
   QueryBuilder<ReportModel, ReportModel, QAfterFilterCondition>
+  materialsUsedLengthEqualTo(int length) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'materialsUsed', length, true, length, true);
+    });
+  }
+
+  QueryBuilder<ReportModel, ReportModel, QAfterFilterCondition>
+  materialsUsedIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'materialsUsed', 0, true, 0, true);
+    });
+  }
+
+  QueryBuilder<ReportModel, ReportModel, QAfterFilterCondition>
+  materialsUsedIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'materialsUsed', 0, false, 999999, true);
+    });
+  }
+
+  QueryBuilder<ReportModel, ReportModel, QAfterFilterCondition>
+  materialsUsedLengthLessThan(int length, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'materialsUsed', 0, true, length, include);
+    });
+  }
+
+  QueryBuilder<ReportModel, ReportModel, QAfterFilterCondition>
+  materialsUsedLengthGreaterThan(int length, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'materialsUsed', length, include, 999999, true);
+    });
+  }
+
+  QueryBuilder<ReportModel, ReportModel, QAfterFilterCondition>
+  materialsUsedLengthBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'materialsUsed',
+        lower,
+        includeLower,
+        upper,
+        includeUpper,
+      );
+    });
+  }
+
+  QueryBuilder<ReportModel, ReportModel, QAfterFilterCondition>
   observationsEqualTo(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
@@ -1369,6 +1553,58 @@ extension ReportModelQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.listLength(
         r'operators',
+        lower,
+        includeLower,
+        upper,
+        includeUpper,
+      );
+    });
+  }
+
+  QueryBuilder<ReportModel, ReportModel, QAfterFilterCondition>
+  pumpsLengthEqualTo(int length) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'pumps', length, true, length, true);
+    });
+  }
+
+  QueryBuilder<ReportModel, ReportModel, QAfterFilterCondition> pumpsIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'pumps', 0, true, 0, true);
+    });
+  }
+
+  QueryBuilder<ReportModel, ReportModel, QAfterFilterCondition>
+  pumpsIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'pumps', 0, false, 999999, true);
+    });
+  }
+
+  QueryBuilder<ReportModel, ReportModel, QAfterFilterCondition>
+  pumpsLengthLessThan(int length, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'pumps', 0, true, length, include);
+    });
+  }
+
+  QueryBuilder<ReportModel, ReportModel, QAfterFilterCondition>
+  pumpsLengthGreaterThan(int length, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'pumps', length, include, 999999, true);
+    });
+  }
+
+  QueryBuilder<ReportModel, ReportModel, QAfterFilterCondition>
+  pumpsLengthBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'pumps',
         lower,
         includeLower,
         upper,
@@ -2163,6 +2399,59 @@ extension ReportModelQueryFilter
   }
 
   QueryBuilder<ReportModel, ReportModel, QAfterFilterCondition>
+  waterLevelsLengthEqualTo(int length) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'waterLevels', length, true, length, true);
+    });
+  }
+
+  QueryBuilder<ReportModel, ReportModel, QAfterFilterCondition>
+  waterLevelsIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'waterLevels', 0, true, 0, true);
+    });
+  }
+
+  QueryBuilder<ReportModel, ReportModel, QAfterFilterCondition>
+  waterLevelsIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'waterLevels', 0, false, 999999, true);
+    });
+  }
+
+  QueryBuilder<ReportModel, ReportModel, QAfterFilterCondition>
+  waterLevelsLengthLessThan(int length, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'waterLevels', 0, true, length, include);
+    });
+  }
+
+  QueryBuilder<ReportModel, ReportModel, QAfterFilterCondition>
+  waterLevelsLengthGreaterThan(int length, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(r'waterLevels', length, include, 999999, true);
+    });
+  }
+
+  QueryBuilder<ReportModel, ReportModel, QAfterFilterCondition>
+  waterLevelsLengthBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'waterLevels',
+        lower,
+        includeLower,
+        upper,
+        includeUpper,
+      );
+    });
+  }
+
+  QueryBuilder<ReportModel, ReportModel, QAfterFilterCondition>
   workOrdersLengthEqualTo(int length) {
     return QueryBuilder.apply(this, (query) {
       return query.listLength(r'workOrders', length, true, length, true);
@@ -2219,9 +2508,31 @@ extension ReportModelQueryFilter
 extension ReportModelQueryObject
     on QueryBuilder<ReportModel, ReportModel, QFilterCondition> {
   QueryBuilder<ReportModel, ReportModel, QAfterFilterCondition>
+  materialsUsedElement(FilterQuery<EmbeddedMaterialModel> q) {
+    return QueryBuilder.apply(this, (query) {
+      return query.object(q, r'materialsUsed');
+    });
+  }
+
+  QueryBuilder<ReportModel, ReportModel, QAfterFilterCondition>
   operatorsElement(FilterQuery<EmbeddedCollaboratorModel> q) {
     return QueryBuilder.apply(this, (query) {
       return query.object(q, r'operators');
+    });
+  }
+
+  QueryBuilder<ReportModel, ReportModel, QAfterFilterCondition> pumpsElement(
+    FilterQuery<EmbeddedPumpModel> q,
+  ) {
+    return QueryBuilder.apply(this, (query) {
+      return query.object(q, r'pumps');
+    });
+  }
+
+  QueryBuilder<ReportModel, ReportModel, QAfterFilterCondition>
+  waterLevelsElement(FilterQuery<EmbeddedWaterLevelModel> q) {
+    return QueryBuilder.apply(this, (query) {
+      return query.object(q, r'waterLevels');
     });
   }
 
@@ -2729,6 +3040,13 @@ extension ReportModelQueryProperty
     });
   }
 
+  QueryBuilder<ReportModel, List<EmbeddedMaterialModel>, QQueryOperations>
+  materialsUsedProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'materialsUsed');
+    });
+  }
+
   QueryBuilder<ReportModel, String, QQueryOperations> observationsProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'observations');
@@ -2739,6 +3057,13 @@ extension ReportModelQueryProperty
   operatorsProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'operators');
+    });
+  }
+
+  QueryBuilder<ReportModel, List<EmbeddedPumpModel>, QQueryOperations>
+  pumpsProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'pumps');
     });
   }
 
@@ -2779,6 +3104,13 @@ extension ReportModelQueryProperty
     });
   }
 
+  QueryBuilder<ReportModel, List<EmbeddedWaterLevelModel>, QQueryOperations>
+  waterLevelsProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'waterLevels');
+    });
+  }
+
   QueryBuilder<ReportModel, List<WorkOrderModel>, QQueryOperations>
   workOrdersProperty() {
     return QueryBuilder.apply(this, (query) {
@@ -2796,7 +3128,7 @@ extension ReportModelQueryProperty
 
 const EmbeddedCollaboratorModelSchema = Schema(
   name: r'EmbeddedCollaboratorModel',
-  id: 5824696152780669952,
+  id: 5824696152780669677,
   properties: {
     r'id': PropertySchema(id: 0, name: r'id', type: IsarType.string),
     r'isCustom': PropertySchema(id: 1, name: r'isCustom', type: IsarType.bool),
@@ -3437,5 +3769,2743 @@ extension EmbeddedCollaboratorModelQueryObject
         QueryBuilder<
           EmbeddedCollaboratorModel,
           EmbeddedCollaboratorModel,
+          QFilterCondition
+        > {}
+
+// coverage:ignore-file
+// ignore_for_file: duplicate_ignore, non_constant_identifier_names, constant_identifier_names, invalid_use_of_protected_member, unnecessary_cast, prefer_const_constructors, lines_longer_than_80_chars, require_trailing_commas, inference_failure_on_function_invocation, unnecessary_parenthesis, unnecessary_raw_strings, unnecessary_null_checks, join_return_with_assignment, prefer_final_locals, avoid_js_rounded_ints, avoid_positional_boolean_parameters, always_specify_types
+
+const EmbeddedWaterLevelModelSchema = Schema(
+  name: r'EmbeddedWaterLevelModel',
+  id: -6071283468990835390,
+  properties: {
+    r'abastec': PropertySchema(id: 0, name: r'abastec', type: IsarType.bool),
+    r'abastecMotivo': PropertySchema(
+      id: 1,
+      name: r'abastecMotivo',
+      type: IsarType.string,
+    ),
+    r'level': PropertySchema(id: 2, name: r'level', type: IsarType.string),
+    r'location': PropertySchema(
+      id: 3,
+      name: r'location',
+      type: IsarType.string,
+    ),
+    r'observations': PropertySchema(
+      id: 4,
+      name: r'observations',
+      type: IsarType.string,
+    ),
+    r'pointId': PropertySchema(id: 5, name: r'pointId', type: IsarType.string),
+    r'trend': PropertySchema(id: 6, name: r'trend', type: IsarType.string),
+    r'vaz': PropertySchema(id: 7, name: r'vaz', type: IsarType.bool),
+    r'vazLocal': PropertySchema(
+      id: 8,
+      name: r'vazLocal',
+      type: IsarType.string,
+    ),
+  },
+
+  estimateSize: _embeddedWaterLevelModelEstimateSize,
+  serialize: _embeddedWaterLevelModelSerialize,
+  deserialize: _embeddedWaterLevelModelDeserialize,
+  deserializeProp: _embeddedWaterLevelModelDeserializeProp,
+);
+
+int _embeddedWaterLevelModelEstimateSize(
+  EmbeddedWaterLevelModel object,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  var bytesCount = offsets.last;
+  bytesCount += 3 + object.abastecMotivo.length * 3;
+  bytesCount += 3 + object.level.length * 3;
+  bytesCount += 3 + object.location.length * 3;
+  bytesCount += 3 + object.observations.length * 3;
+  bytesCount += 3 + object.pointId.length * 3;
+  bytesCount += 3 + object.trend.length * 3;
+  bytesCount += 3 + object.vazLocal.length * 3;
+  return bytesCount;
+}
+
+void _embeddedWaterLevelModelSerialize(
+  EmbeddedWaterLevelModel object,
+  IsarWriter writer,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  writer.writeBool(offsets[0], object.abastec);
+  writer.writeString(offsets[1], object.abastecMotivo);
+  writer.writeString(offsets[2], object.level);
+  writer.writeString(offsets[3], object.location);
+  writer.writeString(offsets[4], object.observations);
+  writer.writeString(offsets[5], object.pointId);
+  writer.writeString(offsets[6], object.trend);
+  writer.writeBool(offsets[7], object.vaz);
+  writer.writeString(offsets[8], object.vazLocal);
+}
+
+EmbeddedWaterLevelModel _embeddedWaterLevelModelDeserialize(
+  Id id,
+  IsarReader reader,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  final object = EmbeddedWaterLevelModel();
+  object.abastec = reader.readBoolOrNull(offsets[0]);
+  object.abastecMotivo = reader.readString(offsets[1]);
+  object.level = reader.readString(offsets[2]);
+  object.location = reader.readString(offsets[3]);
+  object.observations = reader.readString(offsets[4]);
+  object.pointId = reader.readString(offsets[5]);
+  object.trend = reader.readString(offsets[6]);
+  object.vaz = reader.readBoolOrNull(offsets[7]);
+  object.vazLocal = reader.readString(offsets[8]);
+  return object;
+}
+
+P _embeddedWaterLevelModelDeserializeProp<P>(
+  IsarReader reader,
+  int propertyId,
+  int offset,
+  Map<Type, List<int>> allOffsets,
+) {
+  switch (propertyId) {
+    case 0:
+      return (reader.readBoolOrNull(offset)) as P;
+    case 1:
+      return (reader.readString(offset)) as P;
+    case 2:
+      return (reader.readString(offset)) as P;
+    case 3:
+      return (reader.readString(offset)) as P;
+    case 4:
+      return (reader.readString(offset)) as P;
+    case 5:
+      return (reader.readString(offset)) as P;
+    case 6:
+      return (reader.readString(offset)) as P;
+    case 7:
+      return (reader.readBoolOrNull(offset)) as P;
+    case 8:
+      return (reader.readString(offset)) as P;
+    default:
+      throw IsarError('Unknown property with id $propertyId');
+  }
+}
+
+extension EmbeddedWaterLevelModelQueryFilter
+    on
+        QueryBuilder<
+          EmbeddedWaterLevelModel,
+          EmbeddedWaterLevelModel,
+          QFilterCondition
+        > {
+  QueryBuilder<
+    EmbeddedWaterLevelModel,
+    EmbeddedWaterLevelModel,
+    QAfterFilterCondition
+  >
+  abastecIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'abastec'),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedWaterLevelModel,
+    EmbeddedWaterLevelModel,
+    QAfterFilterCondition
+  >
+  abastecIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'abastec'),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedWaterLevelModel,
+    EmbeddedWaterLevelModel,
+    QAfterFilterCondition
+  >
+  abastecEqualTo(bool? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'abastec', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedWaterLevelModel,
+    EmbeddedWaterLevelModel,
+    QAfterFilterCondition
+  >
+  abastecMotivoEqualTo(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'abastecMotivo',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedWaterLevelModel,
+    EmbeddedWaterLevelModel,
+    QAfterFilterCondition
+  >
+  abastecMotivoGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'abastecMotivo',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedWaterLevelModel,
+    EmbeddedWaterLevelModel,
+    QAfterFilterCondition
+  >
+  abastecMotivoLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'abastecMotivo',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedWaterLevelModel,
+    EmbeddedWaterLevelModel,
+    QAfterFilterCondition
+  >
+  abastecMotivoBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'abastecMotivo',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedWaterLevelModel,
+    EmbeddedWaterLevelModel,
+    QAfterFilterCondition
+  >
+  abastecMotivoStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'abastecMotivo',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedWaterLevelModel,
+    EmbeddedWaterLevelModel,
+    QAfterFilterCondition
+  >
+  abastecMotivoEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'abastecMotivo',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedWaterLevelModel,
+    EmbeddedWaterLevelModel,
+    QAfterFilterCondition
+  >
+  abastecMotivoContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'abastecMotivo',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedWaterLevelModel,
+    EmbeddedWaterLevelModel,
+    QAfterFilterCondition
+  >
+  abastecMotivoMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'abastecMotivo',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedWaterLevelModel,
+    EmbeddedWaterLevelModel,
+    QAfterFilterCondition
+  >
+  abastecMotivoIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'abastecMotivo', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedWaterLevelModel,
+    EmbeddedWaterLevelModel,
+    QAfterFilterCondition
+  >
+  abastecMotivoIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'abastecMotivo', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedWaterLevelModel,
+    EmbeddedWaterLevelModel,
+    QAfterFilterCondition
+  >
+  levelEqualTo(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'level',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedWaterLevelModel,
+    EmbeddedWaterLevelModel,
+    QAfterFilterCondition
+  >
+  levelGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'level',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedWaterLevelModel,
+    EmbeddedWaterLevelModel,
+    QAfterFilterCondition
+  >
+  levelLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'level',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedWaterLevelModel,
+    EmbeddedWaterLevelModel,
+    QAfterFilterCondition
+  >
+  levelBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'level',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedWaterLevelModel,
+    EmbeddedWaterLevelModel,
+    QAfterFilterCondition
+  >
+  levelStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'level',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedWaterLevelModel,
+    EmbeddedWaterLevelModel,
+    QAfterFilterCondition
+  >
+  levelEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'level',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedWaterLevelModel,
+    EmbeddedWaterLevelModel,
+    QAfterFilterCondition
+  >
+  levelContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'level',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedWaterLevelModel,
+    EmbeddedWaterLevelModel,
+    QAfterFilterCondition
+  >
+  levelMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'level',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedWaterLevelModel,
+    EmbeddedWaterLevelModel,
+    QAfterFilterCondition
+  >
+  levelIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'level', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedWaterLevelModel,
+    EmbeddedWaterLevelModel,
+    QAfterFilterCondition
+  >
+  levelIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'level', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedWaterLevelModel,
+    EmbeddedWaterLevelModel,
+    QAfterFilterCondition
+  >
+  locationEqualTo(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'location',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedWaterLevelModel,
+    EmbeddedWaterLevelModel,
+    QAfterFilterCondition
+  >
+  locationGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'location',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedWaterLevelModel,
+    EmbeddedWaterLevelModel,
+    QAfterFilterCondition
+  >
+  locationLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'location',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedWaterLevelModel,
+    EmbeddedWaterLevelModel,
+    QAfterFilterCondition
+  >
+  locationBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'location',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedWaterLevelModel,
+    EmbeddedWaterLevelModel,
+    QAfterFilterCondition
+  >
+  locationStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'location',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedWaterLevelModel,
+    EmbeddedWaterLevelModel,
+    QAfterFilterCondition
+  >
+  locationEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'location',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedWaterLevelModel,
+    EmbeddedWaterLevelModel,
+    QAfterFilterCondition
+  >
+  locationContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'location',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedWaterLevelModel,
+    EmbeddedWaterLevelModel,
+    QAfterFilterCondition
+  >
+  locationMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'location',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedWaterLevelModel,
+    EmbeddedWaterLevelModel,
+    QAfterFilterCondition
+  >
+  locationIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'location', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedWaterLevelModel,
+    EmbeddedWaterLevelModel,
+    QAfterFilterCondition
+  >
+  locationIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'location', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedWaterLevelModel,
+    EmbeddedWaterLevelModel,
+    QAfterFilterCondition
+  >
+  observationsEqualTo(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'observations',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedWaterLevelModel,
+    EmbeddedWaterLevelModel,
+    QAfterFilterCondition
+  >
+  observationsGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'observations',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedWaterLevelModel,
+    EmbeddedWaterLevelModel,
+    QAfterFilterCondition
+  >
+  observationsLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'observations',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedWaterLevelModel,
+    EmbeddedWaterLevelModel,
+    QAfterFilterCondition
+  >
+  observationsBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'observations',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedWaterLevelModel,
+    EmbeddedWaterLevelModel,
+    QAfterFilterCondition
+  >
+  observationsStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'observations',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedWaterLevelModel,
+    EmbeddedWaterLevelModel,
+    QAfterFilterCondition
+  >
+  observationsEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'observations',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedWaterLevelModel,
+    EmbeddedWaterLevelModel,
+    QAfterFilterCondition
+  >
+  observationsContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'observations',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedWaterLevelModel,
+    EmbeddedWaterLevelModel,
+    QAfterFilterCondition
+  >
+  observationsMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'observations',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedWaterLevelModel,
+    EmbeddedWaterLevelModel,
+    QAfterFilterCondition
+  >
+  observationsIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'observations', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedWaterLevelModel,
+    EmbeddedWaterLevelModel,
+    QAfterFilterCondition
+  >
+  observationsIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'observations', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedWaterLevelModel,
+    EmbeddedWaterLevelModel,
+    QAfterFilterCondition
+  >
+  pointIdEqualTo(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'pointId',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedWaterLevelModel,
+    EmbeddedWaterLevelModel,
+    QAfterFilterCondition
+  >
+  pointIdGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'pointId',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedWaterLevelModel,
+    EmbeddedWaterLevelModel,
+    QAfterFilterCondition
+  >
+  pointIdLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'pointId',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedWaterLevelModel,
+    EmbeddedWaterLevelModel,
+    QAfterFilterCondition
+  >
+  pointIdBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'pointId',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedWaterLevelModel,
+    EmbeddedWaterLevelModel,
+    QAfterFilterCondition
+  >
+  pointIdStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'pointId',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedWaterLevelModel,
+    EmbeddedWaterLevelModel,
+    QAfterFilterCondition
+  >
+  pointIdEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'pointId',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedWaterLevelModel,
+    EmbeddedWaterLevelModel,
+    QAfterFilterCondition
+  >
+  pointIdContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'pointId',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedWaterLevelModel,
+    EmbeddedWaterLevelModel,
+    QAfterFilterCondition
+  >
+  pointIdMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'pointId',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedWaterLevelModel,
+    EmbeddedWaterLevelModel,
+    QAfterFilterCondition
+  >
+  pointIdIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'pointId', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedWaterLevelModel,
+    EmbeddedWaterLevelModel,
+    QAfterFilterCondition
+  >
+  pointIdIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'pointId', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedWaterLevelModel,
+    EmbeddedWaterLevelModel,
+    QAfterFilterCondition
+  >
+  trendEqualTo(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'trend',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedWaterLevelModel,
+    EmbeddedWaterLevelModel,
+    QAfterFilterCondition
+  >
+  trendGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'trend',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedWaterLevelModel,
+    EmbeddedWaterLevelModel,
+    QAfterFilterCondition
+  >
+  trendLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'trend',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedWaterLevelModel,
+    EmbeddedWaterLevelModel,
+    QAfterFilterCondition
+  >
+  trendBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'trend',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedWaterLevelModel,
+    EmbeddedWaterLevelModel,
+    QAfterFilterCondition
+  >
+  trendStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'trend',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedWaterLevelModel,
+    EmbeddedWaterLevelModel,
+    QAfterFilterCondition
+  >
+  trendEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'trend',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedWaterLevelModel,
+    EmbeddedWaterLevelModel,
+    QAfterFilterCondition
+  >
+  trendContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'trend',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedWaterLevelModel,
+    EmbeddedWaterLevelModel,
+    QAfterFilterCondition
+  >
+  trendMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'trend',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedWaterLevelModel,
+    EmbeddedWaterLevelModel,
+    QAfterFilterCondition
+  >
+  trendIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'trend', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedWaterLevelModel,
+    EmbeddedWaterLevelModel,
+    QAfterFilterCondition
+  >
+  trendIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'trend', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedWaterLevelModel,
+    EmbeddedWaterLevelModel,
+    QAfterFilterCondition
+  >
+  vazIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'vaz'),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedWaterLevelModel,
+    EmbeddedWaterLevelModel,
+    QAfterFilterCondition
+  >
+  vazIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'vaz'),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedWaterLevelModel,
+    EmbeddedWaterLevelModel,
+    QAfterFilterCondition
+  >
+  vazEqualTo(bool? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'vaz', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedWaterLevelModel,
+    EmbeddedWaterLevelModel,
+    QAfterFilterCondition
+  >
+  vazLocalEqualTo(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'vazLocal',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedWaterLevelModel,
+    EmbeddedWaterLevelModel,
+    QAfterFilterCondition
+  >
+  vazLocalGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'vazLocal',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedWaterLevelModel,
+    EmbeddedWaterLevelModel,
+    QAfterFilterCondition
+  >
+  vazLocalLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'vazLocal',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedWaterLevelModel,
+    EmbeddedWaterLevelModel,
+    QAfterFilterCondition
+  >
+  vazLocalBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'vazLocal',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedWaterLevelModel,
+    EmbeddedWaterLevelModel,
+    QAfterFilterCondition
+  >
+  vazLocalStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'vazLocal',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedWaterLevelModel,
+    EmbeddedWaterLevelModel,
+    QAfterFilterCondition
+  >
+  vazLocalEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'vazLocal',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedWaterLevelModel,
+    EmbeddedWaterLevelModel,
+    QAfterFilterCondition
+  >
+  vazLocalContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'vazLocal',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedWaterLevelModel,
+    EmbeddedWaterLevelModel,
+    QAfterFilterCondition
+  >
+  vazLocalMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'vazLocal',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedWaterLevelModel,
+    EmbeddedWaterLevelModel,
+    QAfterFilterCondition
+  >
+  vazLocalIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'vazLocal', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedWaterLevelModel,
+    EmbeddedWaterLevelModel,
+    QAfterFilterCondition
+  >
+  vazLocalIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'vazLocal', value: ''),
+      );
+    });
+  }
+}
+
+extension EmbeddedWaterLevelModelQueryObject
+    on
+        QueryBuilder<
+          EmbeddedWaterLevelModel,
+          EmbeddedWaterLevelModel,
+          QFilterCondition
+        > {}
+
+// coverage:ignore-file
+// ignore_for_file: duplicate_ignore, non_constant_identifier_names, constant_identifier_names, invalid_use_of_protected_member, unnecessary_cast, prefer_const_constructors, lines_longer_than_80_chars, require_trailing_commas, inference_failure_on_function_invocation, unnecessary_parenthesis, unnecessary_raw_strings, unnecessary_null_checks, join_return_with_assignment, prefer_final_locals, avoid_js_rounded_ints, avoid_positional_boolean_parameters, always_specify_types
+
+const EmbeddedPumpModelSchema = Schema(
+  name: r'EmbeddedPumpModel',
+  id: -4923110960953418521,
+  properties: {
+    r'bombaStatus': PropertySchema(
+      id: 0,
+      name: r'bombaStatus',
+      type: IsarType.string,
+    ),
+    r'limpeza': PropertySchema(id: 1, name: r'limpeza', type: IsarType.string),
+    r'metragem': PropertySchema(
+      id: 2,
+      name: r'metragem',
+      type: IsarType.string,
+    ),
+    r'name': PropertySchema(id: 3, name: r'name', type: IsarType.string),
+    r'ocorrencias': PropertySchema(
+      id: 4,
+      name: r'ocorrencias',
+      type: IsarType.string,
+    ),
+  },
+
+  estimateSize: _embeddedPumpModelEstimateSize,
+  serialize: _embeddedPumpModelSerialize,
+  deserialize: _embeddedPumpModelDeserialize,
+  deserializeProp: _embeddedPumpModelDeserializeProp,
+);
+
+int _embeddedPumpModelEstimateSize(
+  EmbeddedPumpModel object,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  var bytesCount = offsets.last;
+  bytesCount += 3 + object.bombaStatus.length * 3;
+  bytesCount += 3 + object.limpeza.length * 3;
+  bytesCount += 3 + object.metragem.length * 3;
+  bytesCount += 3 + object.name.length * 3;
+  bytesCount += 3 + object.ocorrencias.length * 3;
+  return bytesCount;
+}
+
+void _embeddedPumpModelSerialize(
+  EmbeddedPumpModel object,
+  IsarWriter writer,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  writer.writeString(offsets[0], object.bombaStatus);
+  writer.writeString(offsets[1], object.limpeza);
+  writer.writeString(offsets[2], object.metragem);
+  writer.writeString(offsets[3], object.name);
+  writer.writeString(offsets[4], object.ocorrencias);
+}
+
+EmbeddedPumpModel _embeddedPumpModelDeserialize(
+  Id id,
+  IsarReader reader,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  final object = EmbeddedPumpModel();
+  object.bombaStatus = reader.readString(offsets[0]);
+  object.limpeza = reader.readString(offsets[1]);
+  object.metragem = reader.readString(offsets[2]);
+  object.name = reader.readString(offsets[3]);
+  object.ocorrencias = reader.readString(offsets[4]);
+  return object;
+}
+
+P _embeddedPumpModelDeserializeProp<P>(
+  IsarReader reader,
+  int propertyId,
+  int offset,
+  Map<Type, List<int>> allOffsets,
+) {
+  switch (propertyId) {
+    case 0:
+      return (reader.readString(offset)) as P;
+    case 1:
+      return (reader.readString(offset)) as P;
+    case 2:
+      return (reader.readString(offset)) as P;
+    case 3:
+      return (reader.readString(offset)) as P;
+    case 4:
+      return (reader.readString(offset)) as P;
+    default:
+      throw IsarError('Unknown property with id $propertyId');
+  }
+}
+
+extension EmbeddedPumpModelQueryFilter
+    on QueryBuilder<EmbeddedPumpModel, EmbeddedPumpModel, QFilterCondition> {
+  QueryBuilder<EmbeddedPumpModel, EmbeddedPumpModel, QAfterFilterCondition>
+  bombaStatusEqualTo(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'bombaStatus',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<EmbeddedPumpModel, EmbeddedPumpModel, QAfterFilterCondition>
+  bombaStatusGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'bombaStatus',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<EmbeddedPumpModel, EmbeddedPumpModel, QAfterFilterCondition>
+  bombaStatusLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'bombaStatus',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<EmbeddedPumpModel, EmbeddedPumpModel, QAfterFilterCondition>
+  bombaStatusBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'bombaStatus',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<EmbeddedPumpModel, EmbeddedPumpModel, QAfterFilterCondition>
+  bombaStatusStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'bombaStatus',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<EmbeddedPumpModel, EmbeddedPumpModel, QAfterFilterCondition>
+  bombaStatusEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'bombaStatus',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<EmbeddedPumpModel, EmbeddedPumpModel, QAfterFilterCondition>
+  bombaStatusContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'bombaStatus',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<EmbeddedPumpModel, EmbeddedPumpModel, QAfterFilterCondition>
+  bombaStatusMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'bombaStatus',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<EmbeddedPumpModel, EmbeddedPumpModel, QAfterFilterCondition>
+  bombaStatusIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'bombaStatus', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<EmbeddedPumpModel, EmbeddedPumpModel, QAfterFilterCondition>
+  bombaStatusIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'bombaStatus', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<EmbeddedPumpModel, EmbeddedPumpModel, QAfterFilterCondition>
+  limpezaEqualTo(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'limpeza',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<EmbeddedPumpModel, EmbeddedPumpModel, QAfterFilterCondition>
+  limpezaGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'limpeza',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<EmbeddedPumpModel, EmbeddedPumpModel, QAfterFilterCondition>
+  limpezaLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'limpeza',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<EmbeddedPumpModel, EmbeddedPumpModel, QAfterFilterCondition>
+  limpezaBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'limpeza',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<EmbeddedPumpModel, EmbeddedPumpModel, QAfterFilterCondition>
+  limpezaStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'limpeza',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<EmbeddedPumpModel, EmbeddedPumpModel, QAfterFilterCondition>
+  limpezaEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'limpeza',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<EmbeddedPumpModel, EmbeddedPumpModel, QAfterFilterCondition>
+  limpezaContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'limpeza',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<EmbeddedPumpModel, EmbeddedPumpModel, QAfterFilterCondition>
+  limpezaMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'limpeza',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<EmbeddedPumpModel, EmbeddedPumpModel, QAfterFilterCondition>
+  limpezaIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'limpeza', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<EmbeddedPumpModel, EmbeddedPumpModel, QAfterFilterCondition>
+  limpezaIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'limpeza', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<EmbeddedPumpModel, EmbeddedPumpModel, QAfterFilterCondition>
+  metragemEqualTo(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'metragem',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<EmbeddedPumpModel, EmbeddedPumpModel, QAfterFilterCondition>
+  metragemGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'metragem',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<EmbeddedPumpModel, EmbeddedPumpModel, QAfterFilterCondition>
+  metragemLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'metragem',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<EmbeddedPumpModel, EmbeddedPumpModel, QAfterFilterCondition>
+  metragemBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'metragem',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<EmbeddedPumpModel, EmbeddedPumpModel, QAfterFilterCondition>
+  metragemStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'metragem',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<EmbeddedPumpModel, EmbeddedPumpModel, QAfterFilterCondition>
+  metragemEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'metragem',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<EmbeddedPumpModel, EmbeddedPumpModel, QAfterFilterCondition>
+  metragemContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'metragem',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<EmbeddedPumpModel, EmbeddedPumpModel, QAfterFilterCondition>
+  metragemMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'metragem',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<EmbeddedPumpModel, EmbeddedPumpModel, QAfterFilterCondition>
+  metragemIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'metragem', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<EmbeddedPumpModel, EmbeddedPumpModel, QAfterFilterCondition>
+  metragemIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'metragem', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<EmbeddedPumpModel, EmbeddedPumpModel, QAfterFilterCondition>
+  nameEqualTo(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'name',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<EmbeddedPumpModel, EmbeddedPumpModel, QAfterFilterCondition>
+  nameGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'name',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<EmbeddedPumpModel, EmbeddedPumpModel, QAfterFilterCondition>
+  nameLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'name',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<EmbeddedPumpModel, EmbeddedPumpModel, QAfterFilterCondition>
+  nameBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'name',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<EmbeddedPumpModel, EmbeddedPumpModel, QAfterFilterCondition>
+  nameStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'name',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<EmbeddedPumpModel, EmbeddedPumpModel, QAfterFilterCondition>
+  nameEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'name',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<EmbeddedPumpModel, EmbeddedPumpModel, QAfterFilterCondition>
+  nameContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'name',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<EmbeddedPumpModel, EmbeddedPumpModel, QAfterFilterCondition>
+  nameMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'name',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<EmbeddedPumpModel, EmbeddedPumpModel, QAfterFilterCondition>
+  nameIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'name', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<EmbeddedPumpModel, EmbeddedPumpModel, QAfterFilterCondition>
+  nameIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'name', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<EmbeddedPumpModel, EmbeddedPumpModel, QAfterFilterCondition>
+  ocorrenciasEqualTo(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'ocorrencias',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<EmbeddedPumpModel, EmbeddedPumpModel, QAfterFilterCondition>
+  ocorrenciasGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'ocorrencias',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<EmbeddedPumpModel, EmbeddedPumpModel, QAfterFilterCondition>
+  ocorrenciasLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'ocorrencias',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<EmbeddedPumpModel, EmbeddedPumpModel, QAfterFilterCondition>
+  ocorrenciasBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'ocorrencias',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<EmbeddedPumpModel, EmbeddedPumpModel, QAfterFilterCondition>
+  ocorrenciasStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'ocorrencias',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<EmbeddedPumpModel, EmbeddedPumpModel, QAfterFilterCondition>
+  ocorrenciasEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'ocorrencias',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<EmbeddedPumpModel, EmbeddedPumpModel, QAfterFilterCondition>
+  ocorrenciasContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'ocorrencias',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<EmbeddedPumpModel, EmbeddedPumpModel, QAfterFilterCondition>
+  ocorrenciasMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'ocorrencias',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<EmbeddedPumpModel, EmbeddedPumpModel, QAfterFilterCondition>
+  ocorrenciasIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'ocorrencias', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<EmbeddedPumpModel, EmbeddedPumpModel, QAfterFilterCondition>
+  ocorrenciasIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'ocorrencias', value: ''),
+      );
+    });
+  }
+}
+
+extension EmbeddedPumpModelQueryObject
+    on QueryBuilder<EmbeddedPumpModel, EmbeddedPumpModel, QFilterCondition> {}
+
+// coverage:ignore-file
+// ignore_for_file: duplicate_ignore, non_constant_identifier_names, constant_identifier_names, invalid_use_of_protected_member, unnecessary_cast, prefer_const_constructors, lines_longer_than_80_chars, require_trailing_commas, inference_failure_on_function_invocation, unnecessary_parenthesis, unnecessary_raw_strings, unnecessary_null_checks, join_return_with_assignment, prefer_final_locals, avoid_js_rounded_ints, avoid_positional_boolean_parameters, always_specify_types
+
+const EmbeddedMaterialModelSchema = Schema(
+  name: r'EmbeddedMaterialModel',
+  id: 1372148525290602262,
+  properties: {
+    r'name': PropertySchema(id: 0, name: r'name', type: IsarType.string),
+    r'quantity': PropertySchema(
+      id: 1,
+      name: r'quantity',
+      type: IsarType.string,
+    ),
+  },
+
+  estimateSize: _embeddedMaterialModelEstimateSize,
+  serialize: _embeddedMaterialModelSerialize,
+  deserialize: _embeddedMaterialModelDeserialize,
+  deserializeProp: _embeddedMaterialModelDeserializeProp,
+);
+
+int _embeddedMaterialModelEstimateSize(
+  EmbeddedMaterialModel object,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  var bytesCount = offsets.last;
+  bytesCount += 3 + object.name.length * 3;
+  bytesCount += 3 + object.quantity.length * 3;
+  return bytesCount;
+}
+
+void _embeddedMaterialModelSerialize(
+  EmbeddedMaterialModel object,
+  IsarWriter writer,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  writer.writeString(offsets[0], object.name);
+  writer.writeString(offsets[1], object.quantity);
+}
+
+EmbeddedMaterialModel _embeddedMaterialModelDeserialize(
+  Id id,
+  IsarReader reader,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  final object = EmbeddedMaterialModel();
+  object.name = reader.readString(offsets[0]);
+  object.quantity = reader.readString(offsets[1]);
+  return object;
+}
+
+P _embeddedMaterialModelDeserializeProp<P>(
+  IsarReader reader,
+  int propertyId,
+  int offset,
+  Map<Type, List<int>> allOffsets,
+) {
+  switch (propertyId) {
+    case 0:
+      return (reader.readString(offset)) as P;
+    case 1:
+      return (reader.readString(offset)) as P;
+    default:
+      throw IsarError('Unknown property with id $propertyId');
+  }
+}
+
+extension EmbeddedMaterialModelQueryFilter
+    on
+        QueryBuilder<
+          EmbeddedMaterialModel,
+          EmbeddedMaterialModel,
+          QFilterCondition
+        > {
+  QueryBuilder<
+    EmbeddedMaterialModel,
+    EmbeddedMaterialModel,
+    QAfterFilterCondition
+  >
+  nameEqualTo(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'name',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedMaterialModel,
+    EmbeddedMaterialModel,
+    QAfterFilterCondition
+  >
+  nameGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'name',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedMaterialModel,
+    EmbeddedMaterialModel,
+    QAfterFilterCondition
+  >
+  nameLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'name',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedMaterialModel,
+    EmbeddedMaterialModel,
+    QAfterFilterCondition
+  >
+  nameBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'name',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedMaterialModel,
+    EmbeddedMaterialModel,
+    QAfterFilterCondition
+  >
+  nameStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'name',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedMaterialModel,
+    EmbeddedMaterialModel,
+    QAfterFilterCondition
+  >
+  nameEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'name',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedMaterialModel,
+    EmbeddedMaterialModel,
+    QAfterFilterCondition
+  >
+  nameContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'name',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedMaterialModel,
+    EmbeddedMaterialModel,
+    QAfterFilterCondition
+  >
+  nameMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'name',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedMaterialModel,
+    EmbeddedMaterialModel,
+    QAfterFilterCondition
+  >
+  nameIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'name', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedMaterialModel,
+    EmbeddedMaterialModel,
+    QAfterFilterCondition
+  >
+  nameIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'name', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedMaterialModel,
+    EmbeddedMaterialModel,
+    QAfterFilterCondition
+  >
+  quantityEqualTo(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'quantity',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedMaterialModel,
+    EmbeddedMaterialModel,
+    QAfterFilterCondition
+  >
+  quantityGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'quantity',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedMaterialModel,
+    EmbeddedMaterialModel,
+    QAfterFilterCondition
+  >
+  quantityLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'quantity',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedMaterialModel,
+    EmbeddedMaterialModel,
+    QAfterFilterCondition
+  >
+  quantityBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'quantity',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedMaterialModel,
+    EmbeddedMaterialModel,
+    QAfterFilterCondition
+  >
+  quantityStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'quantity',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedMaterialModel,
+    EmbeddedMaterialModel,
+    QAfterFilterCondition
+  >
+  quantityEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'quantity',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedMaterialModel,
+    EmbeddedMaterialModel,
+    QAfterFilterCondition
+  >
+  quantityContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'quantity',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedMaterialModel,
+    EmbeddedMaterialModel,
+    QAfterFilterCondition
+  >
+  quantityMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'quantity',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedMaterialModel,
+    EmbeddedMaterialModel,
+    QAfterFilterCondition
+  >
+  quantityIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'quantity', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<
+    EmbeddedMaterialModel,
+    EmbeddedMaterialModel,
+    QAfterFilterCondition
+  >
+  quantityIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'quantity', value: ''),
+      );
+    });
+  }
+}
+
+extension EmbeddedMaterialModelQueryObject
+    on
+        QueryBuilder<
+          EmbeddedMaterialModel,
+          EmbeddedMaterialModel,
           QFilterCondition
         > {}

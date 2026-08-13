@@ -3,11 +3,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../../core/services/firestore_cadastros_service.dart';
 import '../../../../core/providers/dev_mode_provider.dart';
 import '../../../../core/theme/theme_provider.dart';
 import '../../../sync/presentation/widgets/sync_status_badge.dart';
+import 'package:uuid/uuid.dart';
+import '../../domain/entities/report_entity.dart';
+import '../../domain/entities/collaborator_entity.dart';
+import '../../domain/entities/work_order_entity.dart';
+import '../../../sync/presentation/controllers/sync_controller.dart';
+import '../controllers/report_form_controller.dart';
 
 class MechanicalReportFormPage extends ConsumerStatefulWidget {
   const MechanicalReportFormPage({super.key});
@@ -483,77 +488,83 @@ class _MechanicalReportFormPageState extends ConsumerState<MechanicalReportFormP
     return sb.toString();
   }
 
-  Future<void> _enviarMecanicaReportFirestore() async {
+  Future<void> _salvarESincronizarRelatorio() async {
     try {
-      final db = FirebaseFirestore.instance;
+      final repository = ref.read(reportRepositoryProvider);
+      final syncController = ref.read(syncControllerProvider.notifier);
       
-      final snap = await db.collection('mechanical_reports').get();
-      final count = snap.docs.length + 1;
-      final reportId = 'MC${count.toString().padLeft(7, '0')}';
+      final reportId = const Uuid().v4();
 
       // Map operators
-      final operatorsList = _executantes.map((e) => {
-        'id': e['mat'] ?? '',
-        'registration': e['mat'] ?? '',
-        'name': e['nome'] ?? '',
-      }).toList();
+      final operatorsList = _executantes.map((e) => CollaboratorEntity(
+        id: e['mat'] ?? const Uuid().v4(),
+        registration: e['mat'] ?? '',
+        name: e['nome'] ?? '',
+      )).toList();
 
       // Map work orders
-      final List<Map<String, dynamic>> workOrders = _ordensManutencao.map((om) {
+      final List<WorkOrderEntity> workOrders = _ordensManutencao.map((om) {
         final concluida = om['concluida'] ?? false;
-        return {
-          'id': om['id'] ?? '',
-          'number': (om['omNumCtrl'] as TextEditingController).text,
-          'location': om['local'] ?? '',
-          'maintenanceType': 'MECANICA',
-          'cause': '',
-          'activities': (om['descCtrl'] as TextEditingController).text,
-          'materialsUsed': <String>[],
-          'quantityMeters': '0',
-          'quantityPieces': '0',
-          'startTime': (om['startCtrl'] as TextEditingController).text,
-          'endTime': (om['endCtrl'] as TextEditingController).text,
-          'status': om['status'] ?? 'ABERTA',
-          'osStatus': concluida ? 'CONCLUÍDA' : 'ABERTA',
-          'photoPaths': List<String>.from(om['fotos'] ?? []),
-        };
+        return WorkOrderEntity(
+          id: om['id'] ?? const Uuid().v4(),
+          number: (om['omNumCtrl'] as TextEditingController).text,
+          location: om['local'] ?? '',
+          maintenanceType: 'MECANICA',
+          cause: '',
+          activities: (om['descCtrl'] as TextEditingController).text,
+          materialsUsed: const [],
+          quantityMeters: '0',
+          quantityPieces: '0',
+          startTime: (om['startCtrl'] as TextEditingController).text,
+          endTime: (om['endCtrl'] as TextEditingController).text,
+          status: om['status'] ?? 'ABERTA',
+          osStatus: concluida ? 'CONCLUÍDA' : 'ABERTA',
+          photoPaths: List<String>.from(om['fotos'] ?? []),
+        );
       }).toList();
 
-      final payload = {
-        'uuid': reportId,
-        'date': _selectedDate.toIso8601String(),
-        'shift': _turno,
-        'team': _turma,
-        'globalEquipment': 'Manutenção Mecânica',
-        'globalLocation': '',
-        'fuelLevel': 0.0,
-        'availableMaterials': '',
-        'observations': _observacoesCtrl.text,
-        'syncStatus': 'synced',
-        'createdAt': DateTime.now().toIso8601String(),
-        'updatedAt': DateTime.now().toIso8601String(),
-        'operators': operatorsList,
-        'workOrders': workOrders,
-      };
+      final report = ReportEntity(
+        uuid: reportId,
+        date: _selectedDate,
+        shift: _turno,
+        team: _turma,
+        type: 'Mecânica',
+        globalEquipment: 'Manutenção Mecânica',
+        globalLocation: '',
+        fuelLevel: 0.0,
+        availableMaterials: '',
+        observations: _observacoesCtrl.text,
+        syncStatus: ReportSyncStatus.pending,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+        operators: operatorsList,
+        workOrders: workOrders,
+      );
 
-      await db.collection('mechanical_reports').doc(reportId).set(payload, SetOptions(merge: true));
-      debugPrint('Relatório mecânico enviado à coleção mechanical_reports com sucesso: $reportId');
+      await repository.saveReport(report);
+      await syncController.triggerSync();
+      debugPrint('Relatório mecânico salvo e enfileirado para sincronização com sucesso: $reportId');
     } catch (e) {
-      debugPrint('Erro ao enviar relatório mecânico: $e');
+      debugPrint('Erro ao salvar relatório mecânico: $e');
     }
   }
 
   void _enviarWhatsApp() async {
     final texto = _gerarTextoRelatorio();
-    _enviarMecanicaReportFirestore();
+    await _salvarESincronizarRelatorio();
     final uri = Uri.parse('whatsapp://send?text=${Uri.encodeComponent(texto)}');
     if (await canLaunchUrl(uri)) {
-      await launchUrl(uri);
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
     } else {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Não foi possível abrir o WhatsApp.')),
-        );
+      final webUri = Uri.parse('https://wa.me/?text=${Uri.encodeComponent(texto)}');
+      if (await canLaunchUrl(webUri)) {
+        await launchUrl(webUri, mode: LaunchMode.externalApplication);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Não foi possível abrir o WhatsApp.')),
+          );
+        }
       }
     }
   }
