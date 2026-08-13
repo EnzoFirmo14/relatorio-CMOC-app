@@ -1974,7 +1974,7 @@ class _PumpingReportFormPageState extends ConsumerState<PumpingReportFormPage> {
   }
 
   String _gerarCodigoPumping() {
-    return const Uuid().v4();
+    return 'BOM-${const Uuid().v4().substring(0, 8).toUpperCase()}';
   }
 
   Future<void> _encerrarTurno() async {

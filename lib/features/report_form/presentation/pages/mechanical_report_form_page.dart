@@ -493,7 +493,7 @@ class _MechanicalReportFormPageState extends ConsumerState<MechanicalReportFormP
       final repository = ref.read(reportRepositoryProvider);
       final syncController = ref.read(syncControllerProvider.notifier);
       
-      final reportId = const Uuid().v4();
+      final reportId = 'MC-${const Uuid().v4().substring(0, 8).toUpperCase()}';
 
       // Map operators
       final operatorsList = _executantes.map((e) => CollaboratorEntity(
