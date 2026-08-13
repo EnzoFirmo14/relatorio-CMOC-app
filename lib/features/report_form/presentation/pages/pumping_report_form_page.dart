@@ -251,23 +251,27 @@ class InspecaoModel {
 
   factory InspecaoModel.fromJson(Map<String, dynamic> json) {
     final cxMap = <String, double?>{};
-    if (json['caixas'] != null) {
-      (json['caixas'] as Map<String, dynamic>).forEach((k, v) {
-        cxMap[k] = v == null ? null : (v as num).toDouble();
+    if (json['caixas'] != null && json['caixas'] is Map) {
+      Map<String, dynamic>.from(json['caixas'] as Map).forEach((k, v) {
+        cxMap[k.toString()] = v == null ? null : (v as num).toDouble();
       });
     }
 
     final detCxMap = <String, DetalheCaixa>{};
-    if (json['detalhesCaixas'] != null) {
-      (json['detalhesCaixas'] as Map<String, dynamic>).forEach((k, v) {
-        detCxMap[k] = DetalheCaixa.fromJson(v as Map<String, dynamic>);
+    if (json['detalhesCaixas'] != null && json['detalhesCaixas'] is Map) {
+      Map<String, dynamic>.from(json['detalhesCaixas'] as Map).forEach((k, v) {
+        if (v is Map) {
+          detCxMap[k.toString()] = DetalheCaixa.fromJson(Map<String, dynamic>.from(v));
+        }
       });
     }
 
     final rampaMap = <String, DetalheRampa>{};
-    if (json['rampas'] != null) {
-      (json['rampas'] as Map<String, dynamic>).forEach((k, v) {
-        rampaMap[k] = DetalheRampa.fromJson(v as Map<String, dynamic>);
+    if (json['rampas'] != null && json['rampas'] is Map) {
+      Map<String, dynamic>.from(json['rampas'] as Map).forEach((k, v) {
+        if (v is Map) {
+          rampaMap[k.toString()] = DetalheRampa.fromJson(Map<String, dynamic>.from(v));
+        }
       });
     }
 
@@ -1972,9 +1976,9 @@ class _PumpingReportFormPageState extends ConsumerState<PumpingReportFormPage> {
           'maintenanceType': 'BOMBEAMENTO_CAIXA',
           'cause': 'Inspeção de Caixa',
           'activities': 'Nível: ${value != null ? '$value%' : 'N/A'}. Obs: ${detalhe?.obs ?? ''}. Ambos: ${detalhe?.ambosObs ?? ''}',
-          'materialsUsed': '',
-          'quantityMeters': 0.0,
-          'quantityPieces': 0,
+          'materialsUsed': <String>[],
+          'quantityMeters': '0',
+          'quantityPieces': '0',
           'startTime': '',
           'endTime': '',
           'status': 'Vaz: ${detalhe?.vaz == true ? 'Sim' : 'Não'} | Abast: ${detalhe?.abastec == true ? 'Sim' : 'Não'}',
@@ -1995,9 +1999,9 @@ class _PumpingReportFormPageState extends ConsumerState<PumpingReportFormPage> {
           'maintenanceType': 'BOMBEAMENTO_RAMPA',
           'cause': 'Inspeção de Rampa',
           'activities': 'Metragem: ${detalhe.metragem != null ? '${detalhe.metragem}m' : 'N/A'}. Limpeza: ${detalhe.limpeza == true ? 'Precisa' : 'Não precisa'}. Ocorrências: ${detalhe.ocorrencias.join(', ')}',
-          'materialsUsed': '',
-          'quantityMeters': 0.0,
-          'quantityPieces': 0,
+          'materialsUsed': <String>[],
+          'quantityMeters': '0',
+          'quantityPieces': '0',
           'startTime': '',
           'endTime': '',
           'status': 'Bomba: ${detalhe.bomba == true ? 'Sim' : 'Não'}',
@@ -2043,7 +2047,7 @@ class _PumpingReportFormPageState extends ConsumerState<PumpingReportFormPage> {
       _salvarEstado();
     });
 
-    _enviarPumpingReportFirestore(insp);
+    await _enviarPumpingReportFirestore(insp);
 
     _abrirModalRelatorio(insp);
 
@@ -2063,7 +2067,7 @@ class _PumpingReportFormPageState extends ConsumerState<PumpingReportFormPage> {
 
       final repository = ref.read(reportRepositoryProvider);
       await repository.saveReport(report);
-      ref.read(syncControllerProvider.notifier).triggerSync();
+      await ref.read(syncControllerProvider.notifier).triggerSync();
     } catch (e) {
       debugPrint('Erro ao salvar relatório de bombeamento no Firebase: $e');
     }

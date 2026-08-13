@@ -168,7 +168,8 @@ class SyncController extends StateNotifier<SyncState> {
           );
         } catch (_) {}
       }
-    } catch (_) {
+    } catch (e, stack) {
+      debugPrint('[SyncController] Erro no triggerSync: $e\n$stack');
       state = state.copyWith(isSyncing: false, hasError: true);
     }
   }

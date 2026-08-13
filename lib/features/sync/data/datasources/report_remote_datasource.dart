@@ -175,50 +175,68 @@ class ReportFirestoreDataSource implements IReportRemoteDataSource {
 
   ReportEntity _jsonToReport(Map<String, dynamic> json) {
     return ReportEntity(
-      uuid: json['uuid'] as String? ?? json['id'] as String? ?? '',
-      date: DateTime.tryParse(json['date'] as String? ?? '') ?? DateTime.now(),
-      shift: json['shift'] as String? ?? '',
-      team: json['team'] as String? ?? '',
-      globalEquipment: json['globalEquipment'] as String? ?? '',
-      globalLocation: json['globalLocation'] as String? ?? json['location'] as String? ?? '',
+      uuid: json['uuid']?.toString() ?? json['id']?.toString() ?? '',
+      date: DateTime.tryParse(json['date']?.toString() ?? '') ?? DateTime.now(),
+      shift: json['shift']?.toString() ?? '',
+      team: json['team']?.toString() ?? '',
+      globalEquipment: json['globalEquipment']?.toString() ?? '',
+      globalLocation: json['globalLocation']?.toString() ?? json['location']?.toString() ?? '',
       fuelLevel: (json['fuelLevel'] as num?)?.toDouble() ?? 0.0,
-      availableMaterials: json['availableMaterials'] as String? ?? '',
-      observations: json['observations'] as String? ?? '',
-      type: json['type'] as String? ?? 'Equipagem',
+      availableMaterials: json['availableMaterials']?.toString() ?? '',
+      observations: json['observations']?.toString() ?? '',
+      type: json['type']?.toString() ?? 'Equipagem',
       syncStatus: ReportSyncStatus.synced,
       createdAt:
-          DateTime.tryParse(json['createdAt'] as String? ?? '') ?? DateTime.now(),
+          DateTime.tryParse(json['createdAt']?.toString() ?? '') ?? DateTime.now(),
       updatedAt:
-          DateTime.tryParse(json['updatedAt'] as String? ?? '') ?? DateTime.now(),
-      operators: (json['operators'] as List<dynamic>?)
-              ?.map((o) => CollaboratorEntity(
-                    id: o['id'] as String? ?? '',
-                    registration: o['registration'] as String? ?? '',
-                    name: o['name'] as String? ?? '',
-                  ))
-              .toList() ??
-          [],
-      workOrders: (json['workOrders'] as List<dynamic>?)
-              ?.map((os) => WorkOrderEntity(
-                    id: os['id'] as String? ?? '',
-                    number: os['number'] as String? ?? '',
-                    location: os['location'] as String? ?? '',
-                    maintenanceType: os['maintenanceType'] as String? ?? '',
-                    cause: os['cause'] as String? ?? '',
-                    activities: os['activities'] as String? ?? '',
-                    materialsUsed:
-                        List<String>.from(os['materialsUsed'] as List? ?? []),
-                    quantityMeters: os['quantityMeters'] as String? ?? '',
-                    quantityPieces: os['quantityPieces'] as String? ?? '',
-                    startTime: os['startTime'] as String? ?? '',
-                    endTime: os['endTime'] as String? ?? '',
-                    status: os['status'] as String? ?? '',
-                    osStatus: os['osStatus'] as String? ?? '',
-                    photoPaths:
-                        List<String>.from(os['photoPaths'] as List? ?? []),
-                  ))
-              .toList() ??
-          [],
+          DateTime.tryParse(json['updatedAt']?.toString() ?? '') ?? DateTime.now(),
+      operators: (json['operators'] is List)
+          ? (json['operators'] as List).map((o) {
+              if (o is! Map) return const CollaboratorEntity(id: '', registration: '', name: '');
+              return CollaboratorEntity(
+                id: o['id']?.toString() ?? '',
+                registration: o['registration']?.toString() ?? '',
+                name: o['name']?.toString() ?? '',
+              );
+            }).toList()
+          : [],
+      workOrders: (json['workOrders'] is List)
+          ? (json['workOrders'] as List).map((os) {
+              if (os is! Map) return const WorkOrderEntity(id: '', number: '', location: '');
+              final rawMats = os['materialsUsed'];
+              List<String> matsList = [];
+              if (rawMats is List) {
+                matsList = rawMats.map((m) => m?.toString() ?? '').toList();
+              } else if (rawMats is String && rawMats.isNotEmpty) {
+                matsList = [rawMats];
+              }
+
+              final rawPhotos = os['photoPaths'];
+              List<String> photosList = [];
+              if (rawPhotos is List) {
+                photosList = rawPhotos.map((p) => p?.toString() ?? '').toList();
+              } else if (rawPhotos is String && rawPhotos.isNotEmpty) {
+                photosList = [rawPhotos];
+              }
+
+              return WorkOrderEntity(
+                id: os['id']?.toString() ?? '',
+                number: os['number']?.toString() ?? '',
+                location: os['location']?.toString() ?? '',
+                maintenanceType: os['maintenanceType']?.toString() ?? '',
+                cause: os['cause']?.toString() ?? '',
+                activities: os['activities']?.toString() ?? '',
+                materialsUsed: matsList,
+                quantityMeters: os['quantityMeters']?.toString() ?? '',
+                quantityPieces: os['quantityPieces']?.toString() ?? '',
+                startTime: os['startTime']?.toString() ?? '',
+                endTime: os['endTime']?.toString() ?? '',
+                status: os['status']?.toString() ?? '',
+                osStatus: os['osStatus']?.toString() ?? '',
+                photoPaths: photosList,
+              );
+            }).toList()
+          : [],
     );
   }
 }

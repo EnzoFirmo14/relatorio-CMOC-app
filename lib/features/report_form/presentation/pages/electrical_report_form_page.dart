@@ -285,39 +285,46 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
     final draftJson = prefs.getString('relatorio_eletrica_v1');
     if (draftJson != null) {
       try {
-        final data = jsonDecode(draftJson) as Map<String, dynamic>;
-        setState(() {
-          if (data['data'] != null && data['data'].toString().isNotEmpty) {
-            _selectedDate = DateTime.tryParse(data['data'].toString()) ?? DateTime.now();
-          }
-          _tipo = data['tipo'] ?? '';
-          _turno = data['turno'] ?? '';
-          _turma = data['turma'] ?? '';
-          _semEquip = data['semEquip'] ?? false;
-          _equipamento = data['equipamento'] ?? '';
-          _localEquipCtrl.text = data['local'] ?? '';
-          _combustivel = (data['combustivel'] as num?)?.toDouble() ?? 50.0;
-          _materiaisCtrl.text = data['materiais'] ?? '';
-
-          if (data['execs'] != null) {
-            _execs.clear();
-            for (var item in data['execs']) {
-              _execs.add({
-                'nome': item['nome']?.toString() ?? '',
-                'mat': item['mat']?.toString() ?? '',
-              });
+        final decoded = jsonDecode(draftJson);
+        if (decoded is Map) {
+          final data = Map<String, dynamic>.from(decoded);
+          setState(() {
+            if (data['data'] != null && data['data'].toString().isNotEmpty) {
+              _selectedDate = DateTime.tryParse(data['data'].toString()) ?? DateTime.now();
             }
-          }
-          if (_execs.isEmpty) _execs.add({'nome': '', 'mat': ''});
+            _tipo = data['tipo'] ?? '';
+            _turno = data['turno'] ?? '';
+            _turma = data['turma'] ?? '';
+            _semEquip = data['semEquip'] ?? false;
+            _equipamento = data['equipamento'] ?? '';
+            _localEquipCtrl.text = data['local'] ?? '';
+            _combustivel = (data['combustivel'] as num?)?.toDouble() ?? 50.0;
+            _materiaisCtrl.text = data['materiais'] ?? '';
 
-          if (data['os'] != null) {
-            _osList.clear();
-            for (var osData in data['os']) {
-              _osList.add(ElectricalWorkOrder.fromJson(osData));
+            if (data['execs'] != null && data['execs'] is List) {
+              _execs.clear();
+              for (var item in data['execs'] as List) {
+                if (item is Map) {
+                  _execs.add({
+                    'nome': item['nome']?.toString() ?? '',
+                    'mat': item['mat']?.toString() ?? '',
+                  });
+                }
+              }
             }
-          }
-          if (_osList.isEmpty) _osList.add(ElectricalWorkOrder());
-        });
+            if (_execs.isEmpty) _execs.add({'nome': '', 'mat': ''});
+
+            if (data['os'] != null && data['os'] is List) {
+              _osList.clear();
+              for (var osData in data['os'] as List) {
+                if (osData is Map) {
+                  _osList.add(ElectricalWorkOrder.fromJson(Map<String, dynamic>.from(osData)));
+                }
+              }
+            }
+            if (_osList.isEmpty) _osList.add(ElectricalWorkOrder());
+          });
+        }
       } catch (e) {
         debugPrint('Erro ao carregar rascunho: $e');
       }
@@ -328,8 +335,9 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
     if (pessoasSaved != null) {
       setState(() {
         _pessoasEletrica = pessoasSaved.map((item) {
-          final map = jsonDecode(item) as Map<String, dynamic>;
-          return {'nome': map['nome'].toString(), 'mat': map['mat'].toString()};
+          final decoded = jsonDecode(item);
+          final map = decoded is Map ? Map<String, dynamic>.from(decoded) : <String, dynamic>{};
+          return {'nome': map['nome']?.toString() ?? '', 'mat': map['mat']?.toString() ?? ''};
         }).toList();
       });
     }

@@ -173,28 +173,43 @@ class _MechanicalReportFormPageState extends ConsumerState<MechanicalReportFormP
     final pessoasSaved = prefs.getStringList('mecanica_pessoas');
     if (pessoasSaved != null) {
       _pessoasMecanica = pessoasSaved.map((item) {
-        final map = jsonDecode(item) as Map<String, dynamic>;
-        return {'nome': map['nome'].toString(), 'mat': map['mat'].toString()};
+        final decoded = jsonDecode(item);
+        final map = decoded is Map ? Map<String, dynamic>.from(decoded) : <String, dynamic>{};
+        return {'nome': map['nome']?.toString() ?? '', 'mat': map['mat']?.toString() ?? ''};
       }).toList();
     }
 
     if (mounted) setState(() {});
 
-    // Escutar atualizações do Cloud Firestore em tempo real
+    // Escutar atualizações do Cloud Firestore em tempo real (documento de cadastros)
     FirestoreCadastrosService().escutarCadastrosArea(
       area: 'mecanica',
       onData: (data) {
         if (!mounted) return;
         setState(() {
-          if (data['locais'] != null) {
-            _locaisMecanica = List<String>.from(data['locais']);
+          if (data['locais'] != null && data['locais'] is List) {
+            final list = (data['locais'] as List).map((e) => e.toString()).toList();
+            final setLocais = Set<String>.from(_locaisMecanica)..addAll(list);
+            _locaisMecanica = setLocais.toList();
           }
-          if (data['equipamentos'] != null) {
-            _equipamentosMecanica = List<String>.from(data['equipamentos']);
+          if (data['equipamentos'] != null && data['equipamentos'] is List) {
+            _equipamentosMecanica = (data['equipamentos'] as List).map((e) => e.toString()).toList();
           }
-          if (data['colaboradores'] != null) {
-            _pessoasMecanica = (data['colaboradores'] as List).map((p) => Map<String, String>.from(p)).toList();
+          if (data['colaboradores'] != null && data['colaboradores'] is List) {
+            _pessoasMecanica = (data['colaboradores'] as List).map((p) => Map<String, String>.from(p as Map)).toList();
           }
+        });
+      },
+    );
+
+    // Escutar coleção dedicada 'mechanical_locations' do Firestore em tempo real
+    FirestoreCadastrosService().escutarLocaisMecanica(
+      onData: (locais) {
+        if (!mounted) return;
+        setState(() {
+          final setLocais = Set<String>.from(_locaisMecanica)..addAll(locais);
+          if (!setLocais.contains('Outro')) setLocais.add('Outro');
+          _locaisMecanica = setLocais.toList();
         });
       },
     );
@@ -493,9 +508,9 @@ class _MechanicalReportFormPageState extends ConsumerState<MechanicalReportFormP
           'maintenanceType': 'MECANICA',
           'cause': '',
           'activities': (om['descCtrl'] as TextEditingController).text,
-          'materialsUsed': '',
-          'quantityMeters': 0.0,
-          'quantityPieces': 0,
+          'materialsUsed': <String>[],
+          'quantityMeters': '0',
+          'quantityPieces': '0',
           'startTime': (om['startCtrl'] as TextEditingController).text,
           'endTime': (om['endCtrl'] as TextEditingController).text,
           'status': om['status'] ?? 'ABERTA',
@@ -947,6 +962,7 @@ class _MechanicalReportFormPageState extends ConsumerState<MechanicalReportFormP
                             _novoLocalCtrl.clear();
                             _salvarCadastrosPersistidos();
                           });
+                          FirestoreCadastrosService().salvarLocalMecanica(val);
                         }
                       },
                       child: const Text('Adicionar'),

@@ -77,7 +77,10 @@ class FirestoreCadastrosService {
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString('cache_firestore_$area');
       if (raw != null && raw.isNotEmpty) {
-        return jsonDecode(raw) as Map<String, dynamic>;
+        final decoded = jsonDecode(raw);
+        if (decoded is Map) {
+          return Map<String, dynamic>.from(decoded);
+        }
       }
     } catch (e) {
       debugPrint('Erro ao ler cache local de $area: $e');
@@ -91,6 +94,59 @@ class FirestoreCadastrosService {
       await prefs.setString('cache_firestore_$area', jsonEncode(data));
     } catch (e) {
       debugPrint('Erro ao gravar cache local de $area: $e');
+    }
+  }
+
+  /// Escutar em tempo real a coleção exclusiva 'mechanical_locations' do Firestore
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? escutarLocaisMecanica({
+    required Function(List<String> locais) onData,
+  }) {
+    final db = _db;
+    if (db == null) return null;
+
+    try {
+      return db.collection('mechanical_locations').snapshots().listen(
+        (snapshot) {
+          final locais = <String>[];
+          for (final doc in snapshot.docs) {
+            final data = doc.data();
+            final name = data['name']?.toString() ?? doc.id;
+            final active = data['active'] ?? true;
+            if (name.trim().isNotEmpty && active == true && !locais.contains(name.trim())) {
+              locais.add(name.trim());
+            }
+          }
+          if (locais.isNotEmpty) {
+            onData(locais);
+          }
+        },
+        onError: (err) {
+          debugPrint('Erro listener mechanical_locations: $err');
+        },
+      );
+    } catch (e) {
+      debugPrint('Erro ao iniciar listener de mechanical_locations: $e');
+      return null;
+    }
+  }
+
+  /// Salvar novo local na coleção 'mechanical_locations'
+  Future<void> salvarLocalMecanica(String local) async {
+    final cleanName = local.trim();
+    if (cleanName.isEmpty) return;
+
+    final db = _db;
+    if (db != null) {
+      try {
+        await db.collection('mechanical_locations').doc(cleanName).set({
+          'name': cleanName,
+          'active': true,
+          'createdAt': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+        debugPrint('Local mecânico "$cleanName" sincronizado com mechanical_locations.');
+      } catch (e) {
+        debugPrint('Erro ao salvar local em mechanical_locations: $e');
+      }
     }
   }
 }

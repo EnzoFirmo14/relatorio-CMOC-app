@@ -131,7 +131,13 @@ class ReportFormController extends Notifier<ReportFormState> {
 
     try {
       await ref.read(syncControllerProvider.notifier).triggerSync();
-    } catch (_) {}
+      state = state.copyWith(
+        syncStatus: ReportSyncStatus.synced,
+        reportStatus: 'Sincronizado',
+      );
+    } catch (e) {
+      debugPrint('Erro no triggerSync de submitReport: $e');
+    }
 
     return true;
   }
