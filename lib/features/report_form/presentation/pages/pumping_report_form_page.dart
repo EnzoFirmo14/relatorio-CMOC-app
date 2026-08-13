@@ -1960,8 +1960,10 @@ class _PumpingReportFormPageState extends ConsumerState<PumpingReportFormPage> {
         };
       }).toList();
 
-      // Map caixas and rampas to workOrders
+      // Map caixas and rampas to workOrders, waterLevels, and pumps
       final List<Map<String, dynamic>> workOrders = [];
+      final List<Map<String, dynamic>> waterLevels = [];
+      final List<Map<String, dynamic>> pumps = [];
 
       insp.caixas.forEach((caixaId, value) {
         final r = _caixas.firstWhere(
@@ -1969,19 +1971,39 @@ class _PumpingReportFormPageState extends ConsumerState<PumpingReportFormPage> {
           orElse: () => CaixaModel(id: caixaId, nome: caixaId, setor: ''),
         );
         final detalhe = insp.detalhesCaixas[caixaId];
+        
+        final observationsText = [detalhe?.obs, detalhe?.ambosObs]
+            .where((e) => e != null && e.trim().isNotEmpty)
+            .join(' | ');
+
+        waterLevels.add({
+          'pointId': caixaId,
+          'location': r.setor,
+          'level': value != null ? '$value%' : '',
+          'abastec': detalhe?.abastec,
+          'abastecMotivo': detalhe?.abastecMotivo ?? '',
+          'vaz': detalhe?.vaz,
+          'vazLocal': detalhe?.vazLocal ?? '',
+          'trend': '',
+          'observations': observationsText,
+        });
+
         workOrders.add({
           'id': caixaId,
           'number': 'CX-${r.nome}',
           'location': r.setor,
           'maintenanceType': 'BOMBEAMENTO_CAIXA',
           'cause': 'Inspeção de Caixa',
-          'activities': 'Nível: ${value != null ? '$value%' : 'N/A'}. Obs: ${detalhe?.obs ?? ''}. Ambos: ${detalhe?.ambosObs ?? ''}',
+          'activities': observationsText,
+          'level': value != null ? '$value%' : '',
+          'abastec': detalhe?.abastec,
+          'vaz': detalhe?.vaz,
           'materialsUsed': <String>[],
           'quantityMeters': '0',
           'quantityPieces': '0',
           'startTime': '',
           'endTime': '',
-          'status': 'Vaz: ${detalhe?.vaz == true ? 'Sim' : 'Não'} | Abast: ${detalhe?.abastec == true ? 'Sim' : 'Não'}',
+          'status': 'Normal',
           'osStatus': detalhe != null && detalhe.avisouLider ? 'Avisou Líder' : 'Normal',
           'photoPaths': <String>[],
         });
@@ -1992,19 +2014,33 @@ class _PumpingReportFormPageState extends ConsumerState<PumpingReportFormPage> {
           (rm) => rm.id == rampaId,
           orElse: () => RampaModel(id: rampaId, nome: rampaId),
         );
+        
+        final ocorrenciasText = detalhe.ocorrencias.join(', ');
+
+        pumps.add({
+          'name': r.nome,
+          'metragem': detalhe.metragem != null ? '${detalhe.metragem} m' : '',
+          'bombaStatus': detalhe.bomba == true ? 'operando' : (detalhe.bomba == false ? 'parada' : ''),
+          'limpeza': detalhe.limpeza == true ? 'necessária' : (detalhe.limpeza == false ? 'não' : ''),
+          'ocorrencias': ocorrenciasText,
+        });
+
         workOrders.add({
           'id': rampaId,
           'number': 'RP-${r.nome}',
           'location': 'Rampa',
           'maintenanceType': 'BOMBEAMENTO_RAMPA',
           'cause': 'Inspeção de Rampa',
-          'activities': 'Metragem: ${detalhe.metragem != null ? '${detalhe.metragem}m' : 'N/A'}. Limpeza: ${detalhe.limpeza == true ? 'Precisa' : 'Não precisa'}. Ocorrências: ${detalhe.ocorrencias.join(', ')}',
+          'activities': ocorrenciasText,
+          'metragem': detalhe.metragem,
+          'bombaStatus': detalhe.bomba,
+          'limpeza': detalhe.limpeza,
           'materialsUsed': <String>[],
           'quantityMeters': '0',
           'quantityPieces': '0',
           'startTime': '',
           'endTime': '',
-          'status': 'Bomba: ${detalhe.bomba == true ? 'Sim' : 'Não'}',
+          'status': 'Normal',
           'osStatus': detalhe.avisouLider ? 'Avisou Líder' : 'Normal',
           'photoPaths': <String>[],
         });
@@ -2026,6 +2062,8 @@ class _PumpingReportFormPageState extends ConsumerState<PumpingReportFormPage> {
         'updatedAt': DateTime.now().toIso8601String(),
         'operators': operatorsList,
         'workOrders': workOrders,
+        'waterLevels': waterLevels,
+        'pumps': pumps,
         'pumpingRawData': insp.toJson(),
       };
 
