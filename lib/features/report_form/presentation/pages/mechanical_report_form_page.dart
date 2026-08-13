@@ -739,27 +739,36 @@ class _MechanicalReportFormPageState extends ConsumerState<MechanicalReportFormP
                 const Text('TURNO E TURMA', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey)),
                 const SizedBox(height: 6),
                 Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    SegmentedButton<String>(
-                      segments: const [
-                        ButtonSegment(value: 'T1', label: Text('T1')),
-                        ButtonSegment(value: 'T2', label: Text('T2')),
-                        ButtonSegment(value: 'T3', label: Text('T3')),
-                      ],
-                      selected: {_turno},
-                      onSelectionChanged: (val) => setState(() => _turno = val.first),
+                    const Text('Turno:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8.0,
+                      children: ['T1', 'T2', 'T3'].map((turno) {
+                        return ChoiceChip(
+                          label: Text(turno),
+                          selected: _turno == turno,
+                          onSelected: (selected) {
+                            if (selected) setState(() => _turno = turno);
+                          },
+                        );
+                      }).toList(),
                     ),
-                    const SizedBox(height: 12),
-                    SegmentedButton<String>(
-                      segments: const [
-                        ButtonSegment(value: 'A', label: Text('A')),
-                        ButtonSegment(value: 'B', label: Text('B')),
-                        ButtonSegment(value: 'C', label: Text('C')),
-                        ButtonSegment(value: 'D', label: Text('D')),
-                      ],
-                      selected: {_turma},
-                      onSelectionChanged: (val) => setState(() => _turma = val.first),
+                    const SizedBox(height: 16),
+                    const Text('Turma:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8.0,
+                      children: ['A', 'B', 'C', 'D'].map((turma) {
+                        return ChoiceChip(
+                          label: Text(turma),
+                          selected: _turma == turma,
+                          onSelected: (selected) {
+                            if (selected) setState(() => _turma = turma);
+                          },
+                        );
+                      }).toList(),
                     ),
                   ],
                 ),
