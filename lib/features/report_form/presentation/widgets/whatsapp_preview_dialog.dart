@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:flutter/foundation.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/theme/app_theme.dart';
 
 class WhatsappPreviewDialog extends StatefulWidget {
@@ -32,10 +34,13 @@ class _WhatsappPreviewDialogState extends State<WhatsappPreviewDialog> {
     });
   }
 
-  void _shareViaWhatsApp() {
-    // Compartilha o texto nativamente
-    // share_plus aciona a sheet nativa do Android, o operador seleciona o WhatsApp/outro app de comunicacao
-    Share.share(widget.formattedText);
+  Future<void> _shareViaWhatsApp() async {
+    if (kIsWeb) {
+      final uri = Uri.parse('https://wa.me/?text=${Uri.encodeComponent(widget.formattedText)}');
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else {
+      Share.share(widget.formattedText);
+    }
   }
 
   @override

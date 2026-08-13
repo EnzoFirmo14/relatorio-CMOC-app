@@ -738,31 +738,28 @@ class _MechanicalReportFormPageState extends ConsumerState<MechanicalReportFormP
                 const Divider(),
                 const Text('TURNO E TURMA', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey)),
                 const SizedBox(height: 6),
-                Row(
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Expanded(
-                      child: SegmentedButton<String>(
-                        segments: const [
-                          ButtonSegment(value: 'T1', label: Text('T1')),
-                          ButtonSegment(value: 'T2', label: Text('T2')),
-                          ButtonSegment(value: 'T3', label: Text('T3')),
-                        ],
-                        selected: {_turno},
-                        onSelectionChanged: (val) => setState(() => _turno = val.first),
-                      ),
+                    SegmentedButton<String>(
+                      segments: const [
+                        ButtonSegment(value: 'T1', label: Text('T1')),
+                        ButtonSegment(value: 'T2', label: Text('T2')),
+                        ButtonSegment(value: 'T3', label: Text('T3')),
+                      ],
+                      selected: {_turno},
+                      onSelectionChanged: (val) => setState(() => _turno = val.first),
                     ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: SegmentedButton<String>(
-                        segments: const [
-                          ButtonSegment(value: 'A', label: Text('A')),
-                          ButtonSegment(value: 'B', label: Text('B')),
-                          ButtonSegment(value: 'C', label: Text('C')),
-                          ButtonSegment(value: 'D', label: Text('D')),
-                        ],
-                        selected: {_turma},
-                        onSelectionChanged: (val) => setState(() => _turma = val.first),
-                      ),
+                    const SizedBox(height: 12),
+                    SegmentedButton<String>(
+                      segments: const [
+                        ButtonSegment(value: 'A', label: Text('A')),
+                        ButtonSegment(value: 'B', label: Text('B')),
+                        ButtonSegment(value: 'C', label: Text('C')),
+                        ButtonSegment(value: 'D', label: Text('D')),
+                      ],
+                      selected: {_turma},
+                      onSelectionChanged: (val) => setState(() => _turma = val.first),
                     ),
                   ],
                 ),

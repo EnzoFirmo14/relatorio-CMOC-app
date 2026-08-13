@@ -220,90 +220,126 @@ class ReportFirestoreDataSource implements IReportRemoteDataSource {
           DateTime.tryParse(json['createdAt']?.toString() ?? '') ?? DateTime.now(),
       updatedAt:
           DateTime.tryParse(json['updatedAt']?.toString() ?? '') ?? DateTime.now(),
-      operators: (json['operators'] is List)
-          ? (json['operators'] as List).map((o) {
-              if (o is! Map) return const CollaboratorEntity(id: '', registration: '', name: '');
-              return CollaboratorEntity(
-                id: o['id']?.toString() ?? '',
-                registration: o['registration']?.toString() ?? '',
-                name: o['name']?.toString() ?? '',
-              );
-            }).toList()
-          : [],
-      workOrders: (json['workOrders'] is List)
-          ? (json['workOrders'] as List).map((os) {
-              if (os is! Map) return const WorkOrderEntity(id: '', number: '', location: '');
-              final rawMats = os['materialsUsed'];
-              List<String> matsList = [];
-              if (rawMats is List) {
-                matsList = rawMats.map((m) => m?.toString() ?? '').toList();
-              } else if (rawMats is String && rawMats.isNotEmpty) {
-                matsList = [rawMats];
-              }
-
-              final rawPhotos = os['photoPaths'];
-              List<String> photosList = [];
-              if (rawPhotos is List) {
-                photosList = rawPhotos.map((p) => p?.toString() ?? '').toList();
-              } else if (rawPhotos is String && rawPhotos.isNotEmpty) {
-                photosList = [rawPhotos];
-              }
-
-              return WorkOrderEntity(
-                id: os['id']?.toString() ?? '',
-                number: os['number']?.toString() ?? '',
-                location: os['location']?.toString() ?? '',
-                maintenanceType: os['maintenanceType']?.toString() ?? '',
-                cause: os['cause']?.toString() ?? '',
-                activities: os['activities']?.toString() ?? '',
-                materialsUsed: matsList,
-                quantityMeters: os['quantityMeters']?.toString() ?? '',
-                quantityPieces: os['quantityPieces']?.toString() ?? '',
-                startTime: os['startTime']?.toString() ?? '',
-                endTime: os['endTime']?.toString() ?? '',
-                status: os['status']?.toString() ?? '',
-                osStatus: os['osStatus']?.toString() ?? '',
-                photoPaths: photosList,
-              );
-            }).toList()
-          : [],
-      waterLevels: (json['waterLevels'] is List)
-          ? (json['waterLevels'] as List).map((wl) {
-              if (wl is! Map) return const WaterLevelEntity(pointId: '', location: '', level: '');
-              return WaterLevelEntity(
-                pointId: wl['pointId']?.toString() ?? '',
-                location: wl['location']?.toString() ?? '',
-                level: wl['level']?.toString() ?? '',
-                abastec: wl['abastec'] as bool?,
-                abastecMotivo: wl['abastecMotivo']?.toString() ?? '',
-                vaz: wl['vaz'] as bool?,
-                vazLocal: wl['vazLocal']?.toString() ?? '',
-                trend: wl['trend']?.toString() ?? '',
-                observations: wl['observations']?.toString() ?? '',
-              );
-            }).toList()
-          : [],
-      pumps: (json['pumps'] is List)
-          ? (json['pumps'] as List).map((p) {
-              if (p is! Map) return const PumpEntity(name: '', metragem: '', bombaStatus: '', limpeza: '', ocorrencias: '');
-              return PumpEntity(
-                name: p['name']?.toString() ?? '',
-                metragem: p['metragem']?.toString() ?? '',
-                bombaStatus: p['bombaStatus']?.toString() ?? '',
-                limpeza: p['limpeza']?.toString() ?? '',
-                ocorrencias: p['ocorrencias']?.toString() ?? '',
-              );
-            }).toList()
-          : [],
-      materialsUsed: (json['materialsUsedList'] is List)
-          ? (json['materialsUsedList'] as List).map((m) {
-              if (m is! Map) return const MaterialEntity(name: '');
-              return MaterialEntity(
-                name: m['name']?.toString() ?? '',
-                quantity: m['quantity']?.toString() ?? '',
-              );
-            }).toList()
-          : [],
+      operators: _parseOperators(json['operators']),
+      workOrders: _parseWorkOrders(json['workOrders']),
+      waterLevels: _parseWaterLevels(json['waterLevels']),
+      pumps: _parsePumps(json['pumps']),
+      materialsUsed: _parseMaterials(json['materialsUsedList']),
     );
+  }
+
+  List<CollaboratorEntity> _parseOperators(dynamic data) {
+    if (data is! List) return [];
+    try {
+      return data.map((o) {
+        if (o is! Map) return const CollaboratorEntity(id: '', registration: '', name: '');
+        return CollaboratorEntity(
+          id: o['id']?.toString() ?? '',
+          registration: o['registration']?.toString() ?? '',
+          name: o['name']?.toString() ?? '',
+        );
+      }).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  List<WorkOrderEntity> _parseWorkOrders(dynamic data) {
+    if (data is! List) return [];
+    try {
+      return data.map((os) {
+        if (os is! Map) return const WorkOrderEntity(id: '', number: '', location: '');
+        
+        final rawMats = os['materialsUsed'];
+        List<String> matsList = [];
+        if (rawMats is List) {
+          matsList = rawMats.map((m) => m?.toString() ?? '').toList();
+        } else if (rawMats is String && rawMats.isNotEmpty) {
+          matsList = [rawMats];
+        }
+
+        final rawPhotos = os['photoPaths'];
+        List<String> photosList = [];
+        if (rawPhotos is List) {
+          photosList = rawPhotos.map((p) => p?.toString() ?? '').toList();
+        } else if (rawPhotos is String && rawPhotos.isNotEmpty) {
+          photosList = [rawPhotos];
+        }
+
+        return WorkOrderEntity(
+          id: os['id']?.toString() ?? '',
+          number: os['number']?.toString() ?? '',
+          location: os['location']?.toString() ?? '',
+          maintenanceType: os['maintenanceType']?.toString() ?? '',
+          cause: os['cause']?.toString() ?? '',
+          activities: os['activities']?.toString() ?? '',
+          materialsUsed: matsList,
+          quantityMeters: os['quantityMeters']?.toString() ?? '',
+          quantityPieces: os['quantityPieces']?.toString() ?? '',
+          startTime: os['startTime']?.toString() ?? '',
+          endTime: os['endTime']?.toString() ?? '',
+          status: os['status']?.toString() ?? '',
+          osStatus: os['osStatus']?.toString() ?? '',
+          photoPaths: photosList,
+        );
+      }).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  List<WaterLevelEntity> _parseWaterLevels(dynamic data) {
+    if (data is! List) return [];
+    try {
+      return data.map((wl) {
+        if (wl is! Map) return const WaterLevelEntity(pointId: '', location: '', level: '');
+        return WaterLevelEntity(
+          pointId: wl['pointId']?.toString() ?? '',
+          location: wl['location']?.toString() ?? '',
+          level: wl['level']?.toString() ?? '',
+          abastec: wl['abastec']?.toString() == 'true',
+          abastecMotivo: wl['abastecMotivo']?.toString() ?? '',
+          vaz: wl['vaz']?.toString() == 'true',
+          vazLocal: wl['vazLocal']?.toString() ?? '',
+          trend: wl['trend']?.toString() ?? '',
+          observations: wl['observations']?.toString() ?? '',
+        );
+      }).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  List<PumpEntity> _parsePumps(dynamic data) {
+    if (data is! List) return [];
+    try {
+      return data.map((p) {
+        if (p is! Map) return const PumpEntity(name: '', metragem: '', bombaStatus: '', limpeza: '', ocorrencias: '');
+        return PumpEntity(
+          name: p['name']?.toString() ?? '',
+          metragem: p['metragem']?.toString() ?? '',
+          bombaStatus: p['bombaStatus']?.toString() ?? '',
+          limpeza: p['limpeza']?.toString() ?? '',
+          ocorrencias: p['ocorrencias']?.toString() ?? '',
+        );
+      }).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  List<MaterialEntity> _parseMaterials(dynamic data) {
+    if (data is! List) return [];
+    try {
+      return data.map((m) {
+        if (m is! Map) return const MaterialEntity(name: '');
+        return MaterialEntity(
+          name: m['name']?.toString() ?? '',
+          quantity: m['quantity']?.toString() ?? '',
+        );
+      }).toList();
+    } catch (_) {
+      return [];
+    }
   }
 }
