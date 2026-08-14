@@ -65,25 +65,28 @@ class IsarService {
         name: dbName,
       );
     } catch (e) {
-      debugPrint('[IsarService] Aviso ao abrir DB ($e) — tentando recuperar ou limpar.');
+      debugPrint('[IsarService] Falha na primeira tentativa de abrir DB ($e). Realizando cleanup da instância...');
 
-      // Se o banco foi aberto concorrentemente por outro fluxo/isolate (ex: Workmanager), reutiliza.
+      // Fecha a instância que falhou para tirá-la do cache interno do Isar
+      // e evitar que as próximas chamadas a Isar.open apenas retornem a instância corrompida.
       final currentInstance = Isar.getInstance(dbName);
-      if (currentInstance != null && currentInstance.isOpen) {
-        _isar = currentInstance;
-        return;
-      }
-
       if (currentInstance != null) {
         try {
           await currentInstance.close();
         } catch (_) {}
       }
 
-      if (!kIsWeb && dirPath != null) {
-        await _deleteIsarFiles(dirPath, dbName);
+      // Aguarda 500ms para o caso de concorrência com outro isolate (ex: Workmanager)
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      // Tenta recuperar se o outro isolate terminou de abrir com sucesso
+      final activeInstance = Isar.getInstance(dbName);
+      if (activeInstance != null && activeInstance.isOpen) {
+        _isar = activeInstance;
+        return;
       }
 
+      // Segunda tentativa de abertura (após o delay e limpeza da instância da memória)
       try {
         _isar = await Isar.open(
           [
@@ -93,12 +96,34 @@ class IsarService {
           directory: dirPath ?? '',
           name: dbName,
         );
+        return; // Sucesso no retry por concorrência
       } catch (e2) {
-        debugPrint('[IsarService] Tentativa de fallback para instância Isar: $e2');
-        final fallback = Isar.getInstance(dbName);
-        if (fallback != null && fallback.isOpen) {
-          _isar = fallback;
-        } else {
+        debugPrint('[IsarService] Segunda tentativa falhou ($e2). Assumindo incompatibilidade de esquema e limpando.');
+
+        // Fecha a instância novamente
+        final currentInstance2 = Isar.getInstance(dbName);
+        if (currentInstance2 != null) {
+          try {
+            await currentInstance2.close();
+          } catch (_) {}
+        }
+
+        if (!kIsWeb && dirPath != null) {
+          await _deleteIsarFiles(dirPath, dbName);
+        }
+
+        // Terceira tentativa (abertura limpa do zero)
+        try {
+          _isar = await Isar.open(
+            [
+              ReportModelSchema,
+              CollaboratorModelSchema,
+            ],
+            directory: dirPath ?? '',
+            name: dbName,
+          );
+        } catch (e3) {
+          debugPrint('[IsarService] Erro crítico persistente após limpeza: $e3');
           rethrow;
         }
       }

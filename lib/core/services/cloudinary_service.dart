@@ -5,8 +5,8 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 
 class CloudinaryService {
-  String get cloudName => dotenv.env['CLOUDINARY_CLOUD_NAME'] ?? '';
-  String get uploadPreset => dotenv.env['CLOUDINARY_UPLOAD_PRESET'] ?? '';
+  String get cloudName => dotenv.env['CLOUDINARY_CLOUD_NAME'] ?? 'qoxf3ibm';
+  String get uploadPreset => dotenv.env['CLOUDINARY_UPLOAD_PRESET'] ?? 'cmoc_preset';
 
   /// Realiza o upload de uma imagem (caminho físico ou blob URL) para o Cloudinary
   /// e retorna a URL segura (secure_url).

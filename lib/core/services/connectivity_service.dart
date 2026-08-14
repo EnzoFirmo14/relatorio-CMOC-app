@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
@@ -18,9 +19,13 @@ class ConnectivityService {
     if (kIsWeb) return true;
     try {
       final results = await _connectivity.checkConnectivity();
-      return _hasConnection(results);
+      if (!_hasConnection(results)) return false;
+      
+      final lookupResult = await InternetAddress.lookup('firestore.googleapis.com')
+          .timeout(const Duration(seconds: 3));
+      return lookupResult.isNotEmpty && lookupResult[0].rawAddress.isNotEmpty;
     } catch (_) {
-      return true;
+      return false;
     }
   }
 

@@ -31,21 +31,21 @@ class DefaultFirebaseOptions {
   }
 
   static FirebaseOptions get web => FirebaseOptions(
-        apiKey: dotenv.env['VITE_FIREBASE_API_KEY'] ?? '',
-        appId: dotenv.env['VITE_FIREBASE_APP_ID'] ?? '',
-        messagingSenderId: dotenv.env['VITE_FIREBASE_MESSAGING_SENDER_ID'] ?? '',
-        projectId: dotenv.env['VITE_FIREBASE_PROJECT_ID'] ?? '',
-        authDomain: dotenv.env['VITE_FIREBASE_AUTH_DOMAIN'] ?? '',
-        storageBucket: dotenv.env['VITE_FIREBASE_STORAGE_BUCKET'] ?? '',
+        apiKey: dotenv.env['VITE_FIREBASE_API_KEY'] ?? 'AIzaSyBncu3UlIYs_NUsKTQQLIJUm_7KXJ3Jc30',
+        appId: dotenv.env['VITE_FIREBASE_APP_ID'] ?? '1:279433346974:web:df020affeb3225985ae08f',
+        messagingSenderId: dotenv.env['VITE_FIREBASE_MESSAGING_SENDER_ID'] ?? '279433346974',
+        projectId: dotenv.env['VITE_FIREBASE_PROJECT_ID'] ?? 'cmoc-relatorio',
+        authDomain: dotenv.env['VITE_FIREBASE_AUTH_DOMAIN'] ?? 'cmoc-relatorio.firebaseapp.com',
+        storageBucket: dotenv.env['VITE_FIREBASE_STORAGE_BUCKET'] ?? 'cmoc-relatorio.firebasestorage.app',
       );
 
   static FirebaseOptions get android => FirebaseOptions(
-        apiKey: dotenv.env['VITE_FIREBASE_API_KEY'] ?? '',
+        apiKey: dotenv.env['ANDROID_FIREBASE_API_KEY'] ??
+            'AIzaSyAscEn1WlFTYcsCYdqrDPZ6JhdeyDuMkwI',
         appId: dotenv.env['ANDROID_FIREBASE_APP_ID'] ??
-            dotenv.env['VITE_FIREBASE_APP_ID'] ??
-            '',
-        messagingSenderId: dotenv.env['VITE_FIREBASE_MESSAGING_SENDER_ID'] ?? '',
-        projectId: dotenv.env['VITE_FIREBASE_PROJECT_ID'] ?? '',
-        storageBucket: dotenv.env['VITE_FIREBASE_STORAGE_BUCKET'] ?? '',
+            '1:279433346974:android:fb05389a58d0d4f45ae08f',
+        messagingSenderId: dotenv.env['VITE_FIREBASE_MESSAGING_SENDER_ID'] ?? '279433346974',
+        projectId: dotenv.env['VITE_FIREBASE_PROJECT_ID'] ?? 'cmoc-relatorio',
+        storageBucket: dotenv.env['VITE_FIREBASE_STORAGE_BUCKET'] ?? 'cmoc-relatorio.firebasestorage.app',
       );
 }

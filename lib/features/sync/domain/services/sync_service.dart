@@ -14,6 +14,8 @@ class SyncService {
   final ConnectivityService connectivityService;
   final CloudinaryService cloudinaryService;
 
+  String? lastError;
+
   StreamSubscription<bool>? _connectivitySubscription;
 
   SyncService({
@@ -52,6 +54,7 @@ class SyncService {
     if (pendingReports.isEmpty) return 0;
 
     int syncedCount = 0;
+    lastError = null;
 
     for (final report in pendingReports) {
       try {
@@ -115,6 +118,7 @@ class SyncService {
       } catch (e, stack) {
         debugPrint('CRITICAL SYNC ERROR: $e');
         debugPrint(stack.toString());
+        lastError = e.toString();
         // Marca como erro para retentativa posterior
         await localRepository.updateSyncStatus(
             report.uuid, ReportSyncStatus.error);
