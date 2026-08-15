@@ -1,273 +1,422 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../../../core/services/firestore_cadastros_service.dart';
 import '../../../../core/providers/dev_mode_provider.dart';
-import '../../../../core/theme/theme_provider.dart';
 import '../../../sync/presentation/widgets/sync_status_badge.dart';
-import 'package:uuid/uuid.dart';
-import '../../domain/entities/report_entity.dart';
-import '../../domain/entities/collaborator_entity.dart';
-import '../../domain/entities/work_order_entity.dart';
-import '../../../sync/presentation/controllers/sync_controller.dart';
+import '../../data/constants/mechanical_constants.dart';
 import '../controllers/report_form_controller.dart';
+import '../widgets/mechanical_om_card.dart';
+
+
 
 class MechanicalReportFormPage extends ConsumerStatefulWidget {
   const MechanicalReportFormPage({super.key});
 
   @override
-  ConsumerState<MechanicalReportFormPage> createState() => _MechanicalReportFormPageState();
+  ConsumerState<MechanicalReportFormPage> createState() =>
+      _MechanicalReportFormPageState();
 }
 
-class _MechanicalReportFormPageState extends ConsumerState<MechanicalReportFormPage> {
-  int _currentTab = 0; // 0: Relatório, 1: Cadastros & Ajustes
+class _MechanicalReportFormPageState
+    extends ConsumerState<MechanicalReportFormPage> {
+  final ScrollController _scrollController = ScrollController();
 
-  DateTime _selectedDate = DateTime.now();
-  String _turno = 'T1'; // T1, T2, T3, ADM
-  String _turma = 'A'; // A, B, C, D, ADM
-
-  final List<Map<String, String>> _executantes = [
-    {'nome': '', 'mat': ''}
-  ];
-
-  final List<Map<String, dynamic>> _ordensManutencao = [];
-  final _observacoesCtrl = TextEditingController();
-
-  // Listas Dinâmicas Persistentes
-  late List<Map<String, String>> _pessoasMecanica;
-  late List<String> _locaisMecanica;
-  late List<String> _equipamentosMecanica;
-
-  static const List<Map<String, String>> _pessoasPadrao = [
-    {'nome': 'Acacio Oliveira Souza', 'mat': '4786'},
-    {'nome': 'Adailton Silva Santos', 'mat': '99300599'},
-    {'nome': 'Adonis Evaristo Sousa dos Santos', 'mat': '99300182'},
-    {'nome': 'Adriano da Fonseca Santana', 'mat': '99300217'},
-    {'nome': 'Adriano Silva de Matos', 'mat': '5115'},
-    {'nome': 'Aleandro Bonifacio dos Santos', 'mat': '70205994'},
-    {'nome': 'Altair da Silva Almeida', 'mat': '99300607'},
-    {'nome': 'Andeson de Jesus Santos', 'mat': '99300603'},
-    {'nome': 'Carlos Daniel de Queiroz Firmo', 'mat': '99300868'},
-    {'nome': 'Celio Marinho Carvalho Junior', 'mat': '5252'},
-    {'nome': 'Claudemiro Gordiano Cunha', 'mat': '99300906'},
-    {'nome': 'Claudio Augusto do Prado de Oliveira', 'mat': '99300377'},
-    {'nome': 'Cleilson Araujo de Jesus', 'mat': '5237'},
-    {'nome': 'Cleinilson da Mota Firmo', 'mat': '99300193'},
-    {'nome': 'Cristiano Rodrigues Dias de Jesus', 'mat': '4895'},
-    {'nome': 'Danilo Pereira da Silva', 'mat': '99300582'},
-    {'nome': 'Deyferson de Queiroz Firmo', 'mat': '99300595'},
-    {'nome': 'Dimelson Souza da Silva', 'mat': '99300164'},
-    {'nome': 'Edimari Barreto da Cruz', 'mat': '99300538'},
-    {'nome': 'Edmundo Santos de Jesus', 'mat': '4771'},
-    {'nome': 'Elionaldo Morais de Lucena', 'mat': '99300869'},
-    {'nome': 'Emilio Manaia Lima', 'mat': '99300606'},
-    {'nome': 'Erick de Araujo Pimentel', 'mat': '99300432'},
-    {'nome': 'Erique de Matos Santos', 'mat': '99300346'},
-    {'nome': 'Fabricio de Carvalho Santos', 'mat': '99300635'},
-    {'nome': 'Fagner de Queiroz Mendonça', 'mat': '991000100'},
-    {'nome': 'Felipe Matos Santos', 'mat': '99300144'},
-    {'nome': 'Fernando de Jesus Santos', 'mat': '4751'},
-    {'nome': 'Fernando Juriti Reis', 'mat': '99300389'},
-    {'nome': 'Francisco Elexsandro da Silva', 'mat': '99300203'},
-    {'nome': 'Francisco Fagne Oliveira Silva', 'mat': '99300268'},
-    {'nome': 'Gabriel Alves Queiroz Lopes', 'mat': '99300456'},
-    {'nome': 'Genesio Muniz dos Santos', 'mat': '4929'},
-    {'nome': 'Genilson Ribeiro dos Santos', 'mat': '99300447'},
-    {'nome': 'Geovane Bispo dos Santos', 'mat': '5255'},
-    {'nome': 'Geovane Oliveira Araujo', 'mat': '4774'},
-    {'nome': 'Gildenor Lopes de Oliveira', 'mat': '99300532'},
-    {'nome': 'Gilmar Nascimento Moreira', 'mat': '99300535'},
-    {'nome': 'Gilmar Oliveira de Jesus', 'mat': '99300575'},
-    {'nome': 'Gilvandro Damião de Jesus', 'mat': '99300383'},
-    {'nome': 'Girlan Queiroz dos Santos', 'mat': '4788'},
-    {'nome': 'Gustavo Oliveira Santana', 'mat': '99300433'},
-    {'nome': 'Gutierry Santos Matos', 'mat': '99300598'},
-    {'nome': 'Hamilton Araujo dos Santos', 'mat': '99300491'},
-    {'nome': 'Isaac Valerio dos Santos', 'mat': '5178'},
-    {'nome': 'Italo da Costa Dutra', 'mat': '5353'},
-    {'nome': 'Itamar da Silva Lima', 'mat': '99300305'},
-    {'nome': 'Ivanilson de Jesus Santos', 'mat': '5247'},
-    {'nome': 'Jackson de Jesus Silva', 'mat': '4775'},
-    {'nome': 'Jailton Oliveira dos Santos', 'mat': '5254'},
-    {'nome': 'Jenivaldo Silva dos Santos', 'mat': '99300149'},
-    {'nome': 'Joanderson Silva Gonçalves', 'mat': '5256'},
-    {'nome': 'Joelson Pereira da Silva', 'mat': '99300472'},
-    {'nome': 'Jonathan Gordiano Rodrigues', 'mat': '99300619'},
-    {'nome': 'José Alberto de Araujo Cristo', 'mat': '4748'},
-    {'nome': 'José Cerqueira dos Santos', 'mat': '4782'},
-    {'nome': 'Jose Milton Bispo dos Santos', 'mat': '4784'},
-    {'nome': 'Jose Narciso Ferreira de Queiroz', 'mat': '99300378'},
-    {'nome': 'Josevaldo Santos de Jesus', 'mat': '99300239'},
-    {'nome': 'Jucineia Queiroz Oliveira', 'mat': '5170'},
-    {'nome': 'Kezya Queiroz Oliveira', 'mat': '99300525'},
-    {'nome': 'Kleberlito Luciano Carneiro da Silva', 'mat': '5236'},
-    {'nome': 'Leonardo dos Santos Lima de Queiroz', 'mat': '99300264'},
-    {'nome': 'Leonardo Mota Nascimento', 'mat': '4752'},
-    {'nome': 'Lucas Evangelista F Cerqueira', 'mat': '99300295'},
-    {'nome': 'Lucas Moura de Mendonca', 'mat': '4791'},
-    {'nome': 'Marcolino dos Santos', 'mat': '4793'},
-    {'nome': 'Marcos Cassiano Oliveira Santos', 'mat': '99300327'},
-    {'nome': 'Marcos Neves Moura', 'mat': '4933'},
-    {'nome': 'Marcos Real Mota', 'mat': '99300152'},
-    {'nome': 'Mateus Barreto Calvacante', 'mat': '99300061'},
-    {'nome': 'Matheus Silva Pastor', 'mat': '4795'},
-    {'nome': 'Natalino Paixão dos Santos', 'mat': '70206772'},
-    {'nome': 'Niel Pereira Rodrigues', 'mat': '99300589'},
-    {'nome': 'Pablo Oliveira Araujo', 'mat': '5100'},
-    {'nome': 'Paulo Ditarso Guimaraes Porto Souza', 'mat': '99300461'},
-    {'nome': 'Paulo Henrique Lima de Santana', 'mat': '5248'},
-    {'nome': 'Pedro Henrique Alves de Souza', 'mat': '5169'},
-    {'nome': 'Rafael de Oliveira Cardoso', 'mat': '5251'},
-    {'nome': 'Rayane Silva Lima', 'mat': '5233'},
-    {'nome': 'Ricardo Moraes', 'mat': '99300440'},
-    {'nome': 'Ricardo Santos Lima', 'mat': '99300594'},
-    {'nome': 'Robenilson Cerqueira dos Santos', 'mat': '4797'},
-    {'nome': 'Roberto das Virgens Ferreira', 'mat': '4798'},
-    {'nome': 'Robson Ricardo Soares da Silva', 'mat': '5258'},
-    {'nome': 'Romilson Lima Oliveira', 'mat': '4758'},
-    {'nome': 'Romilson Santos de Jesus', 'mat': '99300699'},
-    {'nome': 'Ronaldo do Rosario Nascimento', 'mat': '99300677'},
-    {'nome': 'Sandro Pereira dos Santos', 'mat': '99300446'},
-    {'nome': 'Saul Vinicius de Jesus SOUZA', 'mat': '4899'},
-    {'nome': 'Venancio Araújo Queiroz', 'mat': '4800'},
-    {'nome': 'William Pereira da Silva', 'mat': '4802'},
-  ];
-
-  static const List<String> _locaisPadrao = [
-    'Oficina Infra', 'HL', 'E22 - 01', 'E22 - 02', 'EW42 - 01', 'EW42 - 02',
-    'EW48', 'EW51', 'E46', 'E57', 'C52 - 01', 'C52 - 02', 'C43', 'C34', 'C25',
-    'B15', 'B09', 'E67 - 02', 'E67 - 01', 'E77', 'E102', 'ER4', 'BR2', 'ER1 -03',
-    'ER1 - 02', 'ER2', 'EB MOVEL', 'RV2', 'RV5', 'RV6', 'RV10', 'E85', 'ER3', 'Outro'
-  ];
-
-  static const List<String> _equipamentosPadrao = [
-    'Pá Carregadeira L-130', 'Caminhão R-40', 'Perfuratriz H-12', 'Manipulador de Pneus',
-    'Jumbo de Perfuração', 'Escavadeira K-90', 'Trator D-8', 'Veículo Utilitário V-01'
-  ];
-
-  // Controllers para formulários de cadastro
-  final _novoLocalCtrl = TextEditingController();
-  final _novoEquipCtrl = TextEditingController();
-  final _novoNomeMecCtrl = TextEditingController();
-  final _novaMatMecCtrl = TextEditingController();
+  // Modal controller para nova OM
+  String _selectedRota = '';
+  String _manualLocSel = '';
+  String _manualLocOutro = '';
+  String _manualOmNum = '';
 
   @override
   void initState() {
     super.initState();
-    _pessoasMecanica = List.from(_pessoasPadrao);
-    _locaisMecanica = List.from(_locaisPadrao);
-    _equipamentosMecanica = List.from(_equipamentosPadrao);
-    _carregarCadastrosPersistidos();
-  }
-
-  Future<void> _carregarCadastrosPersistidos() async {
-    final prefs = await SharedPreferences.getInstance();
-
-    final locaisSaved = prefs.getStringList('mecanica_locais');
-    if (locaisSaved != null) {
-      _locaisMecanica = locaisSaved;
-    }
-
-    final equipsSaved = prefs.getStringList('mecanica_equipamentos');
-    if (equipsSaved != null) {
-      _equipamentosMecanica = equipsSaved;
-    }
-
-    final pessoasSaved = prefs.getStringList('mecanica_pessoas');
-    if (pessoasSaved != null) {
-      _pessoasMecanica = pessoasSaved.map((item) {
-        final decoded = jsonDecode(item);
-        final map = decoded is Map ? Map<String, dynamic>.from(decoded) : <String, dynamic>{};
-        return {'nome': map['nome']?.toString() ?? '', 'mat': map['mat']?.toString() ?? ''};
-      }).toList();
-    }
-
-    if (mounted) setState(() {});
-
-    // Escutar atualizações do Cloud Firestore em tempo real (documento de cadastros)
-    FirestoreCadastrosService().escutarCadastrosArea(
-      area: 'mecanica',
-      onData: (data) {
-        if (!mounted) return;
-        setState(() {
-          if (data['locais'] != null && data['locais'] is List) {
-            final list = (data['locais'] as List).map((e) => e.toString()).toList();
-            final setLocais = Set<String>.from(_locaisMecanica)..addAll(list);
-            _locaisMecanica = setLocais.toList();
-          }
-          if (data['equipamentos'] != null && data['equipamentos'] is List) {
-            _equipamentosMecanica = (data['equipamentos'] as List).map((e) => e.toString()).toList();
-          }
-          if (data['colaboradores'] != null && data['colaboradores'] is List) {
-            _pessoasMecanica = (data['colaboradores'] as List).map((p) => Map<String, String>.from(p as Map)).toList();
-          }
-        });
-      },
-    );
-
-    // Escutar coleção dedicada 'mechanical_locations' do Firestore em tempo real
-    FirestoreCadastrosService().escutarLocaisMecanica(
-      onData: (locais) {
-        if (!mounted) return;
-        setState(() {
-          final setLocais = Set<String>.from(_locaisMecanica)..addAll(locais);
-          if (!setLocais.contains('Outro')) setLocais.add('Outro');
-          _locaisMecanica = setLocais.toList();
-        });
-      },
-    );
-  }
-
-  Future<void> _salvarCadastrosPersistidos() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList('mecanica_locais', _locaisMecanica);
-    await prefs.setStringList('mecanica_equipamentos', _equipamentosMecanica);
-
-    final pessoasJson = _pessoasMecanica.map((p) => jsonEncode(p)).toList();
-    await prefs.setStringList('mecanica_pessoas', pessoasJson);
-
-    // Sincronizar com o Cloud Firestore
-    await FirestoreCadastrosService().salvarCadastrosArea(
-      area: 'mecanica',
-      data: {
-        'locais': _locaisMecanica,
-        'equipamentos': _equipamentosMecanica,
-        'colaboradores': _pessoasMecanica,
-        'atualizadoEm': DateTime.now().toIso8601String(),
-      },
-    );
+    // Preenche data padrão se necessário
   }
 
   @override
   void dispose() {
-    _observacoesCtrl.dispose();
-    _novoLocalCtrl.dispose();
-    _novoEquipCtrl.dispose();
-    _novoNomeMecCtrl.dispose();
-    _novaMatMecCtrl.dispose();
-    for (var om in _ordensManutencao) {
-      (om['omNumCtrl'] as TextEditingController).dispose();
-      (om['tagCtrl'] as TextEditingController).dispose();
-      (om['descCtrl'] as TextEditingController).dispose();
-      (om['startCtrl'] as TextEditingController).dispose();
-      (om['endCtrl'] as TextEditingController).dispose();
-    }
+    _scrollController.dispose();
     super.dispose();
   }
 
-  void _abrirModalNovaOM() {
-    String numOm = 'OM-${(_ordensManutencao.length + 1).toString().padLeft(3, '0')}';
-    String localOm = _locaisMecanica.first;
-    String rotaOm = '';
+  // ─── Validação ─────────────────────────────────────────────────────────────
+
+  List<String> _validateMechanicalForm() {
+    final state = ref.read(reportFormControllerProvider);
+    final List<String> erros = [];
+
+    // Executantes
+    final hasExecutante = state.operators.any(
+      (op) => op.name.trim().isNotEmpty || op.registration.trim().isNotEmpty,
+    );
+    if (!hasExecutante) {
+      erros.add('• Nenhum executante selecionado');
+    }
+
+    if (state.observations.trim().isEmpty) {
+      erros.add('• Observações devem ser preenchidas ou conter "N/A"');
+    }
+
+    // OMs
+    if (state.workOrders.isEmpty) {
+      erros.add('• Nenhuma OM adicionada');
+      return erros;
+    }
+
+
+    for (int i = 0; i < state.workOrders.length; i++) {
+      final om = state.workOrders[i];
+      final num = om.number.isNotEmpty ? om.number : 'OM ${i + 1}';
+
+      if (om.maintenanceType.isEmpty) {
+        erros.add('• $num: Tipo de manutenção não selecionado');
+      }
+      if (om.maintenanceType == 'Outro' && om.maintenanceTypeOutro.trim().isEmpty) {
+        erros.add('• $num: Especifique o tipo de manutenção');
+      }
+      if (om.equipmentType.isEmpty) {
+        erros.add('• $num: Tipo de equipamento não selecionado');
+      }
+      if (om.equipmentType == 'Outro' && om.equipmentOutro.trim().isEmpty) {
+        erros.add('• $num: Especifique o tipo de equipamento');
+      }
+      if (om.status.isEmpty) {
+        erros.add('• $num: Status não selecionado');
+      }
+
+      // Tag obrigatória se Equipamento != Outro
+      if (om.equipmentType.isNotEmpty && om.equipmentType != 'Outro') {
+        final tagFinal = om.tagVal == 'OUTRO' ? om.tagOutro : om.tagVal;
+        if (tagFinal.trim().isEmpty) {
+          erros.add('• $num: Tag do equipamento não informada');
+        }
+      }
+
+      // Horários
+      if (om.startTime.isEmpty) {
+        erros.add('• $num: Horário de início não informado');
+      }
+      if (om.endTime.isEmpty) {
+        erros.add('• $num: Horário de término não informado');
+      }
+
+      // Atividade
+      if (om.activities.trim().isEmpty) {
+        erros.add('• $num: Descrição da atividade não preenchida');
+      }
+
+      // Corretiva
+      if (om.maintenanceType == 'Corretiva') {
+        if (om.cause.trim().isEmpty) {
+          erros.add('• $num: Causa (Corretiva) não preenchida');
+        }
+        if (om.symptom.trim().isEmpty) {
+          erros.add('• $num: Sintoma (Corretiva) não preenchido');
+        }
+      }
+
+      // Parada
+      if (om.hasStoppage) {
+        if (om.stoppageStartTime.isEmpty) {
+          erros.add('• $num: Horário de início da parada não informado');
+        }
+        if (om.stoppageEndTime.isEmpty) {
+          erros.add('• $num: Horário de retorno da parada não informado');
+        }
+      }
+
+      // Inspeção Bomba
+      if (om.maintenanceType == 'Inspeção' && om.equipmentType == 'Bomba') {
+        if (om.pressure.trim().isEmpty) {
+          erros.add('• $num: Pressão não preenchida (Inspeção)');
+        }
+        if (om.horometer.trim().isEmpty) {
+          erros.add('• $num: Horímetro não preenchido (Inspeção)');
+        }
+      }
+
+      // Preditiva Vibração
+      if (om.maintenanceType == 'Preditiva' &&
+          (om.equipmentType == 'Bomba' || om.equipmentType == 'Motor')) {
+        final predList = (om.tasks['predTarefas'] ?? '').split(',');
+        if (predList.contains('vibracao')) {
+          if (om.vibrationSpeed.trim().isEmpty) {
+            erros.add('• $num: Velocidade não preenchida (Análise de Vibração)');
+          }
+          if (om.vibrationGe.trim().isEmpty) {
+            erros.add('• $num: GE não preenchido (Análise de Vibração)');
+          }
+          if (om.vibrationTemp.trim().isEmpty) {
+            erros.add('• $num: Temperatura não preenchida (Análise de Vibração)');
+          }
+        }
+      }
+    }
+
+    return erros;
+  }
+
+  // ─── Texto WhatsApp ────────────────────────────────────────────────────────
+
+  String _generateWhatsAppText() {
+    final state = ref.read(reportFormControllerProvider);
+    final List<String> lines = [];
+
+    lines.add('🔧 *RELATÓRIO DE TURNO — MANUTENÇÃO MECÂNICA*');
+    lines.add('━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    lines.add('');
+    lines.add('📋 *IDENTIFICAÇÃO*');
+    lines.add('─────────────────────');
+
+    final d = state.date;
+    final dateStr =
+        '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
+    lines.add('📅 *Data:* $dateStr');
+
+    for (int i = 0; i < state.operators.length; i++) {
+      final op = state.operators[i];
+      if (op.name.isNotEmpty || op.registration.isNotEmpty) {
+        final details = [
+          if (op.name.isNotEmpty) op.name,
+          if (op.registration.isNotEmpty) '| Mat: ${op.registration}',
+        ].join(' ');
+        lines.add('👷 *Executante ${i + 1}:* $details');
+      }
+    }
+
+    lines.add('⏱️ *Turno:* ${state.shift}  |  👥 *Turma:* ${state.team}');
+
+    if (state.workOrders.isNotEmpty) {
+      lines.add('');
+      lines.add('━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      lines.add(
+          '🔧 *ORDENS DE MANUTENÇÃO (${state.workOrders.length} OM${state.workOrders.length > 1 ? 's' : ''})*');
+      lines.add('━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+
+      for (int i = 0; i < state.workOrders.length; i++) {
+        final om = state.workOrders[i];
+        final manutLabel = om.maintenanceType == 'Outro' && om.maintenanceTypeOutro.isNotEmpty
+            ? '${om.maintenanceType}: ${om.maintenanceTypeOutro}'
+            : om.maintenanceType;
+        final equipLabel = om.equipmentType == 'Outro' && om.equipmentOutro.isNotEmpty
+            ? '${om.equipmentType}: ${om.equipmentOutro}'
+            : om.equipmentType;
+
+        lines.add('');
+        lines.add('┌─────────────────────────');
+        final locStr = om.location.isNotEmpty ? ' | 📍 ${om.location}' : '';
+        lines.add('│ 📌 *OM ${i + 1}: ${om.number}*$locStr');
+        lines.add('└─────────────────────────');
+
+        if (manutLabel.isNotEmpty) lines.add('🔨 *Tipo Manutenção:* $manutLabel');
+        if (om.datasulOm.isNotEmpty) lines.add('📄 *OM Datasul:* ${om.datasulOm}');
+        if (equipLabel.isNotEmpty) lines.add('⚙️ *Tipo Equipamento:* $equipLabel');
+
+        final tagFinal = om.equipmentType == 'Outro'
+            ? null
+            : (om.tagVal == 'OUTRO' ? om.tagOutro : om.tagVal);
+        if (tagFinal != null && tagFinal.isNotEmpty) {
+          final descStr = om.tagDesc.isNotEmpty ? ' — ${om.tagDesc}' : '';
+          lines.add('🏷️ *Tag:* $tagFinal$descStr');
+        }
+
+        // Tarefas Preventiva
+        if (om.maintenanceType == 'Preventiva' && om.equipmentType == 'Bomba') {
+          final tg = om.tasks['troca-gaxeta'];
+          if (tg != null) {
+            lines.add('');
+            lines.add('💧 *Tarefas — Bomba:*');
+            lines.add('  🔄 Troca gaxeta: ${tg == 'sim' ? '✅ Sim' : '❌ Não'}');
+          }
+        }
+
+        // Tarefas Preditiva
+        if (om.maintenanceType == 'Preditiva' &&
+            (om.equipmentType == 'Bomba' || om.equipmentType == 'Motor')) {
+          final predArr = (om.tasks['predTarefas'] ?? '').split(',').where((e) => e.isNotEmpty).toList();
+          if (predArr.isNotEmpty) {
+            lines.add('');
+            lines.add('🔍 *Tarefas — Preditiva:*');
+            for (final k in predArr) {
+              if (k == 'outro') {
+                lines.add('  ✏️ Outro${om.predOtherDesc.isNotEmpty ? ': ${om.predOtherDesc}' : ''}');
+              } else if (k == 'vibracao') {
+                lines.add('  📊 Análise de vibração');
+                if (om.vibrationSpeed.isNotEmpty) lines.add('    • Velocidade: ${om.vibrationSpeed}');
+                if (om.vibrationGe.isNotEmpty) lines.add('    • GE: ${om.vibrationGe}');
+                if (om.vibrationTemp.isNotEmpty) lines.add('    • Temperatura: ${om.vibrationTemp}');
+              } else if (k == 'laser') {
+                lines.add('  📐 Alinhamento a laser');
+              }
+            }
+          }
+        }
+
+        // Tarefas Inspeção
+        if (om.maintenanceType == 'Inspeção') {
+          if (om.equipmentType == 'Bomba') {
+            lines.add('');
+            lines.add('💧 *Tarefas — Bomba:*');
+            final oleo = om.tasks['oleo'];
+            if (oleo != null) lines.add('  🛢️ Óleo contaminado: ${oleo == 'sim' ? '✅ Sim' : '❌ Não'}');
+            final trocaOleo = om.tasks['troca-oleo'];
+            if (oleo == 'sim' && trocaOleo != null) lines.add('    ↳ Troca: ${trocaOleo == 'sim' ? '✅ Sim' : '❌ Não'}');
+            final gaxeta = om.tasks['gaxeta'];
+            if (gaxeta != null) lines.add('  🔩 Gaxetas com folga: ${gaxeta == 'sim' ? '✅ Sim' : '❌ Não'}');
+            final ajusteGaxeta = om.tasks['ajuste-gaxeta'];
+            if (gaxeta == 'sim' && ajusteGaxeta != null) lines.add('    ↳ Ajuste: ${ajusteGaxeta == 'sim' ? '✅ Sim' : '❌ Não'}');
+            final lubrBomba = om.tasks['lubr-bomba'];
+            if (lubrBomba != null) lines.add('  🧴 Lubrificação: ${lubrBomba == 'sim' ? '✅ Sim' : '❌ Não'}');
+            final agua = om.tasks['agua-refrig'];
+            if (agua != null) {
+              const mapAr = {'ok': '✅ OK', 'corrigido': '🔧 Corrigido', 'pendente': '⏳ Pendente'};
+              lines.add('  💦 Água de Refrigeração: ${mapAr[agua] ?? agua}');
+            }
+            if (om.pressure.isNotEmpty) lines.add('  📈 Pressão: ${om.pressure}');
+            if (om.horometer.isNotEmpty) lines.add('  ⏱️ Horímetro: ${om.horometer}');
+          } else if (om.equipmentType == 'Motor') {
+            final lm = om.tasks['lubr-motor'];
+            if (lm != null) lines.add('⚡ Lubrificação motor: ${lm == 'sim' ? '✅ Sim' : '❌ Não'}');
+          } else if (om.equipmentType == 'Ventilador') {
+            final lv = om.tasks['lubr-vent'];
+            if (lv != null) lines.add('🌀 Lubrificação ventilador: ${lv == 'sim' ? '✅ Sim' : '❌ Não'}');
+          } else if (om.equipmentType == 'Exaustor') {
+            final le = om.tasks['lubr-exaust'];
+            if (le != null) lines.add('💨 Lubrificação exaustor: ${le == 'sim' ? '✅ Sim' : '❌ Não'}');
+            final tp = om.tasks['torque-paraf'];
+            if (tp != null) lines.add('🔧 Torque parafusos: ${tp == 'sim' ? '✅ Sim' : '❌ Não'}');
+          }
+        }
+
+        // Corretiva
+        if (om.maintenanceType == 'Corretiva') {
+          if (om.cause.isNotEmpty || om.symptom.isNotEmpty || om.intervention.isNotEmpty) {
+            lines.add('');
+            lines.add('🚨 *Corretiva:*');
+            if (om.cause.isNotEmpty) lines.add('  ⚠️ Causa: ${om.cause}');
+            if (om.symptom.isNotEmpty) lines.add('  🔍 Sintoma: ${om.symptom}');
+            if (om.intervention.isNotEmpty) lines.add('  🛠️ Intervenção: ${om.intervention}');
+          }
+        }
+
+        if (om.activities.isNotEmpty) {
+          lines.add('');
+          lines.add('📝 *Atividades:* ${om.activities}');
+        }
+
+        if (om.startTime.isNotEmpty || om.endTime.isNotEmpty) {
+          final horasTrab = _calcHoras(om.startTime, om.endTime);
+          final inicioStr = om.startTime.isNotEmpty ? 'Início ${om.startTime}' : '';
+          final setaS = (om.startTime.isNotEmpty && om.endTime.isNotEmpty) ? ' → ' : '';
+          final fimStr = om.endTime.isNotEmpty ? 'Término ${om.endTime}' : '';
+          final hTrabStr = horasTrab.isNotEmpty ? ' (⏳ $horasTrab trabalhadas)' : '';
+          lines.add('⏱️ *Horário:* $inicioStr$setaS$fimStr$hTrabStr');
+        }
+
+        if (om.hasStoppage) {
+          lines.add('⛔ *Parada:* ✅ Sim');
+          final horasPar = _calcHoras(om.stoppageStartTime, om.stoppageEndTime);
+          final pInicio = om.stoppageStartTime.isNotEmpty ? om.stoppageStartTime : '—';
+          final pFim = om.stoppageEndTime.isNotEmpty ? om.stoppageEndTime : '—';
+          final hParStr = horasPar.isNotEmpty ? ' (🔴 $horasPar parada)' : '';
+          lines.add('  Início: $pInicio  Retorno: $pFim$hParStr');
+        }
+
+        if (om.status.isNotEmpty) {
+          const mapStatus = {
+            'Liberado': '🟢',
+            'Em Andamento': '🟡',
+            'Concluído': '✅',
+            'Bombeamento Operando': '💧',
+            'Bombeamento Parado': '🔴',
+          };
+          lines.add('🚦 *Status:* ${mapStatus[om.status] ?? ''} ${om.status}');
+        }
+      }
+    }
+
+    if (state.observations.trim().isNotEmpty) {
+      lines.add('');
+      lines.add('━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      lines.add('💬 *OBSERVAÇÕES / PENDÊNCIAS*');
+      lines.add('─────────────────────');
+      lines.add(state.observations.trim());
+    }
+
+    lines.add('');
+    lines.add('━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    return lines.join('\n');
+  }
+
+  String _calcHoras(String inicio, String fim) {
+    if (inicio.isEmpty || fim.isEmpty) return '';
+    try {
+      final p1 = inicio.split(':');
+      final p2 = fim.split(':');
+      var min = (int.parse(p2[0]) * 60 + int.parse(p2[1])) -
+          (int.parse(p1[0]) * 60 + int.parse(p1[1]));
+      if (min < 0) min += 24 * 60;
+      final h = min ~/ 60;
+      final m = min % 60;
+      return '${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}';
+    } catch (_) {
+      return '';
+    }
+  }
+
+  Future<void> _sendWhatsApp() async {
+    final errors = _validateMechanicalForm();
+    final controller = ref.read(reportFormControllerProvider.notifier);
+
+    if (errors.isNotEmpty) {
+      controller.setShowValidationPanel(true);
+      _scrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeOut,
+      );
+      return;
+    }
+
+    controller.clearValidationErrors();
+
+    // Tenta submeter / salvar
+    await controller.submitReport();
+
+    final text = _generateWhatsAppText();
+    final encoded = Uri.encodeComponent(text);
+    final url = Uri.parse('https://wa.me/?text=$encoded');
+
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Não foi possível abrir o WhatsApp')),
+        );
+      }
+    }
+  }
+
+  // ─── Handlers Modais ───────────────────────────────────────────────────────
+
+  void _openNewOmModal() {
+    final controller = ref.read(reportFormControllerProvider.notifier);
+    final nextNum = controller.getNextOSNumber().replaceAll('OS-', 'OM-');
+
+    setState(() {
+      _selectedRota = '';
+      _manualOmNum = nextNum;
+      _manualLocSel = '';
+      _manualLocOutro = '';
+    });
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       builder: (context) {
         return StatefulBuilder(
@@ -276,7 +425,7 @@ class _MechanicalReportFormPageState extends ConsumerState<MechanicalReportFormP
               padding: EdgeInsets.only(
                 left: 18,
                 right: 18,
-                top: 20,
+                top: 16,
                 bottom: MediaQuery.of(context).viewInsets.bottom + 24,
               ),
               child: Column(
@@ -285,106 +434,210 @@ class _MechanicalReportFormPageState extends ConsumerState<MechanicalReportFormP
                 children: [
                   Center(
                     child: Container(
-                      width: 40,
+                      width: 36,
                       height: 4,
                       decoration: BoxDecoration(
-                        color: Colors.grey[300],
+                        color: Colors.grey.shade400,
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
                   ),
+                  const SizedBox(height: 12),
+                  RichText(
+                    text: TextSpan(
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                      children: const [
+                        TextSpan(text: '➕ Nova '),
+                        TextSpan(
+                          text: 'Ordem de Manutenção',
+                          style: TextStyle(color: Color(0xFF5C3FA3)),
+                        ),
+                      ],
+                    ),
+                  ),
                   const SizedBox(height: 14),
 
-                  const Row(
-                    children: [
-                      Text('➕ Nova ', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                      Text('Ordem de Manutenção', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF4A3FA8))),
-                    ],
+                  // Seleção de Rota
+                  const Text(
+                    '🛣️ Rota de Inspeção (Opcional)',
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey),
                   ),
-                  const SizedBox(height: 16),
-
-                  // Rota
-                  const Text('🛣️ Rota de Inspeção (Opcional)', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey)),
                   const SizedBox(height: 4),
                   DropdownButtonFormField<String>(
-                    initialValue: rotaOm.isEmpty ? '' : rotaOm,
-                    decoration: InputDecoration(
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    initialValue: _selectedRota.isEmpty ? null : _selectedRota,
+                    decoration: const InputDecoration(
+
+                      border: OutlineInputBorder(),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                     ),
                     items: const [
-                      DropdownMenuItem(value: '', child: Text('— Sem rota (OM manual) —')),
-                      DropdownMenuItem(value: 'rota01', child: Text('Rota de inspeção 01')),
-                      DropdownMenuItem(value: 'rota02', child: Text('Rota de inspeção 02')),
+                      DropdownMenuItem(
+                        value: '',
+                        child: Text('— Sem rota (OM manual) —'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'rota01',
+                        child: Text('Rota de inspeção 01'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'rota02',
+                        child: Text('Rota de inspeção 02'),
+                      ),
                     ],
-                    onChanged: (val) => setModalState(() => rotaOm = val ?? ''),
+                    onChanged: (val) {
+                      setModalState(() {
+                        _selectedRota = val ?? '';
+                      });
+                    },
                   ),
-                  const SizedBox(height: 14),
 
-                  if (rotaOm.isEmpty) ...[
+                  if (_selectedRota.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF5C3FA3).withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(Icons.push_pin, size: 16, color: Color(0xFF5C3FA3)),
+                          SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              'Esta rota gerará múltiplas OMs automaticamente',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF5C3FA3),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+
+                  if (_selectedRota.isEmpty) ...[
+                    const SizedBox(height: 12),
                     Row(
                       children: [
                         Expanded(
-                          flex: 1,
+                          flex: 2,
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text('🔢 Nº OM', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey)),
+                              const Text(
+                                '🔢 Nº OM',
+                                style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey),
+                              ),
                               const SizedBox(height: 4),
                               TextFormField(
-                                initialValue: numOm,
-                                decoration: InputDecoration(
-                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                                initialValue: _manualOmNum,
+                                style: const TextStyle(
+                                  fontFamily: 'monospace',
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF23005B),
                                 ),
-                                onChanged: (val) => numOm = val,
+                                decoration: const InputDecoration(
+                                  border: OutlineInputBorder(),
+                                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                ),
+                                onChanged: (val) => _manualOmNum = val,
                               ),
                             ],
                           ),
                         ),
                         const SizedBox(width: 10),
                         Expanded(
-                          flex: 2,
+                          flex: 3,
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text('📍 Local', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey)),
+                              const Text(
+                                '📍 Local',
+                                style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey),
+                              ),
                               const SizedBox(height: 4),
                               DropdownButtonFormField<String>(
-                                initialValue: localOm,
-                                decoration: InputDecoration(
-                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                                initialValue: _manualLocSel.isEmpty ? null : _manualLocSel,
+                                decoration: const InputDecoration(
+
+                                  border: OutlineInputBorder(),
+                                  contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
                                 ),
-                                items: _locaisMecanica.map((l) => DropdownMenuItem(value: l, child: Text(l, overflow: TextOverflow.ellipsis))).toList(),
-                                onChanged: (val) => setModalState(() => localOm = val ?? _locaisMecanica.first),
+                                items: MechanicalConstants.locaisOptions
+                                    .map((l) => DropdownMenuItem(value: l, child: Text(l, style: const TextStyle(fontSize: 13))))
+                                    .toList(),
+                                onChanged: (val) {
+                                  setModalState(() {
+                                    _manualLocSel = val ?? '';
+                                  });
+                                },
                               ),
                             ],
                           ),
                         ),
                       ],
                     ),
+                    if (_manualLocSel == 'Outro') ...[
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        decoration: const InputDecoration(
+                          hintText: 'Digite o local...',
+                          border: OutlineInputBorder(),
+                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        ),
+                        onChanged: (val) => _manualLocOutro = val,
+                      ),
+                    ],
                   ],
 
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 18),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text('Cancelar'),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            if (_selectedRota.isNotEmpty) {
+                              _addInspectionRoute(_selectedRota);
+                              Navigator.pop(context);
+                            } else {
+                              final loc = _manualLocSel == 'Outro'
+                                  ? (_manualLocOutro.isNotEmpty ? _manualLocOutro : 'Outro')
+                                  : _manualLocSel;
 
-                  ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF23005B),
-                      foregroundColor: Colors.white,
-                      minimumSize: const Size(double.infinity, 48),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    ),
-                    onPressed: () {
-                      Navigator.pop(context);
-                      if (rotaOm.isNotEmpty) {
-                        _adicionarOMsDaRota(rotaOm);
-                      } else {
-                        _adicionarOMManual(numOm, localOm);
-                      }
-                    },
-                    icon: const Icon(Icons.add),
-                    label: const Text('Adicionar à Lista', style: TextStyle(fontWeight: FontWeight.bold)),
+                              if (_manualLocSel.isEmpty) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('⚠️ Informe o Local')),
+                                );
+                                return;
+                              }
+
+                              controller.addWorkOrder(loc, _manualOmNum);
+                              Navigator.pop(context);
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF23005B),
+                            foregroundColor: Colors.white,
+                          ),
+                          icon: const Icon(Icons.check, size: 18),
+                          label: const Text('Adicionar OM'),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -395,730 +648,817 @@ class _MechanicalReportFormPageState extends ConsumerState<MechanicalReportFormP
     );
   }
 
-  void _adicionarOMManual(String numOm, String localOm) {
-    setState(() {
-      _ordensManutencao.add({
-        'id': DateTime.now().millisecondsSinceEpoch.toString(),
-        'omNumCtrl': TextEditingController(text: numOm),
-        'local': localOm,
-        'tagCtrl': TextEditingController(),
-        'descCtrl': TextEditingController(),
-        'status': 'ABERTA',
-        'concluida': false,
-        'startCtrl': TextEditingController(),
-        'endCtrl': TextEditingController(),
-        'fotos': <String>[],
-      });
-    });
-  }
+  void _addInspectionRoute(String rotaKey) {
+    final routeConfig = MechanicalConstants.rotasInspecao[rotaKey];
+    if (routeConfig == null) return;
 
-  void _adicionarOMsDaRota(String rotaId) {
-    final List<Map<String, String>> itens = rotaId == 'rota01'
-        ? [
-            {'om': 'OM-101', 'local': 'Oficina Infra', 'tag': 'HL-01', 'desc': 'Inspeção mecânica estrutural'},
-            {'om': 'OM-102', 'local': 'E22 - 01', 'tag': 'BOMBA-01', 'desc': 'Verificação de alinhamento'},
-          ]
-        : [
-            {'om': 'OM-201', 'local': 'EW42 - 01', 'tag': 'VALV-02', 'desc': 'Revisão hidráulica'},
-            {'om': 'OM-202', 'local': 'ER4', 'tag': 'HL-03', 'desc': 'Lubrificação geral'},
-          ];
+    final controller = ref.read(reportFormControllerProvider.notifier);
+    final locaisList = routeConfig['locais'] as List;
 
-    setState(() {
-      for (var item in itens) {
-        _ordensManutencao.add({
-          'id': DateTime.now().millisecondsSinceEpoch.toString() + item['om']!,
-          'omNumCtrl': TextEditingController(text: item['om']),
-          'local': item['local'],
-          'tagCtrl': TextEditingController(text: item['tag']),
-          'descCtrl': TextEditingController(text: item['desc']),
-          'status': 'ABERTA',
-          'concluida': false,
-          'startCtrl': TextEditingController(),
-          'endCtrl': TextEditingController(),
-          'fotos': <String>[],
-        });
-      }
-    });
-  }
-
-  String _gerarTextoRelatorio() {
-    final StringBuffer sb = StringBuffer();
-    final String dataStr = '${_selectedDate.day.toString().padLeft(2, '0')}/${_selectedDate.month.toString().padLeft(2, '0')}/${_selectedDate.year}';
-
-    sb.writeln('*RELATÓRIO DE MANUTENÇÃO MECÂNICA*');
-    sb.writeln('Data: $dataStr | Turno: $_turno | Turma: $_turma');
-    sb.writeln('');
-
-    sb.writeln('*EXECUTANTES:*');
-    int countExec = 0;
-    for (var ex in _executantes) {
-      if (ex['nome'] != null && ex['nome']!.isNotEmpty) {
-        countExec++;
-        final matStr = ex['mat'] != null && ex['mat']!.isNotEmpty ? ' (${ex['mat']})' : '';
-        sb.writeln('• ${ex['nome']}$matStr');
-      }
-    }
-    if (countExec == 0) sb.writeln('• Nenhum informado');
-    sb.writeln('');
-
-    sb.writeln('*ORDENS DE SERVIÇO / MANUTENÇÕES (${_ordensManutencao.length}):*');
-    if (_ordensManutencao.isEmpty) {
-      sb.writeln('• Nenhuma OM adicionada.');
-    } else {
-      for (var om in _ordensManutencao) {
-        final omNum = (om['omNumCtrl'] as TextEditingController).text;
-        final local = om['local'] ?? '';
-        final tag = (om['tagCtrl'] as TextEditingController).text;
-        final desc = (om['descCtrl'] as TextEditingController).text;
-        final st = om['status'] ?? 'ABERTA';
-
-        sb.writeln('• *$omNum* | Local: $local');
-        if (tag.isNotEmpty) sb.writeln('  TAG: $tag');
-        if (desc.isNotEmpty) sb.writeln('  Descrição: $desc');
-        sb.writeln('  Status: $st');
-        sb.writeln('');
+    // Finaliza OMs abertas existentes
+    final state = ref.read(reportFormControllerProvider);
+    for (final os in state.workOrders) {
+      if (!os.isFinalized) {
+        controller.updateWorkOrder(os.id, (o) => o.copyWith(isFinalized: true));
       }
     }
 
-    if (_observacoesCtrl.text.isNotEmpty) {
-      sb.writeln('*OBSERVAÇÕES:*');
-      sb.writeln(_observacoesCtrl.text);
-    }
+    for (final item in locaisList) {
+      final loc = item['local'].toString();
+      final tag = item['tag'].toString();
+      final tagDesc = MechanicalConstants.findTagDescription(tag);
+      final nextNum = controller.getNextOSNumber().replaceAll('OS-', 'OM-');
 
-    return sb.toString();
-  }
+      final count = ref.read(reportFormControllerProvider).osCounter + 1;
+      final osId = 'os-$count';
 
-  Future<void> _salvarESincronizarRelatorio() async {
-    try {
-      final repository = ref.read(reportRepositoryProvider);
-      final syncController = ref.read(syncControllerProvider.notifier);
-      
-      final reportId = 'MC-${const Uuid().v4().substring(0, 8).toUpperCase()}';
-
-      // Map operators
-      final operatorsList = _executantes.map((e) => CollaboratorEntity(
-        id: e['mat'] ?? const Uuid().v4(),
-        registration: e['mat'] ?? '',
-        name: e['nome'] ?? '',
-      )).toList();
-
-      // Map work orders
-      final List<WorkOrderEntity> workOrders = _ordensManutencao.map((om) {
-        final concluida = om['concluida'] ?? false;
-        return WorkOrderEntity(
-          id: om['id'] ?? const Uuid().v4(),
-          number: (om['omNumCtrl'] as TextEditingController).text,
-          location: om['local'] ?? '',
-          maintenanceType: 'MECANICA',
-          cause: '',
-          activities: (om['descCtrl'] as TextEditingController).text,
-          materialsUsed: const [],
-          quantityMeters: '0',
-          quantityPieces: '0',
-          startTime: (om['startCtrl'] as TextEditingController).text,
-          endTime: (om['endCtrl'] as TextEditingController).text,
-          status: om['status'] ?? 'ABERTA',
-          osStatus: concluida ? 'CONCLUÍDA' : 'ABERTA',
-          photoPaths: List<String>.from(om['fotos'] ?? []),
-        );
-      }).toList();
-
-      final report = ReportEntity(
-        uuid: reportId,
-        date: _selectedDate,
-        shift: _turno,
-        team: _turma,
-        type: 'Mecânica',
-        globalEquipment: 'Manutenção Mecânica',
-        globalLocation: '',
-        fuelLevel: 0.0,
-        availableMaterials: '',
-        observations: _observacoesCtrl.text,
-        syncStatus: ReportSyncStatus.pending,
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-        operators: operatorsList,
-        workOrders: workOrders,
+      controller.addWorkOrder(loc, nextNum);
+      controller.updateWorkOrder(
+        osId,
+        (o) => o.copyWith(
+          equipmentType: 'Bomba',
+          tagVal: tag,
+          tagDesc: tagDesc,
+        ),
       );
-
-      await repository.saveReport(report);
-      await syncController.triggerSync();
-      debugPrint('Relatório mecânico salvo e enfileirado para sincronização com sucesso: $reportId');
-    } catch (e) {
-      debugPrint('Erro ao salvar relatório mecânico: $e');
     }
-  }
 
-  void _enviarWhatsApp() async {
-    final texto = _gerarTextoRelatorio();
-    await _salvarESincronizarRelatorio();
-    final uri = Uri.parse('whatsapp://send?text=${Uri.encodeComponent(texto)}');
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } else {
-      final webUri = Uri.parse('https://wa.me/?text=${Uri.encodeComponent(texto)}');
-      if (await canLaunchUrl(webUri)) {
-        await launchUrl(webUri, mode: LaunchMode.externalApplication);
-      } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Não foi possível abrir o WhatsApp.')),
-          );
-        }
-      }
-    }
-  }
-
-  void _preencherModoDev() {
-    setState(() {
-      _selectedDate = DateTime.now();
-      _turno = 'T1';
-      _turma = 'A';
-      _executantes.clear();
-      _executantes.add({'nome': 'Acacio Oliveira Souza', 'mat': '4786'});
-      _executantes.add({'nome': 'Adailton Silva Santos', 'mat': '99300599'});
-
-      _ordensManutencao.clear();
-      _ordensManutencao.add({
-        'id': '101',
-        'omNumCtrl': TextEditingController(text: 'OM-3012'),
-        'local': 'Subestação S-01',
-        'tagCtrl': TextEditingController(text: 'MC-101'),
-        'descCtrl': TextEditingController(text: 'Inspeção mecânica das bombas principais e lubrificação de rolamentos'),
-        'status': 'CONCLUÍDA',
-        'concluida': true,
-        'startCtrl': TextEditingController(text: '08:00'),
-        'endCtrl': TextEditingController(text: '10:00'),
-        'fotos': <String>[],
-      });
-      _ordensManutencao.add({
-        'id': '102',
-        'omNumCtrl': TextEditingController(text: 'OM-3015'),
-        'local': 'Oficina Subterrânea',
-        'tagCtrl': TextEditingController(text: 'PT-302'),
-        'descCtrl': TextEditingController(text: 'Troca de vedações hidráulicas e teste de pressão do sistema'),
-        'status': 'CONCLUÍDA',
-        'concluida': true,
-        'startCtrl': TextEditingController(text: '10:30'),
-        'endCtrl': TextEditingController(text: '12:00'),
-        'fotos': <String>[],
-      });
-
-      _observacoesCtrl.text = 'Manutenção preventiva realizada com sucesso. Equipamentos liberados sem pendências.';
-    });
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('⚙️ [Modo Dev] Dados de Mecânica preenchidos com sucesso!'),
-        backgroundColor: Color(0xFF23005B),
-        duration: Duration(seconds: 2),
-      ),
+      SnackBar(content: Text('✅ ${locaisList.length} OMs adicionadas da ${routeConfig['nome']}')),
+    );
+  }
+
+  void _confirmDeleteOm(String omId, String omNum) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Row(
+            children: [
+              Text('🗑️ ', style: TextStyle(fontSize: 22)),
+              Text('Excluir OM?'),
+            ],
+          ),
+          content: Text('Tem certeza que deseja excluir a $omNum? Esta ação não pode ser desfeita.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                ref.read(reportFormControllerProvider.notifier).removeWorkOrder(omId);
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('OM removida')),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Excluir'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _confirmNewReport() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Row(
+            children: [
+              Text('🔄 ', style: TextStyle(fontSize: 22)),
+              Text('Iniciar novo relatório?'),
+            ],
+          ),
+          content: const Text('Todos os dados preenchidos neste relatório serão apagados permanentemente.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                ref.read(reportFormControllerProvider.notifier).clearForm();
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Novo relatório iniciado')),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF23005B),
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Confirmar'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _confirmDiscardDraft() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Row(
+            children: [
+              Text('🗑️ ', style: TextStyle(fontSize: 22)),
+              Text('Descartar rascunho?'),
+            ],
+          ),
+          content: const Text('O rascunho salvo será apagado permanentemente.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                ref.read(reportFormControllerProvider.notifier).discardDraft();
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Rascunho descartado')),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Descartar'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _openAddCustomCollaboratorDialog(int index) {
+    String nome = '';
+    String mat = '';
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('➕ Cadastrar Novo Executante'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                decoration: const InputDecoration(
+                  labelText: 'Nome Completo',
+                  border: OutlineInputBorder(),
+                ),
+                onChanged: (val) => nome = val,
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                decoration: const InputDecoration(
+                  labelText: 'Matrícula',
+                  border: OutlineInputBorder(),
+                ),
+                onChanged: (val) => mat = val,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (nome.trim().isEmpty || mat.trim().isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('⚠️ Preencha o nome e a matrícula')),
+                  );
+                  return;
+                }
+                ref.read(reportFormControllerProvider.notifier)
+                  ..registerCustomCollaborator(nome.trim(), mat.trim())
+                  ..updateOperator(index, nome.trim(), mat.trim());
+                Navigator.pop(context);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF74BE45),
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Salvar'),
+            ),
+          ],
+        );
+      },
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    const primaryNavy = Color(0xFF23005B);
-    const accentPurple = Color(0xFF5C3FA3);
-    const bgLight = Color(0xFFF5F7FA);
-    const textColor = Color(0xFF1F2937);
+    final formState = ref.watch(reportFormControllerProvider);
+    final controller = ref.read(reportFormControllerProvider.notifier);
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
-    final themeMode = ref.watch(themeModeProvider);
-    final isDark = themeMode == ThemeMode.dark;
+    const accentPurple = Color(0xFF5C3FA3);
+    const cmocGreen = Color(0xFF74BE45);
+
+
+    final consolidatedCollaborators = controller.getConsolidatedCollaborators();
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF121212) : bgLight,
+      backgroundColor: isDark ? const Color(0xFF0B1120) : const Color(0xFFF0F0F4),
       appBar: AppBar(
-        backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
         elevation: 1,
-        titleSpacing: 16,
         title: Row(
           children: [
-            const SyncStatusBadge(),
+            Container(
+              width: 8,
+              height: 8,
+              decoration: const BoxDecoration(
+                color: cmocGreen,
+                shape: BoxShape.circle,
+              ),
+            ),
             const SizedBox(width: 8),
-            Text('CM', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: isDark ? Colors.white : textColor)),
-            const Text('OC', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: accentPurple)),
-            const SizedBox(width: 10),
-            Flexible(
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: const BoxDecoration(
-                  color: Color(0xFFEDE9FF),
-                  borderRadius: BorderRadius.all(Radius.circular(20)),
+            RichText(
+              text: TextSpan(
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white : Colors.black87,
                 ),
-                child: const Text('⚙️ MECÂNICA', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: accentPurple), overflow: TextOverflow.ellipsis),
+                children: const [
+                  TextSpan(text: 'CM'),
+                  TextSpan(text: 'OC', style: TextStyle(color: accentPurple)),
+                ],
               ),
             ),
           ],
         ),
         actions: [
-          IconButton(
-            icon: Icon(
-              isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
-              color: isDark ? Colors.amber : accentPurple,
+          Container(
+            margin: const EdgeInsets.only(right: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: accentPurple.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(20),
             ),
-            tooltip: isDark ? 'Modo Claro' : 'Modo Escuro CMOC',
-            onPressed: () {
-              ref.read(themeModeProvider.notifier).state =
-                  isDark ? ThemeMode.light : ThemeMode.dark;
-            },
+            child: const Text(
+              '⚙️ MECÂNICA',
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+                color: accentPurple,
+              ),
+            ),
           ),
+
           if (ref.watch(devModeProvider))
             IconButton(
-              icon: const Icon(Icons.flash_on_rounded, color: Color(0xFFF59E0B)),
+              icon: const Icon(Icons.bolt, color: Colors.amber),
               tooltip: 'Preencher Automático (Modo Dev)',
-              onPressed: _preencherModoDev,
+              onPressed: () {
+                controller.fillMechanicalMockData();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('⚡ Formulário mecânico preenchido com dados de teste!'),
+                    backgroundColor: Color(0xFF5C3FA3),
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+              },
             ),
-        ],
-      ),
-      body: IndexedStack(
-        index: _currentTab,
-        children: [
-          _buildTabFormulario(primaryNavy, accentPurple, textColor),
-          _buildTabCadastros(primaryNavy, accentPurple, textColor),
-        ],
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentTab,
-        onTap: (idx) => setState(() => _currentTab = idx),
-        selectedItemColor: primaryNavy,
-        unselectedItemColor: Colors.grey,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.assignment), label: 'Relatório'),
-          BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Cadastros & Locais'),
-        ],
-      ),
-    );
-  }
 
-  // =========================================================================
-  // ABA 1: FORMULÁRIO OPERACIONAL MECÂNICA
-  // =========================================================================
+          const SyncStatusBadge(),
+          const SizedBox(width: 8),
+        ],
+      ),
 
-  Widget _buildTabFormulario(Color primaryNavy, Color accentPurple, Color textColor) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header Card
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey.shade200),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+      body: SafeArea(
+        child: SingleChildScrollView(
+          controller: _scrollController,
+          padding: const EdgeInsets.all(14.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Banner de Rascunho Restaurado
+              if (formState.draftBannerVisible)
+                Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: Colors.amber.shade50,
+                    border: Border.all(color: Colors.amber.shade300),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      const Text('📝 ', style: TextStyle(fontSize: 16)),
+                      Expanded(
+                        child: Text(
+                          'Rascunho encontrado',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.amber.shade900,
+                          ),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: _confirmDiscardDraft,
+                        style: TextButton.styleFrom(
+                          backgroundColor: Colors.amber.shade100,
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                        child: Text(
+                          'Descartar',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.amber.shade900,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+              // Banner de Validação
+              if (formState.showValidationPanel && formState.validationErrors.isNotEmpty)
+                Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade50,
+                    border: Border.all(color: Colors.red.shade300),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        '⚠️ Preencha os campos obrigatórios:',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.red,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      ...formState.validationErrors.map(
+                        (err) => Padding(
+                          padding: const EdgeInsets.only(bottom: 2),
+                          child: Text(
+                            err,
+                            style: const TextStyle(fontSize: 12, color: Colors.red),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+              // SEÇÃO: IDENTIFICAÇÃO
+              _buildSectionLabel('IDENTIFICAÇÃO'),
+              _buildCard(
+                isDark,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.calendar_today, size: 16, color: primaryNavy),
-                    const SizedBox(width: 6),
-                    Text(
-                      '${_selectedDate.day.toString().padLeft(2, '0')}/${_selectedDate.month.toString().padLeft(2, '0')}/${_selectedDate.year}',
-                      style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
-                    ),
-                    const Spacer(),
-                    TextButton(
-                      onPressed: () async {
-                        final d = await showDatePicker(
+                    // Data
+                    _buildFieldLabel('📅 Data'),
+                    InkWell(
+                      onTap: () async {
+                        final picked = await showDatePicker(
                           context: context,
-                          initialDate: _selectedDate,
+                          initialDate: formState.date,
                           firstDate: DateTime(2020),
                           lastDate: DateTime(2030),
                         );
-                        if (d != null) setState(() => _selectedDate = d);
+                        if (picked != null) {
+                          controller.setDate(picked);
+                        }
                       },
-                      child: const Text('Alterar Data'),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                        decoration: _boxDecoration(isDark),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              '${formState.date.day.toString().padLeft(2, '0')}/${formState.date.month.toString().padLeft(2, '0')}/${formState.date.year}',
+                              style: const TextStyle(fontSize: 15),
+                            ),
+                            const Icon(Icons.calendar_today, size: 16),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    // Executantes
+                    ...List.generate(formState.operators.length, (idx) {
+                      final op = formState.operators[idx];
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 10),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                _buildFieldLabel('👷 Executante ${idx + 1}'),
+                                if (idx > 0)
+                                  IconButton(
+                                    icon: const Icon(Icons.close, size: 16, color: Colors.grey),
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(),
+                                    onPressed: () => controller.removeOperator(idx),
+                                  ),
+                              ],
+                            ),
+                            DropdownButtonFormField<String>(
+                              initialValue: consolidatedCollaborators.any((c) => c['mat'] == op.registration)
+                                  ? op.registration
+                                  : null,
+                              decoration: const InputDecoration(
+
+                                border: OutlineInputBorder(),
+                                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                              ),
+                              hint: const Text('— Selecione —'),
+                              items: [
+                                ...consolidatedCollaborators.map(
+                                  (c) => DropdownMenuItem(
+                                    value: c['mat'],
+                                    child: Text(
+                                      c['nome'] ?? '',
+                                      style: const TextStyle(fontSize: 14),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ),
+                                const DropdownMenuItem(
+                                  value: '__novo__',
+                                  child: Text(
+                                    '➕ Cadastrar novo executante...',
+                                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF5C3FA3)),
+                                  ),
+                                ),
+                              ],
+                              onChanged: (val) {
+                                if (val == '__novo__') {
+                                  _openAddCustomCollaboratorDialog(idx);
+                                } else if (val != null) {
+                                  final colab = consolidatedCollaborators.firstWhere(
+                                    (c) => c['mat'] == val,
+                                    orElse: () => {'nome': '', 'mat': ''},
+                                  );
+                                  controller.updateOperator(
+                                    idx,
+                                    colab['nome'] ?? '',
+                                    colab['mat'] ?? '',
+                                  );
+                                }
+                              },
+                            ),
+                            if (op.registration.isNotEmpty) ...[
+                              const SizedBox(height: 6),
+                              Row(
+                                children: [
+                                  const Text(
+                                    '🪪 Matrícula: ',
+                                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                    decoration: BoxDecoration(
+                                      color: accentPurple.withValues(alpha: 0.12),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Text(
+                                      op.registration,
+                                      style: const TextStyle(
+                                        fontFamily: 'monospace',
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 12,
+                                        color: accentPurple,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+
+                          ],
+                        ),
+                      );
+                    }),
+
+                    OutlinedButton.icon(
+                      onPressed: () => controller.addOperator(),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(double.infinity, 42),
+                      ),
+                      icon: const Icon(Icons.add, size: 16),
+                      label: const Text('Adicionar executante'),
                     ),
                   ],
                 ),
-                const Divider(),
-                const Text('TURNO E TURMA', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey)),
-                const SizedBox(height: 6),
-                Column(
+              ),
+
+              // SEÇÃO: TURNO & TURMA
+              _buildSectionLabel('TURNO & TURMA'),
+              _buildCard(
+                isDark,
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Turno:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                    const SizedBox(height: 8),
+                    _buildFieldLabel('⏱️ Turno'),
                     Wrap(
-                      spacing: 8.0,
-                      children: ['T1', 'T2', 'T3'].map((turno) {
+                      spacing: 6,
+                      children: ['T1', 'T2', 'T3', 'ADM'].map((t) {
+                        final isSel = formState.shift == t;
                         return ChoiceChip(
-                          label: Text(turno),
-                          selected: _turno == turno,
-                          onSelected: (selected) {
-                            if (selected) setState(() => _turno = turno);
-                          },
+                          label: Text(t),
+                          selected: isSel,
+                          selectedColor: accentPurple.withValues(alpha: 0.2),
+                          side: BorderSide(color: isSel ? accentPurple : Colors.grey.shade300),
+                          labelStyle: TextStyle(
+                            fontFamily: 'monospace',
+                            fontWeight: FontWeight.bold,
+                            color: isSel ? accentPurple : Colors.grey.shade700,
+                          ),
+                          onSelected: (_) => controller.setShift(t),
                         );
                       }).toList(),
                     ),
-                    const SizedBox(height: 16),
-                    const Text('Turma:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                    const SizedBox(height: 8),
+
+                    const SizedBox(height: 10),
+
+                    _buildFieldLabel('👥 Turma'),
                     Wrap(
-                      spacing: 8.0,
-                      children: ['A', 'B', 'C', 'D'].map((turma) {
+                      spacing: 6,
+                      children: ['A', 'B', 'C', 'D', 'ADM'].map((turma) {
+                        final isSel = formState.team == turma;
                         return ChoiceChip(
                           label: Text(turma),
-                          selected: _turma == turma,
-                          onSelected: (selected) {
-                            if (selected) setState(() => _turma = turma);
-                          },
+                          selected: isSel,
+                          selectedColor: cmocGreen.withValues(alpha: 0.2),
+                          side: BorderSide(color: isSel ? cmocGreen : Colors.grey.shade300),
+                          labelStyle: TextStyle(
+                            fontFamily: 'monospace',
+                            fontWeight: FontWeight.bold,
+                            color: isSel ? cmocGreen : Colors.grey.shade700,
+                          ),
+                          onSelected: (_) => controller.setTeam(turma),
                         );
                       }).toList(),
                     ),
                   ],
                 ),
-              ],
-            ),
-          ),
+              ),
 
-          const SizedBox(height: 16),
+              // SEÇÃO: ORDENS DE MANUTENÇÃO
+              _buildSectionLabel('ORDENS DE MANUTENÇÃO'),
 
-          // Executantes
-          Text('👨‍🔧 EXECUTANTES (MECÂNICOS)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: primaryNavy)),
-          const SizedBox(height: 6),
-
-          ...List.generate(_executantes.length, (idx) {
-            final currentItem = _executantes[idx];
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 8.0),
-              child: Autocomplete<Map<String, String>>(
-                optionsBuilder: (textEditingValue) {
-                  if (textEditingValue.text.isEmpty) return const Iterable.empty();
-                  return _pessoasMecanica.where((p) => p['nome']!.toLowerCase().contains(textEditingValue.text.toLowerCase()) || p['mat']!.contains(textEditingValue.text));
-                },
-                displayStringForOption: (option) => '${option['nome']} (${option['mat']})',
-                fieldViewBuilder: (context, controller, focusNode, onEditingComplete) {
-                  if (controller.text.isEmpty && currentItem['nome']!.isNotEmpty) {
-                    controller.text = '${currentItem['nome']} (${currentItem['mat']})';
-                  }
-                  return TextField(
-                    controller: controller,
-                    focusNode: focusNode,
-                    decoration: InputDecoration(
-                      hintText: 'Digite o nome ou matrícula do mecânico...',
-                      fillColor: Colors.white,
-                      filled: true,
-                      isDense: true,
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                      suffixIcon: idx > 0
-                          ? IconButton(
-                              icon: const Icon(Icons.remove_circle, color: Colors.redAccent),
-                              onPressed: () => setState(() => _executantes.removeAt(idx)),
-                            )
-                          : null,
+              if (formState.workOrders.isEmpty)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(24),
+                  margin: const EdgeInsets.only(bottom: 10),
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF111827) : Colors.white,
+                    border: Border.all(
+                      color: isDark ? const Color(0xFF374151) : const Color(0xFFE0E0E8),
+                      style: BorderStyle.solid,
                     ),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    children: [
+                      const Text('📭', style: TextStyle(fontSize: 32)),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Nenhuma OM adicionada.',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Toque em "+ Nova OM" para começar.',
+                        style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                ...List.generate(formState.workOrders.length, (idx) {
+                  final om = formState.workOrders[idx];
+                  return MechanicalOmCard(
+                    om: om,
+                    index: idx,
+                    onChanged: (updatedOm) {
+                      controller.updateWorkOrder(om.id, (_) => updatedOm);
+                    },
+                    onToggleFinalize: () {
+                      controller.updateWorkOrder(
+                        om.id,
+                        (o) => o.copyWith(isFinalized: !o.isFinalized),
+                      );
+                    },
+                    onDelete: () => _confirmDeleteOm(om.id, om.number),
                   );
-                },
-                onSelected: (option) {
-                  setState(() {
-                    _executantes[idx] = {'nome': option['nome']!, 'mat': option['mat']!};
-                  });
-                },
-              ),
-            );
-          }),
+                }),
 
-          TextButton.icon(
-            onPressed: () => setState(() => _executantes.add({'nome': '', 'mat': ''})),
-            icon: Icon(Icons.add_circle_outline, color: accentPurple),
-            label: Text('Adicionar Mecânico', style: TextStyle(color: accentPurple, fontWeight: FontWeight.bold)),
-          ),
-
-          const SizedBox(height: 16),
-
-          // Lista de Manutenções
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('🛠️ ORDENS DE SERVIÇO E MANUTENÇÕES', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: primaryNavy)),
+              // Botão Nova OM
               ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(backgroundColor: primaryNavy, foregroundColor: Colors.white),
-                onPressed: _abrirModalNovaOM,
-                icon: const Icon(Icons.add, size: 16),
-                label: const Text('Nova OM'),
-              ),
-            ],
-          ),
+                onPressed: _openNewOmModal,
+                style: ElevatedButton.styleFrom(
+                  minimumSize: const Size(double.infinity, 48),
+                  backgroundColor: accentPurple.withValues(alpha: 0.12),
+                  foregroundColor: accentPurple,
+                  elevation: 0,
+                  side: const BorderSide(color: accentPurple),
+                  shape: RoundedRectangleBorder(
 
-          const SizedBox(height: 8),
-
-          if (_ordensManutencao.isEmpty)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
-              child: const Column(
-                children: [
-                  Icon(Icons.build_outlined, size: 40, color: Colors.grey),
-                  SizedBox(height: 8),
-                  Text('Nenhuma Ordem de Manutenção adicionada.', style: TextStyle(color: Colors.grey, fontSize: 12)),
-                ],
-              ),
-            )
-          else
-            ..._ordensManutencao.map((om) => _buildCardOM(om, primaryNavy, accentPurple)),
-
-          const SizedBox(height: 16),
-
-          // Observações
-          Text('📝 OBSERVAÇÕES GERAIS DA MANUTENÇÃO', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: primaryNavy)),
-          const SizedBox(height: 6),
-          TextField(
-            controller: _observacoesCtrl,
-            maxLines: 3,
-            decoration: InputDecoration(
-              hintText: 'Anormalidades mecânicas, peças substituídas, pendências...',
-              fillColor: Colors.white,
-              filled: true,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-            ),
-          ),
-
-          const SizedBox(height: 20),
-
-          ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF25D366),
-              foregroundColor: Colors.white,
-              minimumSize: const Size(double.infinity, 50),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
-            onPressed: _enviarWhatsApp,
-            icon: const Icon(Icons.send),
-            label: const Text('Enviar Relatório via WhatsApp', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCardOM(Map<String, dynamic> om, Color primaryNavy, Color accentPurple) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10), border: Border.all(color: Colors.grey.shade300)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: om['omNumCtrl'] as TextEditingController,
-                  decoration: const InputDecoration(labelText: 'Nº da OM', isDense: true),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                icon: const Icon(Icons.add, size: 18),
+                label: const Text(
+                  '➕ Nova OM / Atividade',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                 ),
               ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: DropdownButtonFormField<String>(
-                  initialValue: _locaisMecanica.contains(om['local']) ? om['local'] : _locaisMecanica.first,
-                  decoration: const InputDecoration(labelText: 'Local', isDense: true),
-                  items: _locaisMecanica.map((l) => DropdownMenuItem(value: l, child: Text(l, overflow: TextOverflow.ellipsis))).toList(),
-                  onChanged: (val) => setState(() => om['local'] = val ?? _locaisMecanica.first),
-                ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
-                onPressed: () => setState(() => _ordensManutencao.remove(om)),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          TextField(
-            controller: om['tagCtrl'] as TextEditingController,
-            decoration: const InputDecoration(labelText: 'TAG / Equipamento (Ex: HL-01, BOMBA-02)', isDense: true),
-          ),
-          const SizedBox(height: 8),
-          TextField(
-            controller: om['descCtrl'] as TextEditingController,
-            decoration: const InputDecoration(labelText: 'Descrição da Atividade Mecânica', isDense: true),
-          ),
-        ],
-      ),
-    );
-  }
 
-  // =========================================================================
-  // ABA 2: CADASTROS & CONFIGURAÇÕES (LOCAIS, EQUIPAMENTOS, MECÂNICOS)
-  // =========================================================================
-
-  Widget _buildTabCadastros(Color primaryNavy, Color accentPurple, Color textColor) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 1. Locais e Frentes de Manutenção
-          _buildCardCadastroSection(
-            title: '📍 Frentes e Locais de Manutenção (${_locaisMecanica.length})',
-            primaryNavy: primaryNavy,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+              // SEÇÃO: OBSERVAÇÕES
+              _buildSectionLabel('OBSERVAÇÕES / PENDÊNCIAS'),
+              _buildCard(
+                isDark,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _novoLocalCtrl,
-                        decoration: const InputDecoration(hintText: 'Ex: Oficina K-02, Rampa Sul'),
-                      ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        _buildFieldLabel('📝 Observações *'),
+                        InkWell(
+                          onTap: () => controller.setObservations('N/A'),
+                          borderRadius: BorderRadius.circular(4),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade200,
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(color: Colors.grey.shade400),
+                            ),
+                            child: const Text(
+                              'Preencher N/A',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 8),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(backgroundColor: primaryNavy, foregroundColor: Colors.white),
-                      onPressed: () {
-                        final val = _novoLocalCtrl.text.trim();
-                        if (val.isNotEmpty && !_locaisMecanica.contains(val)) {
-                          setState(() {
-                            _locaisMecanica.add(val);
-                            _novoLocalCtrl.clear();
-                            _salvarCadastrosPersistidos();
-                          });
-                          FirestoreCadastrosService().salvarLocalMecanica(val);
-                        }
-                      },
-                      child: const Text('Adicionar'),
+                    const SizedBox(height: 6),
+                    TextFormField(
+                      key: ValueKey('obs_${formState.observations}'),
+                      initialValue: formState.observations,
+                      maxLines: 3,
+                      decoration: const InputDecoration(
+                        hintText: 'Registre observações gerais ou clique em N/A se não houver pendências...',
+                        border: OutlineInputBorder(),
+                      ),
+                      onChanged: (val) => controller.setObservations(val),
                     ),
                   ],
                 ),
-                const SizedBox(height: 10),
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
-                  children: _locaisMecanica.map((loc) {
-                    return Chip(
-                      label: Text(loc, style: const TextStyle(fontSize: 12)),
-                      onDeleted: loc == 'Outro'
-                          ? null
-                          : () {
-                              setState(() {
-                                _locaisMecanica.remove(loc);
-                                _salvarCadastrosPersistidos();
-                              });
-                            },
-                    );
-                  }).toList(),
+              ),
+
+
+              const SizedBox(height: 14),
+
+              // BOTOES PRINCIPAIS
+              ElevatedButton.icon(
+                onPressed: _sendWhatsApp,
+                style: ElevatedButton.styleFrom(
+                  minimumSize: const Size(double.infinity, 52),
+                  backgroundColor: const Color(0xFF25D366),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
-              ],
+                icon: const Icon(Icons.send, size: 20),
+                label: const Text(
+                  'Enviar pelo WhatsApp',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                ),
+              ),
+
+              const SizedBox(height: 8),
+
+              OutlinedButton.icon(
+                onPressed: _confirmNewReport,
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(double.infinity, 48),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                icon: const Icon(Icons.refresh, size: 18),
+                label: const Text('🔄 Novo relatório'),
+              ),
+
+              const SizedBox(height: 40),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSectionLabel(String label) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 18, bottom: 8),
+      child: Row(
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey,
+              letterSpacing: 1.2,
             ),
           ),
-
-          const SizedBox(height: 16),
-
-          // 2. Frota e Equipamentos Mecânicos
-          _buildCardCadastroSection(
-            title: '🚜 Frota e Equipamentos Mecânicos (${_equipamentosMecanica.length})',
-            primaryNavy: primaryNavy,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _novoEquipCtrl,
-                        decoration: const InputDecoration(hintText: 'Ex: Pá Carregadeira L-140'),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(backgroundColor: primaryNavy, foregroundColor: Colors.white),
-                      onPressed: () {
-                        final val = _novoEquipCtrl.text.trim();
-                        if (val.isNotEmpty && !_equipamentosMecanica.contains(val)) {
-                          setState(() {
-                            _equipamentosMecanica.add(val);
-                            _novoEquipCtrl.clear();
-                            _salvarCadastrosPersistidos();
-                          });
-                        }
-                      },
-                      child: const Text('Adicionar'),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
-                  children: _equipamentosMecanica.map((eq) {
-                    return Chip(
-                      label: Text(eq, style: const TextStyle(fontSize: 12)),
-                      onDeleted: () {
-                        setState(() {
-                          _equipamentosMecanica.remove(eq);
-                          _salvarCadastrosPersistidos();
-                        });
-                      },
-                    );
-                  }).toList(),
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 16),
-
-          // 3. Cadastrar Novo Mecânico
-          _buildCardCadastroSection(
-            title: '👨‍🔧 Cadastrar Mecânico / Colaborador (${_pessoasMecanica.length})',
-            primaryNavy: primaryNavy,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                TextField(
-                  controller: _novoNomeMecCtrl,
-                  decoration: const InputDecoration(labelText: 'Nome do Mecânico *'),
-                ),
-                TextField(
-                  controller: _novaMatMecCtrl,
-                  decoration: const InputDecoration(labelText: 'Matrícula'),
-                ),
-                const SizedBox(height: 8),
-                ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(backgroundColor: accentPurple, foregroundColor: Colors.white),
-                  onPressed: () {
-                    final nome = _novoNomeMecCtrl.text.trim();
-                    if (nome.isNotEmpty) {
-                      setState(() {
-                        _pessoasMecanica.add({
-                          'nome': nome,
-                          'mat': _novaMatMecCtrl.text.trim().isEmpty ? 'S/N' : _novaMatMecCtrl.text.trim(),
-                        });
-                        _novoNomeMecCtrl.clear();
-                        _novaMatMecCtrl.clear();
-                        _salvarCadastrosPersistidos();
-                      });
-                    }
-                  },
-                  icon: const Icon(Icons.person_add),
-                  label: const Text('Salvar Colaborador'),
-                ),
-              ],
-            ),
-          ),
+          const SizedBox(width: 8),
+          const Expanded(child: Divider(height: 1)),
         ],
       ),
     );
   }
 
-  Widget _buildCardCadastroSection({required String title, required Color primaryNavy, required Widget child}) {
+  Widget _buildCard(bool isDark, {required Widget child}) {
     return Container(
+      width: double.infinity,
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade300)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: primaryNavy)),
-          const SizedBox(height: 10),
-          child,
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF111827) : Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isDark ? const Color(0xFF374151) : const Color(0xFFE0E0E8),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 4,
+            offset: const Offset(0, 1),
+          ),
         ],
       ),
+      child: child,
+    );
+  }
+
+  Widget _buildFieldLabel(String label) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Text(
+        label,
+        style: const TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.bold,
+          color: Colors.grey,
+        ),
+      ),
+    );
+  }
+
+  BoxDecoration _boxDecoration(bool isDark) {
+    return BoxDecoration(
+      color: isDark ? const Color(0xFF1F2937) : const Color(0xFFF7F7FA),
+      border: Border.all(color: isDark ? Colors.grey.shade700 : const Color(0xFFE0E0E8)),
+      borderRadius: BorderRadius.circular(8),
     );
   }
 }

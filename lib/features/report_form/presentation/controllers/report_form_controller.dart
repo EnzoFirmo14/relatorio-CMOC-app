@@ -304,6 +304,23 @@ class ReportFormController extends Notifier<ReportFormState> {
       errors.add('Informe pelo menos um Executante');
     }
 
+    if (state.globalEquipment.trim().isEmpty) {
+      errors.add('Equipamento deve ser selecionado ou informado ("N/A")');
+    }
+    if (state.globalLocation.trim().isEmpty) {
+      errors.add('Local Global deve ser preenchido ou informado ("N/A")');
+    }
+    if (state.availableMaterials.trim().isEmpty) {
+      errors.add('Materiais Disponíveis deve ser preenchido ou informado ("N/A")');
+    }
+    if (state.observations.trim().isEmpty) {
+      errors.add('Observações Gerais devem ser preenchidas ou informadas ("N/A")');
+    }
+
+    if (state.workOrders.isEmpty) {
+      errors.add('Adicione pelo menos uma Ordem de Serviço (OS)');
+    }
+
     for (final os in state.workOrders) {
       final prefix = 'OS ${os.number}: ';
 
@@ -313,13 +330,27 @@ class ReportFormController extends Notifier<ReportFormState> {
       if (os.activities.trim().isEmpty) {
         errors.add('${prefix}Atividades realizadas não preenchidas');
       }
+      if (os.cause.trim().isEmpty) {
+        errors.add('${prefix}Causa/Motivo deve ser preenchido ou informado ("N/A")');
+      }
+      if (os.materialsUsed.isEmpty &&
+          os.quantityMeters.trim().isEmpty &&
+          os.quantityPieces.trim().isEmpty) {
+        errors.add('${prefix}Materiais/Metros/Peças devem ser informados ou marcados como "N/A"');
+      }
       if (os.startTime.isEmpty) {
         errors.add('${prefix}Horário de Início não preenchido');
+      }
+      if (os.endTime.isEmpty) {
+        errors.add('${prefix}Horário de Término não preenchido');
       }
       if (os.startTime.isNotEmpty && os.endTime.isNotEmpty) {
         if (os.durationInMinutes <= 0) {
           errors.add('${prefix}Horário de Término deve ser depois do Início');
         }
+      }
+      if (os.status.isEmpty) {
+        errors.add('${prefix}Status da OS não selecionado');
       }
     }
 
@@ -330,6 +361,7 @@ class ReportFormController extends Notifier<ReportFormState> {
 
     return errors;
   }
+
 
   // ─── WhatsApp Text Generator ───────────────────────────────────────────
 
@@ -444,6 +476,96 @@ class ReportFormController extends Notifier<ReportFormState> {
     _autosave();
   }
 
+  void fillMechanicalMockData() {
+    state = state.copyWith(
+      date: DateTime.now(),
+      shift: 'T1',
+      team: 'A',
+      observations: 'Turno operado em ritmo normal. Equipamentos testados e liberados para a equipe de operação.',
+      operators: [
+        const OperatorState(name: 'Adonis Evaristo Sousa dos Santos', registration: '99300182'),
+        const OperatorState(name: 'Gabriel Alves Queiroz Lopes', registration: '99300456'),
+      ],
+      workOrders: [
+        const WorkOrderState(
+          id: 'os-1',
+          number: 'OM-001',
+          location: 'E22 - 01',
+          maintenanceType: 'Inspeção',
+          equipmentType: 'Bomba',
+          tagVal: 'BAEI3072',
+          tagDesc: 'BOMBA MULTIESTAGIO EQUIPE EQ4-125-100-24',
+          activities: 'Realizada inspeção visual, teste de pressão e verificação de gaxetas. Sem anormalidades.',
+          startTime: '08:00',
+          endTime: '10:30',
+          hasStoppage: true,
+          stoppageStartTime: '08:15',
+          stoppageEndTime: '09:00',
+          pressure: '12.5',
+          horometer: '45210',
+          tasks: {
+            'oleo': 'sim',
+            'troca-oleo': 'nao',
+            'gaxeta': 'sim',
+            'ajuste-gaxeta': 'sim',
+            'lubr-bomba': 'sim',
+            'agua-refrig': 'ok',
+          },
+          status: 'Concluído',
+          isFinalized: true,
+        ),
+        const WorkOrderState(
+          id: 'os-2',
+          number: 'OM-002',
+          location: 'HL',
+          maintenanceType: 'Preditiva',
+          datasulOm: 'DS-99482',
+          equipmentType: 'Motor',
+          tagVal: 'BAEI3079',
+          tagDesc: 'BOMBA FLUTUANTE WEIR',
+          activities: 'Análise de vibração e medição de temperatura de rolamentos.',
+          startTime: '11:00',
+          endTime: '12:15',
+          hasStoppage: false,
+          vibrationSpeed: '4.2',
+          vibrationGe: '1.8',
+          vibrationTemp: '68.5',
+          tasks: {
+            'predTarefas': 'vibracao',
+          },
+          status: 'Liberado',
+          isFinalized: true,
+        ),
+        const WorkOrderState(
+          id: 'os-3',
+          number: 'OM-003',
+          location: 'Oficina Infra',
+          maintenanceType: 'Corretiva',
+          equipmentType: 'Exaustor',
+          tagVal: 'VEPI3003',
+          tagDesc: 'VENTILADOR AXIAL VENTILAÇÃO PRIMÁRIA 300CV',
+          cause: 'Desgaste prematuro de rolamentos',
+          symptom: 'Ruído excessivo e vibração elevada',
+          intervention: 'Substituição completa de rolamento e rebalanceamento do rotor.',
+          activities: 'Montagem e teste em bancada concluídos com sucesso.',
+          startTime: '13:30',
+          endTime: '17:00',
+          hasStoppage: true,
+          stoppageStartTime: '13:30',
+          stoppageEndTime: '17:00',
+          tasks: {
+            'lubr-exaust': 'sim',
+            'torque-paraf': 'sim',
+          },
+          status: 'Bombeamento Parado',
+          isFinalized: false,
+        ),
+      ],
+      osCounter: 3,
+    );
+    _autosave();
+  }
+
   void fillMockData() {
     state = state.copyWith(
       date: DateTime.now(),
@@ -492,6 +614,7 @@ class ReportFormController extends Notifier<ReportFormState> {
     );
     _autosave();
   }
+
 
   // ─── Photo Management ──────────────────────────────────────────────────
 
@@ -555,13 +678,33 @@ class ReportFormController extends Notifier<ReportFormState> {
               number: os.number,
               location: os.location,
               maintenanceType: os.maintenanceType,
+              maintenanceTypeOutro: os.maintenanceTypeOutro,
+              equipmentType: os.equipmentType,
+              equipmentOutro: os.equipmentOutro,
+              datasulOm: os.datasulOm,
+              tagVal: os.tagVal,
+              tagDesc: os.tagDesc,
+              tagOutro: os.tagOutro,
               cause: os.cause,
+              symptom: os.symptom,
+              intervention: os.intervention,
               activities: os.activities,
               materialsUsed: os.materialsUsed,
               quantityMeters: os.quantityMeters,
               quantityPieces: os.quantityPieces,
               startTime: os.startTime,
               endTime: os.endTime,
+              hasStoppage: os.hasStoppage,
+              stoppageStartTime: os.stoppageStartTime,
+              stoppageEndTime: os.stoppageEndTime,
+              pressure: os.pressure,
+              horometer: os.horometer,
+              vibrationSpeed: os.vibrationSpeed,
+              vibrationGe: os.vibrationGe,
+              vibrationTemp: os.vibrationTemp,
+              predOtherDesc: os.predOtherDesc,
+              tasks: os.tasks,
+              isFinalized: os.isFinalized,
               status: os.status,
               osStatus: os.osStatus,
               photoPaths: os.photoPaths,
@@ -585,19 +728,40 @@ class ReportFormController extends Notifier<ReportFormState> {
             number: e.number,
             location: e.location,
             maintenanceType: e.maintenanceType,
+            maintenanceTypeOutro: e.maintenanceTypeOutro,
+            equipmentType: e.equipmentType,
+            equipmentOutro: e.equipmentOutro,
+            datasulOm: e.datasulOm,
+            tagVal: e.tagVal,
+            tagDesc: e.tagDesc,
+            tagOutro: e.tagOutro,
             cause: e.cause,
+            symptom: e.symptom,
+            intervention: e.intervention,
             activities: e.activities,
             materialsUsed: e.materialsUsed,
             quantityMeters: e.quantityMeters,
             quantityPieces: e.quantityPieces,
             startTime: e.startTime,
             endTime: e.endTime,
+            hasStoppage: e.hasStoppage,
+            stoppageStartTime: e.stoppageStartTime,
+            stoppageEndTime: e.stoppageEndTime,
+            pressure: e.pressure,
+            horometer: e.horometer,
+            vibrationSpeed: e.vibrationSpeed,
+            vibrationGe: e.vibrationGe,
+            vibrationTemp: e.vibrationTemp,
+            predOtherDesc: e.predOtherDesc,
+            tasks: e.tasks,
+            isFinalized: e.isFinalized,
             status: e.status,
             osStatus: e.osStatus,
             photoPaths: e.photoPaths,
           ),
         )
         .toList();
+
 
     return ReportFormState(
       uuid: entity.uuid,

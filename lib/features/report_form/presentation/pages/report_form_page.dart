@@ -589,15 +589,37 @@ class ReportFormPage extends ConsumerWidget {
                               ),
                               const SizedBox(height: 12),
 
-                              const Text(
-                                'MATERIAIS DISPONÍVEIS',
-                                style: TextStyle(fontFamily: 'monospace', fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.accentPurple),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Text(
+                                    'MATERIAIS DISPONÍVEIS *',
+                                    style: TextStyle(fontFamily: 'monospace', fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.accentPurple),
+                                  ),
+                                  InkWell(
+                                    onTap: () => controller.setAvailableMaterials('N/A'),
+                                    borderRadius: BorderRadius.circular(4),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey.shade200,
+                                        borderRadius: BorderRadius.circular(4),
+                                        border: Border.all(color: Colors.grey.shade400),
+                                      ),
+                                      child: const Text(
+                                        'N/A',
+                                        style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.black87),
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                               const SizedBox(height: 4),
                               TextFormField(
+                                key: ValueKey('mat_${state.availableMaterials}'),
                                 initialValue: state.availableMaterials,
                                 maxLines: 2,
-                                decoration: const InputDecoration(hintText: 'Liste os materiais disponíveis...'),
+                                decoration: const InputDecoration(hintText: 'Liste os materiais disponíveis ou clique em N/A...'),
                                 onChanged: controller.setAvailableMaterials,
                               ),
                             ],
@@ -613,17 +635,40 @@ class ReportFormPage extends ConsumerWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              const Text(
-                                'OBSERVAÇÕES / PENDÊNCIAS',
-                                style: TextStyle(fontFamily: 'monospace', fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.accentPurple),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Text(
+                                    'OBSERVAÇÕES / PENDÊNCIAS *',
+                                    style: TextStyle(fontFamily: 'monospace', fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.accentPurple),
+                                  ),
+                                  InkWell(
+                                    onTap: () => controller.setObservations('N/A'),
+                                    borderRadius: BorderRadius.circular(4),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey.shade200,
+                                        borderRadius: BorderRadius.circular(4),
+                                        border: Border.all(color: Colors.grey.shade400),
+                                      ),
+                                      child: const Text(
+                                        'N/A',
+                                        style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.black87),
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                               const SizedBox(height: 4),
                               TextFormField(
+                                key: ValueKey('obs_${state.observations}'),
                                 initialValue: state.observations,
                                 maxLines: 4,
-                                decoration: const InputDecoration(hintText: 'Registre observações gerais, pendências...'),
+                                decoration: const InputDecoration(hintText: 'Registre observações gerais ou clique em N/A se não houver pendências...'),
                                 onChanged: controller.setObservations,
                               ),
+
                             ],
                           ),
                         ),
