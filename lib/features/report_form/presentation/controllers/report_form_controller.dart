@@ -142,6 +142,28 @@ class ReportFormController extends Notifier<ReportFormState> {
     return true;
   }
 
+  /// Salva o relatório atual como pendente e aciona a sincronização,
+  /// SEM executar `validateForm()`. Use este método nos formulários que
+  /// possuem sua própria lógica de validação (ex: Mecânica, Elétrica).
+  Future<void> saveAndSyncReport() async {
+    state = state.copyWith(
+      syncStatus: ReportSyncStatus.pending,
+      reportStatus: 'Pendente',
+    );
+
+    await _autosave();
+
+    try {
+      await ref.read(syncControllerProvider.notifier).triggerSync();
+      state = state.copyWith(
+        syncStatus: ReportSyncStatus.synced,
+        reportStatus: 'Sincronizado',
+      );
+    } catch (e) {
+      debugPrint('Erro no triggerSync de saveAndSyncReport: $e');
+    }
+  }
+
   // ─── Field Setters ─────────────────────────────────────────────────────
 
   void setDate(DateTime date) {
