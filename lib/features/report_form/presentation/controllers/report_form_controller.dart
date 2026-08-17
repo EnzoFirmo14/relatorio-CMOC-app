@@ -164,6 +164,45 @@ class ReportFormController extends Notifier<ReportFormState> {
     }
   }
 
+  /// Salva o relatório de **Manutenção Mecânica** com:
+  /// - UUID prefixado com `MC-` (ex: `MC-1753000000000`) para que o
+  ///   site web identifique a coleção `mechanical_reports` corretamente.
+  /// - Campo `type: 'Mecânica'` garantido, independente do estado atual.
+  ///
+  /// Não executa `validateForm()` — a validação fica por conta da página.
+  Future<void> saveAndSyncMechanicalReport() async {
+    // Gera ID com prefixo MC- usando timestamp em milissegundos
+    final mcId = 'MC-${DateTime.now().millisecondsSinceEpoch}';
+
+    state = state.copyWith(
+      uuid: mcId,
+      syncStatus: ReportSyncStatus.pending,
+      reportStatus: 'Pendente',
+    );
+
+    try {
+      // Constrói a entidade forçando type e uuid corretos
+      final entity = _stateToEntity().copyWith(
+        uuid: mcId,
+        type: 'Mecânica',
+        syncStatus: ReportSyncStatus.pending,
+      );
+
+      await _repository.saveReport(entity);
+      state = state.copyWith(autosaveStatus: AutosaveStatus.saved);
+
+      await ref.read(syncControllerProvider.notifier).triggerSync();
+      state = state.copyWith(
+        syncStatus: ReportSyncStatus.synced,
+        reportStatus: 'Sincronizado',
+      );
+      debugPrint('Relatório mecânico salvo com sucesso: $mcId → mechanical_reports');
+    } catch (e) {
+      state = state.copyWith(autosaveStatus: AutosaveStatus.error);
+      debugPrint('Erro ao salvar relatório mecânico: $e');
+    }
+  }
+
   // ─── Field Setters ─────────────────────────────────────────────────────
 
   void setDate(DateTime date) {
@@ -675,6 +714,7 @@ class ReportFormController extends Notifier<ReportFormState> {
       date: state.date,
       shift: state.shift,
       team: state.team,
+      type: state.type,
       globalEquipment: state.globalEquipment,
       globalLocation: state.globalLocation,
       fuelLevel: state.fuelLevel,
@@ -790,6 +830,7 @@ class ReportFormController extends Notifier<ReportFormState> {
       date: entity.date,
       shift: entity.shift,
       team: entity.team,
+      type: entity.type,
       globalEquipment: entity.globalEquipment,
       globalLocation: entity.globalLocation,
       fuelLevel: entity.fuelLevel,

@@ -427,9 +427,9 @@ class _MechanicalReportFormPageState
 
     controller.clearValidationErrors();
 
-    // Salva o relatório mecânico e sincroniza sem revalidar com regras de Equipagem.
-    // A validação já foi feita acima por _validateMechanicalForm().
-    await controller.saveAndSyncReport();
+    // Salva o relatório mecânico na coleção `mechanical_reports` com
+    // ID prefixado MC- e type: 'Mecânica'. A validação já foi feita acima.
+    await controller.saveAndSyncMechanicalReport();
 
     final text = _generateWhatsAppText();
     final encoded = Uri.encodeComponent(text);

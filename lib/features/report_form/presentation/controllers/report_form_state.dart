@@ -210,6 +210,8 @@ class ReportFormState {
   final List<OperatorState> operators;
   final String shift;
   final String team;
+  /// Tipo do relatório: 'Equipagem', 'Mecânica', 'Elétrica', 'Bombeamento'.
+  final String type;
   final List<WorkOrderState> workOrders;
   final String globalEquipment;
   final String globalLocation;
@@ -233,6 +235,7 @@ class ReportFormState {
     this.operators = const [OperatorState(name: '', registration: '')],
     this.shift = 'T1',
     this.team = 'A',
+    this.type = 'Equipagem',
     this.workOrders = const [],
     this.globalEquipment = '',
     this.globalLocation = '',
@@ -255,6 +258,7 @@ class ReportFormState {
     List<OperatorState>? operators,
     String? shift,
     String? team,
+    String? type,
     List<WorkOrderState>? workOrders,
     String? globalEquipment,
     String? globalLocation,
@@ -276,6 +280,7 @@ class ReportFormState {
       operators: operators ?? this.operators,
       shift: shift ?? this.shift,
       team: team ?? this.team,
+      type: type ?? this.type,
       workOrders: workOrders ?? this.workOrders,
       globalEquipment: globalEquipment ?? this.globalEquipment,
       globalLocation: globalLocation ?? this.globalLocation,
