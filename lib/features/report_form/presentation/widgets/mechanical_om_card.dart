@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/services/firestore_cadastros_service.dart';
 import '../../data/constants/mechanical_constants.dart';
 import '../controllers/report_form_state.dart';
 
@@ -17,6 +18,80 @@ class MechanicalOmCard extends StatelessWidget {
     required this.onToggleFinalize,
     required this.onDelete,
   });
+
+  void _openAddTagDialog(BuildContext context, String equipmentType) {
+    String newTag = '';
+    String newDesc = '';
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(
+            '➕ Nova TAG — $equipmentType',
+            style: const TextStyle(color: Color(0xFF23005B), fontWeight: FontWeight.bold, fontSize: 16),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                textCapitalization: TextCapitalization.characters,
+                decoration: const InputDecoration(
+                  labelText: 'Código da TAG (ex: BAEI3099)',
+                  hintText: 'Ex: BAEI3099',
+                  border: OutlineInputBorder(),
+                ),
+                onChanged: (val) => newTag = val,
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                decoration: const InputDecoration(
+                  labelText: 'Descrição do Equipamento',
+                  hintText: 'Ex: BOMBA CENTRIFUGA WARMAN',
+                  border: OutlineInputBorder(),
+                ),
+                onChanged: (val) => newDesc = val,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final cleanTag = newTag.trim().toUpperCase();
+                if (cleanTag.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('⚠️ Digite o código da TAG')),
+                  );
+                  return;
+                }
+                await FirestoreCadastrosService().salvarTagMecanica(
+                  tag: cleanTag,
+                  desc: newDesc.trim(),
+                  equipmentType: equipmentType,
+                );
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('✅ TAG $cleanTag enviada para o Cloud Firestore!')),
+                  );
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF23005B),
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Salvar no Firestore'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
 
 
   String _calcHoras(String inicio, String fim) {
@@ -99,13 +174,17 @@ class MechanicalOmCard extends StatelessWidget {
     final allowedMap = MechanicalConstants.getLocalMap(om.equipmentType);
     final allowedTags = allowedMap?[om.location];
 
-    final filteredCatalog = catalog.where((item) {
-      if (item['tag'] == 'OUTRO') return true;
-      if (allowedTags != null && !allowedTags.contains(item['tag'])) {
-        return false;
-      }
-      return true;
-    }).toList();
+    // Exibe todas as TAGs do equipamento selecionado.
+    // Se houver TAGs vinculadas ao local selecionado, prioriza-as no topo.
+    final List<Map<String, String>> filteredCatalog = [];
+    if (allowedTags != null && allowedTags.isNotEmpty) {
+      final priorityTags = catalog.where((item) => allowedTags.contains(item['tag'])).toList();
+      final otherTags = catalog.where((item) => !allowedTags.contains(item['tag'])).toList();
+      filteredCatalog.addAll(priorityTags);
+      filteredCatalog.addAll(otherTags);
+    } else {
+      filteredCatalog.addAll(catalog);
+    }
 
     showModalBottomSheet(
       context: context,
@@ -140,15 +219,34 @@ class MechanicalOmCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  Text(
-                    'Selecionar Tag — ${om.equipmentType}',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).colorScheme.onSurface,
-                    ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Selecionar Tag — ${om.equipmentType}',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      TextButton.icon(
+                        icon: const Icon(Icons.add_circle_outline, size: 18),
+                        label: const Text('Nova TAG'),
+                        style: TextButton.styleFrom(
+                          foregroundColor: const Color(0xFF5C3FA3),
+                        ),
+                        onPressed: () {
+                          Navigator.pop(context);
+                          _openAddTagDialog(context, om.equipmentType);
+                        },
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 8),
                   TextField(
                     decoration: const InputDecoration(
                       hintText: '🔍 Pesquisar tag ou descrição...',

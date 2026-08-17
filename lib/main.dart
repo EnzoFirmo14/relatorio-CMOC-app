@@ -26,10 +26,12 @@ void callbackDispatcher() {
         await dotenv.load(fileName: '.env');
       } catch (_) {}
 
-      // Inicializa o Firebase no isolate em segundo plano
-      await Firebase.initializeApp(
-        options: DefaultFirebaseOptions.currentPlatform,
-      );
+      // Inicializa o Firebase no isolate em segundo plano caso não exista
+      if (Firebase.apps.isEmpty) {
+        await Firebase.initializeApp(
+          options: DefaultFirebaseOptions.currentPlatform,
+        );
+      }
 
       final isarService = IsarService.instance;
       await isarService.init();
@@ -69,19 +71,24 @@ Future<void> main() async {
   }
 
   // Inicializa o banco local Isar antes de construir qualquer widget.
-  await IsarService.instance.init();
-
-  // Inicializa o Firebase
   try {
-    debugPrint('Plataforma Web? $kIsWeb');
-    final options = DefaultFirebaseOptions.currentPlatform;
-    debugPrint('Current Platform Options: $options');
-    await Firebase.initializeApp(
-      options: options,
-    );
+    await IsarService.instance.init();
+  } catch (e) {
+    debugPrint('[main] Erro ao inicializar IsarService: $e');
+  }
+
+  // Inicializa o Firebase se não estiver inicializado
+  try {
+    if (Firebase.apps.isEmpty) {
+      final options = DefaultFirebaseOptions.currentPlatform;
+      await Firebase.initializeApp(
+        options: options,
+      );
+    }
   } catch (e) {
     debugPrint('Firebase init fallback: $e');
   }
+
 
   // Inicializa o Workmanager para rodar tarefas em segundo plano (apenas Mobile)
   if (!kIsWeb) {

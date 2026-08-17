@@ -478,24 +478,86 @@ class MechanicalConstants {
     },
   };
 
-  /// Retorna o catálogo de tags para o tipo de equipamento.
+  /// TAGs dinâmicas carregadas em tempo real do Cloud Firestore
+  static final List<Map<String, String>> _dynamicTags = [];
+
+  /// Atualiza o registro de TAGs dinâmicas recebidas do Firestore ou cache local
+  static void updateDynamicTags(List<Map<String, dynamic>> rawTags) {
+    _dynamicTags.clear();
+    for (final item in rawTags) {
+      final tag = (item['tag'] ?? '').toString().trim().toUpperCase();
+      final desc = (item['desc'] ?? '').toString().trim();
+      final equipmentType = (item['equipmentType'] ?? '').toString().trim();
+      final location = (item['location'] ?? '').toString().trim();
+      if (tag.isNotEmpty) {
+        _dynamicTags.add({
+          'tag': tag,
+          'desc': desc,
+          'equipmentType': equipmentType,
+          'location': location,
+        });
+      }
+    }
+  }
+
+  /// Retorna o catálogo de tags para o tipo de equipamento (com as mais recentes/dinâmicas primeiro).
   static List<Map<String, String>> getTagCatalog(String equipType) {
+    List<Map<String, String>> staticList;
     switch (equipType) {
       case 'Bomba':
-        return tagBomba;
+        staticList = tagBomba;
+        break;
       case 'Estação de bombeamento':
-        return tagEstacao;
+        staticList = tagEstacao;
+        break;
       case 'Central de ventilação':
-        return tagCentral;
+        staticList = tagCentral;
+        break;
       case 'Ventilador':
-        return tagVentilador;
+        staticList = tagVentilador;
+        break;
       case 'Exaustor':
-        return tagExaustor;
+        staticList = tagExaustor;
+        break;
       case 'Motor':
-        return tagMotor;
+        staticList = tagMotor;
+        break;
       default:
-        return const [];
+        staticList = const [{'tag': 'OUTRO', 'desc': ''}];
+        break;
     }
+
+    final addedCodes = <String>{};
+    final dynamicList = <Map<String, String>>[];
+
+    // 1. Adiciona as TAGs dinâmicas (criadas recentemente) primeiro
+    for (final dynItem in _dynamicTags) {
+      final dynTag = dynItem['tag'] ?? '';
+      final dynEquip = dynItem['equipmentType'] ?? '';
+
+      if (dynTag.isNotEmpty &&
+          !addedCodes.contains(dynTag) &&
+          (dynEquip.isEmpty || dynEquip.toLowerCase() == equipType.toLowerCase())) {
+        dynamicList.add({
+          'tag': dynTag,
+          'desc': dynItem['desc'] ?? '',
+        });
+        addedCodes.add(dynTag);
+      }
+    }
+
+    // 2. Adiciona as TAGs estáticas padrão que ainda não foram adicionadas
+    final remainingStatic = <Map<String, String>>[];
+    for (final item in staticList) {
+      final tag = item['tag'] ?? '';
+      if (!addedCodes.contains(tag)) {
+        remainingStatic.add(item);
+        addedCodes.add(tag);
+      }
+    }
+
+    // Retorna primeiro as TAGs dinâmicas/recentes e depois as estáticas
+    return [...dynamicList, ...remainingStatic];
   }
 
   /// Retorna os mapas de locais permitidos para o equipamento.
@@ -512,9 +574,18 @@ class MechanicalConstants {
     }
   }
 
-  /// Procura a descrição de uma tag no catálogo global.
+  /// Procura a descrição de uma tag no catálogo global (estático e dinâmico).
   static String findTagDescription(String tagCode) {
     if (tagCode.isEmpty || tagCode == 'OUTRO') return '';
+    
+    // Procura primeiro nas TAGs dinâmicas
+    for (final dyn in _dynamicTags) {
+      if (dyn['tag'] == tagCode) {
+        return dyn['desc'] ?? '';
+      }
+    }
+
+    // Procura nos catálogos estáticos
     final catalogs = [tagBomba, tagEstacao, tagCentral, tagVentilador, tagExaustor, tagMotor];
     for (final catalog in catalogs) {
       for (final item in catalog) {
@@ -526,3 +597,4 @@ class MechanicalConstants {
     return '';
   }
 }
+

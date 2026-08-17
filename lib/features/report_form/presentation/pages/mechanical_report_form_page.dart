@@ -1,13 +1,13 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/providers/dev_mode_provider.dart';
+import '../../../../core/services/firestore_cadastros_service.dart';
 import '../../../sync/presentation/widgets/sync_status_badge.dart';
 import '../../data/constants/mechanical_constants.dart';
 import '../controllers/report_form_controller.dart';
 import '../widgets/mechanical_om_card.dart';
-
-
 
 class MechanicalReportFormPage extends ConsumerStatefulWidget {
   const MechanicalReportFormPage({super.key});
@@ -20,6 +20,8 @@ class MechanicalReportFormPage extends ConsumerStatefulWidget {
 class _MechanicalReportFormPageState
     extends ConsumerState<MechanicalReportFormPage> {
   final ScrollController _scrollController = ScrollController();
+  StreamSubscription? _tagsSubscription;
+  StreamSubscription? _areaSubscription;
 
   // Modal controller para nova OM
   String _selectedRota = '';
@@ -30,11 +32,56 @@ class _MechanicalReportFormPageState
   @override
   void initState() {
     super.initState();
-    // Preenche data padrão se necessário
+    _initFirestoreTagsListener();
+  }
+
+  void _initFirestoreTagsListener() {
+    // Garante que todas as TAGs pré-existentes do app estejam salvas no Cloud Firestore
+    FirestoreCadastrosService().popularTodasTagsEstaticasNoFirestore();
+
+    // 1. Escutar coleção dedicada 'mechanical_tags'
+    _tagsSubscription = FirestoreCadastrosService().escutarTagsMecanica(
+      onData: (tags) {
+        MechanicalConstants.updateDynamicTags(tags);
+        if (mounted) setState(() {});
+      },
+    );
+
+
+    // 2. Escutar documento consolidado 'cmoc_cadastros/mecanica'
+    _areaSubscription = FirestoreCadastrosService().escutarCadastrosArea(
+      area: 'mecanica',
+      onData: (data) {
+        if (data['tags'] != null && data['tags'] is Map) {
+          final tagsMap = data['tags'] as Map<String, dynamic>;
+          final List<Map<String, dynamic>> parsedTags = [];
+          tagsMap.forEach((equipType, tagList) {
+            if (tagList is List) {
+              for (final item in tagList) {
+                if (item is Map) {
+                  parsedTags.add({
+                    'tag': item['tag'] ?? item['codigo'] ?? '',
+                    'desc': item['desc'] ?? item['descricao'] ?? '',
+                    'equipmentType': equipType,
+                    'location': item['location'] ?? item['local'] ?? '',
+                  });
+                }
+              }
+            }
+          });
+          if (parsedTags.isNotEmpty) {
+            MechanicalConstants.updateDynamicTags(parsedTags);
+            if (mounted) setState(() {});
+          }
+        }
+      },
+    );
   }
 
   @override
   void dispose() {
+    _tagsSubscription?.cancel();
+    _areaSubscription?.cancel();
     _scrollController.dispose();
     super.dispose();
   }

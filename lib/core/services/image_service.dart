@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -18,6 +17,7 @@ class ImageService {
         source: source,
         maxWidth: 1920,
         maxHeight: 1080,
+        imageQuality: 80,
       );
 
       if (pickedFile == null) return null;
@@ -38,19 +38,9 @@ class ImageService {
       final String fileName = 'img_${DateTime.now().millisecondsSinceEpoch}.jpg';
       final String targetPath = p.join(photosDir.path, fileName);
 
-      // Comprime a imagem e salva direto no caminho final
-      final XFile? compressedFile = await FlutterImageCompress.compressAndGetFile(
-        pickedFile.path,
-        targetPath,
-        quality: 80,
-        format: CompressFormat.jpeg,
-      );
-
-      if (compressedFile == null) {
-        // Se a compressão falhar por algum motivo, salvamos o original
-        final File originalFile = File(pickedFile.path);
-        await originalFile.copy(targetPath);
-      }
+      // Copia o arquivo comprimido nativamente para a pasta final
+      final File originalFile = File(pickedFile.path);
+      await originalFile.copy(targetPath);
 
       // Retorna o caminho relativo (para evitar quebras caso o path absoluto do app mude)
       return p.join('photos', fileName);
@@ -58,6 +48,7 @@ class ImageService {
       return null;
     }
   }
+
 
   /// Converte o caminho relativo armazenado no Isar em um caminho absoluto para a UI.
   static Future<String> getAbsolutePath(String relativePath) async {

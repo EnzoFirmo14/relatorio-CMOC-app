@@ -21,6 +21,11 @@ class IsarService {
   /// Retorna a instância do banco. Lança [StateError] se não inicializado.
   Isar get isar {
     if (_isar == null || !_isar!.isOpen) {
+      final activeInstance = Isar.getInstance('cmoc_db');
+      if (activeInstance != null && activeInstance.isOpen) {
+        _isar = activeInstance;
+        return _isar!;
+      }
       throw StateError(
         'IsarService não foi inicializado. '
         'Chame IsarService.instance.init() antes de usar.',
@@ -65,10 +70,8 @@ class IsarService {
         name: dbName,
       );
     } catch (e) {
-      debugPrint('[IsarService] Falha na primeira tentativa de abrir DB ($e). Realizando cleanup da instância...');
+      debugPrint('[IsarService] Falha na abertura do DB ($e). Realizando limpeza de esquema incompatível...');
 
-      // Fecha a instância que falhou para tirá-la do cache interno do Isar
-      // e evitar que as próximas chamadas a Isar.open apenas retornem a instância corrompida.
       final currentInstance = Isar.getInstance(dbName);
       if (currentInstance != null) {
         try {
@@ -76,17 +79,13 @@ class IsarService {
         } catch (_) {}
       }
 
-      // Aguarda 500ms para o caso de concorrência com outro isolate (ex: Workmanager)
-      await Future.delayed(const Duration(milliseconds: 500));
-
-      // Tenta recuperar se o outro isolate terminou de abrir com sucesso
-      final activeInstance = Isar.getInstance(dbName);
-      if (activeInstance != null && activeInstance.isOpen) {
-        _isar = activeInstance;
-        return;
+      if (!kIsWeb && dirPath != null) {
+        await _deleteIsarFiles(dirPath, dbName);
       }
 
-      // Segunda tentativa de abertura (após o delay e limpeza da instância da memória)
+      await Future.delayed(const Duration(milliseconds: 300));
+
+      // Tentativa final de abertura limpa do zero
       try {
         _isar = await Isar.open(
           [
@@ -96,54 +95,41 @@ class IsarService {
           directory: dirPath ?? '',
           name: dbName,
         );
-        return; // Sucesso no retry por concorrência
       } catch (e2) {
-        debugPrint('[IsarService] Segunda tentativa falhou ($e2). Assumindo incompatibilidade de esquema e limpando.');
-
-        // Fecha a instância novamente
-        final currentInstance2 = Isar.getInstance(dbName);
-        if (currentInstance2 != null) {
-          try {
-            await currentInstance2.close();
-          } catch (_) {}
-        }
-
-        if (!kIsWeb && dirPath != null) {
-          await _deleteIsarFiles(dirPath, dbName);
-        }
-
-        // Terceira tentativa (abertura limpa do zero)
-        try {
-          _isar = await Isar.open(
-            [
-              ReportModelSchema,
-              CollaboratorModelSchema,
-            ],
-            directory: dirPath ?? '',
-            name: dbName,
-          );
-        } catch (e3) {
-          debugPrint('[IsarService] Erro crítico persistente após limpeza: $e3');
-          rethrow;
-        }
+        debugPrint('[IsarService] Erro persistente ao abrir Isar: $e2');
+        rethrow;
       }
     }
   }
 
-  /// Deleta os arquivos físicos do banco Isar com o nome dado.
+  /// Deleta os arquivos físicos do banco Isar com o nome dado se corrompidos.
   Future<void> _deleteIsarFiles(String dirPath, String dbName) async {
     if (kIsWeb) return;
-    for (final fileName in [
-      '$dbName.isar',
-      '$dbName.isar.lock',
-      '$dbName.isar.management',
-    ]) {
-      final file = File('$dirPath/$fileName');
-      try {
-        if (await file.exists()) await file.delete();
-      } catch (_) {
-        // Silently ignore — arquivo pode não existir.
+    try {
+      final dir = Directory(dirPath);
+      if (await dir.exists()) {
+        final list = dir.listSync();
+        for (final entity in list) {
+          if (entity is File) {
+            final pathLower = entity.path.toLowerCase();
+            final nameLower = entity.uri.pathSegments.last.toLowerCase();
+            if (nameLower.contains(dbName.toLowerCase()) ||
+                pathLower.endsWith('.isar') ||
+                pathLower.endsWith('.isar-lck') ||
+                pathLower.endsWith('.isar.lock') ||
+                pathLower.endsWith('.isar.management')) {
+              try {
+                await entity.delete();
+                debugPrint('[IsarService] Apagado arquivo corrompido do banco: ${entity.path}');
+              } catch (e) {
+                debugPrint('[IsarService] Erro ao deletar ${entity.path}: $e');
+              }
+            }
+          }
+        }
       }
+    } catch (e) {
+      debugPrint('[IsarService] Erro na limpeza de arquivos Isar: $e');
     }
   }
 
