@@ -170,17 +170,19 @@ class ReportFormController extends Notifier<ReportFormState> {
     final mcId = 'MC-${DateTime.now().millisecondsSinceEpoch}';
     state = state.copyWith(
       uuid: mcId,
+      type: 'Mecânica',
       syncStatus: ReportSyncStatus.pending,
       reportStatus: 'Pendente',
       autosaveStatus: AutosaveStatus.saving,
     );
 
+    final entity = _stateToEntity().copyWith(
+      uuid: mcId,
+      type: 'Mecânica',
+      syncStatus: ReportSyncStatus.pending,
+    );
+
     try {
-      final entity = _stateToEntity().copyWith(
-        uuid: mcId,
-        type: 'Mecânica',
-        syncStatus: ReportSyncStatus.pending,
-      );
       await _repository.saveReport(entity);
       state = state.copyWith(autosaveStatus: AutosaveStatus.saved);
       debugPrint('[saveMechanicalLocallyAndTriggerSync] Salvo localmente: $mcId');
@@ -189,24 +191,24 @@ class ReportFormController extends Notifier<ReportFormState> {
       debugPrint('[saveMechanicalLocallyAndTriggerSync] Erro ao salvar local: $e');
     }
 
-    // Dispara sync em background sem await — não bloqueia a UI
-    _syncInBackground();
+    // Dispara sync em background passando a entidade com type='Mecânica' garantido
+    _syncInBackground(entity);
   }
 
   /// Dispara sincronização Firestore sem bloquear a UI.
   /// Erros são capturados e logados silenciosamente.
-  void _syncInBackground() {
+  void _syncInBackground([ReportEntity? specificEntity]) {
+    final entityToSend = specificEntity ?? _stateToEntity();
     Future.microtask(() async {
       try {
-        final entity = _stateToEntity();
         final remoteDataSource = ref.read(reportRemoteDataSourceProvider);
-        await remoteDataSource.sendReport(entity);
-        await _repository.markAsSynced(state.uuid);
+        await remoteDataSource.sendReport(entityToSend);
+        await _repository.markAsSynced(entityToSend.uuid);
         state = state.copyWith(
           syncStatus: ReportSyncStatus.synced,
           reportStatus: 'Sincronizado',
         );
-        debugPrint('[_syncInBackground] Sincronizado com Firestore: ${state.uuid}');
+        debugPrint('[_syncInBackground] Sincronizado com Firestore: ${entityToSend.uuid} → ${entityToSend.type}');
       } catch (e) {
         debugPrint('[_syncInBackground] Sem internet ou erro — pendente para sync posterior: $e');
         try {
