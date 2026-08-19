@@ -16,12 +16,24 @@ import 'report_form_state.dart';
 // ─── Providers ─────────────────────────────────────────────────────────────
 
 /// Provider do repositório local — pode ser sobrescrito em testes com mock.
+/// NOTA: usa keepAlive para evitar que o Riverpod recrie o repositório
+/// (e tente acessar o Isar) em momentos inesperados do ciclo de vida.
 final reportRepositoryProvider = Provider<IReportRepository>((ref) {
+  ref.keepAlive();
   if (kIsWeb) {
     return InMemoryReportRepository();
   }
-  final dataSource = ReportLocalDataSource(IsarService.instance.isar);
-  return ReportRepositoryImpl(dataSource);
+  try {
+    final isarService = IsarService.instance;
+    // Garante que o Isar foi inicializado; se não, lança StateError
+    // que é capturado abaixo.
+    final isar = isarService.isar;
+    return ReportRepositoryImpl(ReportLocalDataSource(isar));
+  } catch (e) {
+    debugPrint('[reportRepositoryProvider] Isar não disponível ($e). '
+        'Usando repositório em memória temporariamente.');
+    return InMemoryReportRepository();
+  }
 });
 
 final reportFormControllerProvider =
@@ -114,8 +126,109 @@ class ReportFormController extends Notifier<ReportFormState> {
     }
   }
 
+  /// Valida o formulário. Retorna true se válido, false se houver erros.
+  /// Não persiste nem sincroniza — use [saveLocallyAndTriggerSync] para isso.
+  bool validateAndMark() {
+    final errors = validateForm();
+    return errors.isEmpty;
+  }
+
+  /// Salva o relatório **localmente no Isar de forma imediata** (offline-first)
+  /// e dispara a sincronização com o Firestore em segundo plano sem bloquear a UI.
+  ///
+  /// Fluxo correto:
+  ///   1. Gera texto WhatsApp (antes de qualquer reset)
+  ///   2. Chama este método → salva local → dispara sync em background
+  ///   3. Chama [resetForm] → limpa o formulário
+  ///   4. Abre o WhatsappPreviewDialog com o texto gerado
+  ///
+  /// Funciona 100% offline — a UI nunca fica bloqueada esperando rede.
+  Future<void> saveLocallyAndTriggerSync() async {
+    state = state.copyWith(
+      syncStatus: ReportSyncStatus.pending,
+      reportStatus: 'Pendente',
+      autosaveStatus: AutosaveStatus.saving,
+    );
+
+    try {
+      final entity = _stateToEntity();
+      await _repository.saveReport(entity);
+      state = state.copyWith(autosaveStatus: AutosaveStatus.saved);
+      debugPrint('[saveLocallyAndTriggerSync] Salvo localmente: ${state.uuid}');
+    } catch (e) {
+      state = state.copyWith(autosaveStatus: AutosaveStatus.error);
+      debugPrint('[saveLocallyAndTriggerSync] Erro ao salvar local: $e');
+    }
+
+    // Dispara sync em background sem await — não bloqueia a UI
+    _syncInBackground();
+  }
+
+  /// Salva a Mecânica localmente e dispara sync em background (offline-first).
+  /// Versão de [saveLocallyAndTriggerSync] para relatórios Mecânicos (prefixo MC-).
+  Future<void> saveMechanicalLocallyAndTriggerSync() async {
+    final mcId = 'MC-${DateTime.now().millisecondsSinceEpoch}';
+    state = state.copyWith(
+      uuid: mcId,
+      syncStatus: ReportSyncStatus.pending,
+      reportStatus: 'Pendente',
+      autosaveStatus: AutosaveStatus.saving,
+    );
+
+    try {
+      final entity = _stateToEntity().copyWith(
+        uuid: mcId,
+        type: 'Mecânica',
+        syncStatus: ReportSyncStatus.pending,
+      );
+      await _repository.saveReport(entity);
+      state = state.copyWith(autosaveStatus: AutosaveStatus.saved);
+      debugPrint('[saveMechanicalLocallyAndTriggerSync] Salvo localmente: $mcId');
+    } catch (e) {
+      state = state.copyWith(autosaveStatus: AutosaveStatus.error);
+      debugPrint('[saveMechanicalLocallyAndTriggerSync] Erro ao salvar local: $e');
+    }
+
+    // Dispara sync em background sem await — não bloqueia a UI
+    _syncInBackground();
+  }
+
+  /// Dispara sincronização Firestore sem bloquear a UI.
+  /// Erros são capturados e logados silenciosamente.
+  void _syncInBackground() {
+    Future.microtask(() async {
+      try {
+        final entity = _stateToEntity();
+        final remoteDataSource = ref.read(reportRemoteDataSourceProvider);
+        await remoteDataSource.sendReport(entity);
+        await _repository.markAsSynced(state.uuid);
+        state = state.copyWith(
+          syncStatus: ReportSyncStatus.synced,
+          reportStatus: 'Sincronizado',
+        );
+        debugPrint('[_syncInBackground] Sincronizado com Firestore: ${state.uuid}');
+      } catch (e) {
+        debugPrint('[_syncInBackground] Sem internet ou erro — pendente para sync posterior: $e');
+        try {
+          await ref.read(syncControllerProvider.notifier).triggerSync();
+        } catch (_) {}
+      }
+    });
+  }
+
+  /// Limpa o formulário para um estado inicial vazio após envio.
+  /// Deleta o rascunho do banco local para evitar recarregamento acidental.
+  Future<void> resetForm() async {
+    final oldUuid = state.uuid;
+    state = ReportFormState(date: DateTime.now());
+    try {
+      await _repository.deleteReport(oldUuid);
+    } catch (_) {}
+    debugPrint('[resetForm] Formulário limpo após envio.');
+  }
+
   /// Valida o relatório, marca seu status como pendente e o envia imediatamente ao Firestore.
-  /// Estratégia: envio direto ao Firestore primeiro; sync queue como fallback.
+  /// @deprecated Use [saveLocallyAndTriggerSync] + [resetForm] para fluxo offline-first.
   Future<bool> submitReport() async {
     final errors = validateForm();
     if (errors.isNotEmpty) {
@@ -129,32 +242,12 @@ class ReportFormController extends Notifier<ReportFormState> {
 
     await _autosave();
 
-    // Envio direto ao Firestore (garante chegada em web e mobile)
-    try {
-      final entity = _stateToEntity();
-      final remoteDataSource = ref.read(reportRemoteDataSourceProvider);
-      await remoteDataSource.sendReport(entity);
-      await _repository.markAsSynced(state.uuid);
-      state = state.copyWith(
-        syncStatus: ReportSyncStatus.synced,
-        reportStatus: 'Sincronizado',
-      );
-      debugPrint('[submitReport] Relatório enviado diretamente ao Firestore: ${state.uuid}');
-    } catch (e) {
-      debugPrint('[submitReport] Erro no envio direto: $e — tentando via sync queue...');
-      try {
-        await ref.read(syncControllerProvider.notifier).triggerSync();
-        state = state.copyWith(
-          syncStatus: ReportSyncStatus.synced,
-          reportStatus: 'Sincronizado',
-        );
-      } catch (e2) {
-        debugPrint('[submitReport] Erro no sync queue: $e2');
-      }
-    }
+    // Dispara sync em background sem bloquear
+    _syncInBackground();
 
     return true;
   }
+
 
   /// Salva o relatório atual como pendente e o envia diretamente ao Firestore.
   /// SEM executar `validateForm()`. Use este método nos formulários que

@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/services/firestore_cadastros_service.dart';
 import '../../../../core/providers/dev_mode_provider.dart';
 import '../../../../core/theme/theme_provider.dart';
@@ -13,6 +12,7 @@ import '../../domain/entities/collaborator_entity.dart';
 import '../../domain/entities/work_order_entity.dart';
 import '../../../sync/presentation/controllers/sync_controller.dart';
 import '../controllers/report_form_controller.dart';
+import '../widgets/whatsapp_preview_dialog.dart';
 
 class ElectricalWorkOrder {
   String tipo;
@@ -596,74 +596,33 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
     return L.join('\n');
   }
 
-  Future<void> _salvarESincronizarRelatorio() async {
+  Future<void> _salvarESincronizarRelatorio(ReportEntity report) async {
     try {
       final repository = ref.read(reportRepositoryProvider);
-      
-      final reportId = 'EL-${const Uuid().v4().substring(0, 8).toUpperCase()}';
-
-      // Map operators
-      final operatorsList = _execs.map((e) => CollaboratorEntity(
-        id: e['mat'] ?? const Uuid().v4(),
-        registration: e['mat'] ?? '',
-        name: e['nome'] ?? '',
-      )).toList();
-
-      // Map work orders
-      final List<WorkOrderEntity> workOrders = _osList.map((os) {
-        return WorkOrderEntity(
-          id: os.tag.isNotEmpty ? os.tag : const Uuid().v4(),
-          number: os.tipo,
-          location: os.local,
-          maintenanceType: os.tipo,
-          cause: os.causa + (os.causaOutros.isNotEmpty ? ' - ${os.causaOutros}' : ''),
-          activities: os.atividades,
-          materialsUsed: [os.materiais + (os.matNA ? ' (N/A)' : '')],
-          quantityMeters: '0.0',
-          quantityPieces: '0',
-          startTime: os.horaIni + (os.parado ? ' [Parado Ini: ${os.paradoIni}]' : ''),
-          endTime: os.horaFim + (os.parado ? ' [Parado Fim: ${os.paradoFim}]' : ''),
-          status: os.status,
-          osStatus: os.pendencia.isNotEmpty ? 'Pendente: ${os.pendencia}' : 'OK',
-          photoPaths: const [],
-        );
-      }).toList();
-
-      final report = ReportEntity(
-        uuid: reportId,
-        date: _selectedDate,
-        shift: _turno,
-        team: _turma,
-        type: 'Elétrica',
-        globalEquipment: _semEquip ? 'Nenhum' : _equipamento,
-        globalLocation: _semEquip ? '' : _localEquipCtrl.text,
-        fuelLevel: _semEquip ? 0.0 : _combustivel,
-        availableMaterials: _semEquip ? '' : _materiaisCtrl.text,
-        observations: '',
-        syncStatus: ReportSyncStatus.pending,
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-        operators: operatorsList,
-        workOrders: workOrders,
-      );
-
       await repository.saveReport(report);
-
-      // Envio direto ao Firestore (garante chegada em web e mobile)
-      final remoteDataSource = ref.read(reportRemoteDataSourceProvider);
-      await remoteDataSource.sendReport(report);
-      await repository.markAsSynced(reportId);
-      debugPrint('[Elétrica] Relatório enviado diretamente ao Firestore: $reportId → electrical_reports');
+      debugPrint('[Elétrica] Salvo localmente: ${report.uuid}');
     } catch (e) {
-      debugPrint('Erro ao salvar relatório elétrico: $e');
-      // Fallback via sync queue
-      try {
-        final syncController = ref.read(syncControllerProvider.notifier);
-        await syncController.triggerSync();
-      } catch (e2) {
-        debugPrint('[Elétrica] Erro no sync queue: $e2');
-      }
+      debugPrint('[Elétrica] Erro ao salvar localmente: $e');
     }
+
+    // Sincronização em background sem bloquear a UI
+    Future.microtask(() async {
+      try {
+        final repository = ref.read(reportRepositoryProvider);
+        final remoteDataSource = ref.read(reportRemoteDataSourceProvider);
+        await remoteDataSource.sendReport(report);
+        await repository.markAsSynced(report.uuid);
+        debugPrint('[Elétrica] Relatório enviado ao Firestore: ${report.uuid} → electrical_reports');
+      } catch (e) {
+        debugPrint('[Elétrica] Firestore sync falhou ou offline: $e');
+        try {
+          final syncController = ref.read(syncControllerProvider.notifier);
+          await syncController.triggerSync();
+        } catch (e2) {
+          debugPrint('[Elétrica] Erro no sync queue: $e2');
+        }
+      }
+    });
   }
 
   void _enviarWhatsApp() async {
@@ -681,23 +640,91 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
       return;
     }
 
+    // 1. Gera o texto do relatório ANTES de limpar os campos
     final texto = _buildMensagemWhatsApp();
-    await _salvarESincronizarRelatorio();
-    final uri = Uri.parse('whatsapp://send?text=${Uri.encodeComponent(texto)}');
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } else {
-      final webUri = Uri.parse('https://wa.me/?text=${Uri.encodeComponent(texto)}');
-      if (await canLaunchUrl(webUri)) {
-        await launchUrl(webUri, mode: LaunchMode.externalApplication);
-      } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Não foi possível abrir o WhatsApp.')),
-          );
-        }
-      }
+
+    // 2. Monta a entidade
+    final reportId = 'EL-${const Uuid().v4().substring(0, 8).toUpperCase()}';
+    final operatorsList = _execs.map((e) => CollaboratorEntity(
+      id: e['mat'] ?? const Uuid().v4(),
+      registration: e['mat'] ?? '',
+      name: e['nome'] ?? '',
+    )).toList();
+
+    final List<WorkOrderEntity> workOrders = _osList.map((os) {
+      return WorkOrderEntity(
+        id: os.tag.isNotEmpty ? os.tag : const Uuid().v4(),
+        number: os.tipo,
+        location: os.local,
+        maintenanceType: os.tipo,
+        cause: os.causa + (os.causaOutros.isNotEmpty ? ' - ${os.causaOutros}' : ''),
+        activities: os.atividades,
+        materialsUsed: [os.materiais + (os.matNA ? ' (N/A)' : '')],
+        quantityMeters: '0.0',
+        quantityPieces: '0',
+        startTime: os.horaIni + (os.parado ? ' [Parado Ini: ${os.paradoIni}]' : ''),
+        endTime: os.horaFim + (os.parado ? ' [Parado Fim: ${os.paradoFim}]' : ''),
+        status: os.status,
+        osStatus: os.pendencia.isNotEmpty ? 'Pendente: ${os.pendencia}' : 'OK',
+        photoPaths: const [],
+      );
+    }).toList();
+
+    final report = ReportEntity(
+      uuid: reportId,
+      date: _selectedDate,
+      shift: _turno,
+      team: _turma,
+      type: 'Elétrica',
+      globalEquipment: _semEquip ? 'Nenhum' : _equipamento,
+      globalLocation: _semEquip ? '' : _localEquipCtrl.text,
+      fuelLevel: _semEquip ? 0.0 : _combustivel,
+      availableMaterials: _semEquip ? '' : _materiaisCtrl.text,
+      observations: '',
+      syncStatus: ReportSyncStatus.pending,
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+      operators: operatorsList,
+      workOrders: workOrders,
+    );
+
+    // 3. Salva localmente
+    await _salvarESincronizarRelatorio(report);
+
+    // 4. Limpa o formulário imediatamente
+    setState(() {
+      _limparFormulario();
+    });
+
+    // 5. Exibe o modal de prévia padronizado
+    if (mounted) {
+      showDialog(
+        context: context,
+        builder: (context) => WhatsappPreviewDialog(
+          formattedText: texto,
+        ),
+      );
     }
+  }
+
+  /// Limpa todos os campos locais do formulário elétrico.
+  void _limparFormulario() {
+    _selectedDate = DateTime.now();
+    _tipo = '';
+    _turno = '';
+    _turma = '';
+    _semEquip = false;
+    _equipamento = '';
+    _localEquipCtrl.clear();
+    _combustivel = 50.0;
+    _materiaisCtrl.clear();
+    _execs.clear();
+    _execs.add({'nome': '', 'mat': ''});
+    _osList.clear();
+    _osList.add(ElectricalWorkOrder());
+    _showValidationErrors = false;
+    _invalidFields.clear();
+    _osErrors.clear();
   }
 
   void _preencherModoDev() {

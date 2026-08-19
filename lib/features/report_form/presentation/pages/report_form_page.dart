@@ -678,24 +678,9 @@ class ReportFormPage extends ConsumerWidget {
                       // BOTOES DE ACAO DO RELATORIO
                       ElevatedButton.icon(
                         onPressed: () async {
-                          final success = await controller.submitReport();
-                          if (success) {
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('✅ Relatório finalizado e enviado para sincronização!'),
-                                  backgroundColor: AppTheme.cmocGreen,
-                                  duration: Duration(seconds: 2),
-                                ),
-                              );
-                              showDialog(
-                                context: context,
-                                builder: (context) => WhatsappPreviewDialog(
-                                  formattedText: controller.generateWhatsAppText(),
-                                ),
-                              );
-                            }
-                          } else {
+                          // 1. Validar
+                          final errors = controller.validateForm();
+                          if (errors.isNotEmpty) {
                             if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
@@ -704,6 +689,26 @@ class ReportFormPage extends ConsumerWidget {
                                 ),
                               );
                             }
+                            return;
+                          }
+
+                          // 2. Gera o texto ANTES de qualquer limpeza (offline, instantâneo)
+                          final whatsappText = controller.generateWhatsAppText();
+
+                          // 3. Salva local + dispara sync em background (não bloqueia)
+                          await controller.saveLocallyAndTriggerSync();
+
+                          // 4. Limpa o formulário imediatamente
+                          await controller.resetForm();
+
+                          // 5. Abre o preview
+                          if (context.mounted) {
+                            showDialog(
+                              context: context,
+                              builder: (context) => WhatsappPreviewDialog(
+                                formattedText: whatsappText,
+                              ),
+                            );
                           }
                         },
                         style: ElevatedButton.styleFrom(

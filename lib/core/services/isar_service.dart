@@ -19,13 +19,12 @@ class IsarService {
   Isar? _isar;
 
   /// Retorna a instância do banco. Lança [StateError] se não inicializado.
+  ///
+  /// ATENÇÃO: Nunca usa [Isar.getInstance()] pois retorna a instância sem
+  /// inicializar os [late] fields de collection (_collections), causando
+  /// [LateInitializationError] ao acessar [isar.reportModels], etc.
   Isar get isar {
     if (_isar == null || !_isar!.isOpen) {
-      final activeInstance = Isar.getInstance('cmoc_db');
-      if (activeInstance != null && activeInstance.isOpen) {
-        _isar = activeInstance;
-        return _isar!;
-      }
       throw StateError(
         'IsarService não foi inicializado. '
         'Chame IsarService.instance.init() antes de usar.',
@@ -39,20 +38,23 @@ class IsarService {
   /// Inicializa o banco de dados Isar no diretório de documentos do app.
   /// Deve ser chamado no [main()] antes de [runApp].
   ///
-  /// Se o banco existente tiver schema incompatível (ex: após troca de pacote
-  /// ou alteração de modelo), deleta o arquivo antigo e recria do zero.
+  /// IMPORTANTE: Nunca reutiliza instâncias via Isar.getInstance() pois
+  /// as collections (_collections) não são registradas ao recuperar uma
+  /// instância existente de outro contexto, causando LateInitializationError.
   Future<void> init() async {
     if (kIsWeb) return;
     const dbName = 'cmoc_db';
 
-    // 1. Se o banco já estiver aberto no Isar neste isolate, reutiliza a instância.
-    final activeInstance = Isar.getInstance(dbName);
-    if (activeInstance != null && activeInstance.isOpen) {
-      _isar = activeInstance;
-      return;
-    }
+    // Se já temos uma instância aberta E funcional neste contexto, não reinicia.
+    if (_isar != null && _isar!.isOpen) return;
 
-    if (isInitialized) return;
+    // Fecha qualquer instância existente do Isar neste isolate antes de abrir.
+    final existingInstance = Isar.getInstance(dbName);
+    if (existingInstance != null) {
+      try {
+        await existingInstance.close();
+      } catch (_) {}
+    }
 
     String? dirPath;
     if (!kIsWeb) {
@@ -69,6 +71,7 @@ class IsarService {
         directory: dirPath ?? '',
         name: dbName,
       );
+      debugPrint('[IsarService] Banco Isar aberto com sucesso.');
     } catch (e) {
       debugPrint('[IsarService] Falha na abertura do DB ($e). Realizando limpeza de esquema incompatível...');
 
@@ -95,11 +98,22 @@ class IsarService {
           directory: dirPath ?? '',
           name: dbName,
         );
+        debugPrint('[IsarService] Banco Isar aberto com sucesso após limpeza.');
       } catch (e2) {
         debugPrint('[IsarService] Erro persistente ao abrir Isar: $e2');
         rethrow;
       }
     }
+  }
+
+  /// Garante que o Isar esteja inicializado. Se não estiver, chama [init()].
+  /// Use este método sempre que precisar acessar o Isar de forma segura
+  /// sem garantia prévia de inicialização.
+  Future<Isar> ensureInitialized() async {
+    if (_isar == null || !_isar!.isOpen) {
+      await init();
+    }
+    return _isar!;
   }
 
   /// Deleta os arquivos físicos do banco Isar com o nome dado se corrompidos.

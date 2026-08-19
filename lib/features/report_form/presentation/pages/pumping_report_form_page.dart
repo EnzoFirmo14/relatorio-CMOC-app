@@ -14,6 +14,7 @@ import '../../domain/entities/water_level_entity.dart';
 import '../../domain/entities/pump_entity.dart';
 import '../../../sync/presentation/controllers/sync_controller.dart';
 import '../controllers/report_form_controller.dart';
+import '../widgets/whatsapp_preview_dialog.dart';
 
 /// Tema de cores selecionável para a interface de Drenagem & Bombeamento
 class PumpingTheme {
@@ -851,6 +852,7 @@ class _PumpingReportFormPageState extends ConsumerState<PumpingReportFormPage> {
   // --- WHATSAPP & AÇÕES ---
 
   Future<void> _salvarESincronizarRelatorio(InspecaoModel insp, String txt) async {
+    ReportEntity? report;
     try {
       final equipeOps = insp.equipe.map((id) {
         final nome = _nomeColaborador(id);
@@ -937,7 +939,7 @@ class _PumpingReportFormPageState extends ConsumerState<PumpingReportFormPage> {
         }
       }
 
-      final report = ReportEntity(
+      report = ReportEntity(
         uuid: insp.id,
         date: DateTime.tryParse(insp.data) ?? DateTime.now(),
         shift: insp.turno,
@@ -956,20 +958,30 @@ class _PumpingReportFormPageState extends ConsumerState<PumpingReportFormPage> {
 
       final repository = ref.read(reportRepositoryProvider);
       await repository.saveReport(report);
-
-      // Envio direto ao Firestore (garante chegada em web e mobile)
-      final remoteDataSource = ref.read(reportRemoteDataSourceProvider);
-      await remoteDataSource.sendReport(report);
-      await repository.markAsSynced(report.uuid);
-      debugPrint('[Bombeamento] Relatório enviado ao Firestore: ${report.uuid} → pumping_reports');
+      debugPrint('[Bombeamento] Salvo localmente: ${report.uuid}');
     } catch (e) {
-      debugPrint('Erro ao salvar relatório de bombeamento no Firestore: $e');
-      // Fallback via sync queue
-      try {
-        await ref.read(syncControllerProvider.notifier).triggerSync();
-      } catch (e2) {
-        debugPrint('[Bombeamento] Erro no sync queue: $e2');
-      }
+      debugPrint('[Bombeamento] Erro ao salvar localmente: $e');
+    }
+
+    // Sincronização em background sem bloquear a interface/modal
+    if (report != null) {
+      final reportToSend = report;
+      Future.microtask(() async {
+        try {
+          final repository = ref.read(reportRepositoryProvider);
+          final remoteDataSource = ref.read(reportRemoteDataSourceProvider);
+          await remoteDataSource.sendReport(reportToSend);
+          await repository.markAsSynced(reportToSend.uuid);
+          debugPrint('[Bombeamento] Relatório enviado ao Firestore: ${reportToSend.uuid} → pumping_reports');
+        } catch (e) {
+          debugPrint('[Bombeamento] Firestore sync falhou ou offline: $e');
+          try {
+            await ref.read(syncControllerProvider.notifier).triggerSync();
+          } catch (e2) {
+            debugPrint('[Bombeamento] Erro no sync queue: $e2');
+          }
+        }
+      });
     }
   }
 
@@ -1999,66 +2011,21 @@ class _PumpingReportFormPageState extends ConsumerState<PumpingReportFormPage> {
       _salvarEstado();
     });
 
-    _abrirModalRelatorio(insp);
-
-    // Delega para _salvarESincronizarRelatorio() evitando duplicação de código.
+    // Salva localmente (offline-first) e agenda sync em background
     final txt = _gerarTextoRelatorio(insp);
     await _salvarESincronizarRelatorio(insp, txt);
+
+    // Abre o modal padronizado com prévia, auto-cópia e confirmação de envio
+    _abrirModalRelatorio(insp);
   }
 
-
   void _abrirModalRelatorio(InspecaoModel insp) {
-    showModalBottomSheet(
+    final txt = _gerarTextoRelatorio(insp);
+    showDialog(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: _activeTheme.painel,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
-      builder: (ctx) {
-        final txt = _gerarTextoRelatorio(insp);
-        final theme = _activeTheme;
-        final textColor = theme.isDark ? Colors.white : Colors.black87;
-        return DraggableScrollableSheet(
-          initialChildSize: 0.85,
-          maxChildSize: 0.95,
-          expand: false,
-          builder: (ctx, scrollCtrl) {
-            return Padding(
-              padding: const EdgeInsets.all(16),
-              child: ListView(
-                controller: scrollCtrl,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text('Relatório do Turno', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: theme.agua)),
-                      IconButton(icon: Icon(Icons.close, color: textColor), onPressed: () => Navigator.pop(ctx)),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF25D366), foregroundColor: Colors.white),
-                    onPressed: () async {
-                      await _salvarESincronizarRelatorio(insp, txt);
-                      _abrirWhatsApp(txt, _zapNumero);
-                    },
-                    icon: const Icon(Icons.send),
-                    label: const Text('Enviar por WhatsApp', style: TextStyle(fontWeight: FontWeight.bold)),
-                  ),
-                  const SizedBox(height: 12),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(color: theme.fundo, borderRadius: BorderRadius.circular(8)),
-                    child: SelectableText(
-                      txt,
-                      style: TextStyle(fontFamily: 'monospace', fontSize: 12, color: textColor),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
+      builder: (context) => WhatsappPreviewDialog(
+        formattedText: txt,
+      ),
     );
   }
 

@@ -1,11 +1,11 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/providers/dev_mode_provider.dart';
 import '../../../../core/services/firestore_cadastros_service.dart';
 import '../../../sync/presentation/widgets/sync_status_badge.dart';
 import '../../data/constants/mechanical_constants.dart';
+import '../widgets/whatsapp_preview_dialog.dart';
 import '../controllers/report_form_controller.dart';
 import '../widgets/mechanical_om_card.dart';
 
@@ -427,22 +427,23 @@ class _MechanicalReportFormPageState
 
     controller.clearValidationErrors();
 
-    // Salva o relatório mecânico na coleção `mechanical_reports` com
-    // ID prefixado MC- e type: 'Mecânica'. A validação já foi feita acima.
-    await controller.saveAndSyncMechanicalReport();
-
+    // 1. Gera o texto ANTES de qualquer limpeza (offline, instantâneo)
     final text = _generateWhatsAppText();
-    final encoded = Uri.encodeComponent(text);
-    final url = Uri.parse('https://wa.me/?text=$encoded');
 
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url, mode: LaunchMode.externalApplication);
-    } else {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Não foi possível abrir o WhatsApp')),
-        );
-      }
+    // 2. Salva localmente e dispara sync em background (offline-first, não bloqueia)
+    await controller.saveMechanicalLocallyAndTriggerSync();
+
+    // 3. Limpa o formulário
+    await controller.resetForm();
+
+    // 4. Abre o preview — funciona com ou sem internet
+    if (mounted) {
+      showDialog(
+        context: context,
+        builder: (context) => WhatsappPreviewDialog(
+          formattedText: text,
+        ),
+      );
     }
   }
 
