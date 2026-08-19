@@ -4,35 +4,35 @@ import 'package:google_fonts/google_fonts.dart';
 class AppTheme {
   AppTheme._();
 
-  // ─── Paleta de Cores Oficial CMOC (Azul, Branco e Detalhes Verdes) ─────────
-  static const Color primaryBlue = Color(0xFF0F4C81);   // Azul Corporativo CMOC
-  static const Color accentBlue = Color(0xFF005691);    // Azul Médio CMOC
+  // ─── Paleta de Cores Oficial CMOC ─────────
+  static const Color primaryBlue = Color(0xFF23005B);   // Azul Escuro (principal)
+  static const Color accentBlue = Color(0xFF5C3FA3);    // Roxo (destaques)
   static const Color lightBlue = Color(0xFFE8F1F8);     // Azul Claro Suave
-  static const Color darkBlue = Color(0xFF0A3154);      // Azul Marinho Escuro
+  static const Color darkBlue = Color(0xFF1F2937);      // Cinza Escuro
   
-  static const Color cmocGreen = Color(0xFF00A859);     // Verde CMOC (Detalhes e Confirmação)
-  static const Color greenSuccess = Color(0xFF00A859);  // Verde Sucesso
+  static const Color cmocGreen = Color(0xFF74BE45);     // Verde CMOC
+  static const Color greenSuccess = Color(0xFF74BE45);  // Verde Sucesso
   static const Color redAlert = Color(0xFFD9381E);      // Vermelho Alerta
   
-  // Compatibilidade com variáveis antigas apontando para a nova paleta CMOC
-  static const Color primaryPurple = primaryBlue;
-  static const Color accentPurple = accentBlue;
-  static const Color lightPurple = lightBlue;
+  // Compatibilidade com variáveis antigas
+  static const Color primaryPurple = Color(0xFF5C3FA3);
+  static const Color accentPurple = Color(0xFF5C3FA3);
+  static const Color lightPurple = Color(0xFFE8F1F8);
   
-  static const Color backgroundLight = Color(0xFFF4F7FA); // Fundo limpo azulado/cinza
-  static const Color cardColorLight = Colors.white;       // Cards brancos cristalinos
-  static const Color cardColorLight2 = Color(0xFFF8FAFC);  // Fundo secundário do card
-  static const Color borderLight = Color(0xFFD4E0EB);     // Cor de bordas suaves
+  static const Color backgroundLight = Color(0xFFF5F7FA); // Cinza Claro
+  static const Color cardColorLight = Colors.white;       
+  static const Color cardColorLight2 = Color(0xFFF8FAFC);  
+  static const Color borderLight = Color(0xFFD4E0EB);     
   
-  static const Color textDark = Color(0xFF0D253A);        // Texto principal Azul-Escuro
-  static const Color textMuted = Color(0xFF4A6076);       // Texto Muted
-  static const Color textFaint = Color(0xFF8CA0B4);       // Texto Faint
+  static const Color textDark = Color(0xFF1F2937);        
+  static const Color textMuted = Color(0xFF4A6076);       
+  static const Color textFaint = Color(0xFF8CA0B4);       
 
   // ─── Cores Modo Escuro ─────────
-  static const Color backgroundDark = Color(0xFF121212);
-  static const Color cardColorDark = Color(0xFF1E1E1E);
-  static const Color borderDark = Color(0xFF2C2C2C);
-  static const Color textLight = Color(0xFFF4F7FA);
+  static const Color backgroundDark = Color(0xFF0B1120);
+  static const Color cardColorDark = Color(0xFF111827);
+  static const Color borderDark = Color(0xFF1E293B);
+  static const Color textLight = Color(0xFFFFFFFF);
   static const Color textMutedDark = Color(0xFFA0B4C8);
 
   // Tema Claro Oficial CMOC

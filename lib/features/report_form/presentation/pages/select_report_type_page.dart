@@ -252,8 +252,8 @@ class _SelectReportTypePageState extends ConsumerState<SelectReportTypePage> {
         title: 'Elétrica da Mina',
         description: 'Subestações, fiação, equipamentos e manutenção elétrica.',
         icon: Icons.bolt_rounded,
-        gradientColors: const [Color(0xFFD97706), Color(0xFF78350F)], // Dourado/Âmbar
-        shadowColor: const Color(0xFFD97706).withValues(alpha: 0.3),
+        gradientColors: const [Color(0xFF005691), Color(0xFF003B65)], // Azul Secundário
+        shadowColor: const Color(0xFF005691).withValues(alpha: 0.3),
         onTap: () => Navigator.pushNamed(context, '/form/electrical'),
       ),
     ];

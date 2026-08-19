@@ -114,8 +114,8 @@ class ReportFormController extends Notifier<ReportFormState> {
     }
   }
 
-  /// Valida o relatório, marca seu status como pendente e tenta enviá-lo imediatamente ao Firestore.
-  /// Se offline, permanece na fila pendente para sincronização automática futura.
+  /// Valida o relatório, marca seu status como pendente e o envia imediatamente ao Firestore.
+  /// Estratégia: envio direto ao Firestore primeiro; sync queue como fallback.
   Future<bool> submitReport() async {
     final errors = validateForm();
     if (errors.isNotEmpty) {
@@ -129,20 +129,34 @@ class ReportFormController extends Notifier<ReportFormState> {
 
     await _autosave();
 
+    // Envio direto ao Firestore (garante chegada em web e mobile)
     try {
-      await ref.read(syncControllerProvider.notifier).triggerSync();
+      final entity = _stateToEntity();
+      final remoteDataSource = ref.read(reportRemoteDataSourceProvider);
+      await remoteDataSource.sendReport(entity);
+      await _repository.markAsSynced(state.uuid);
       state = state.copyWith(
         syncStatus: ReportSyncStatus.synced,
         reportStatus: 'Sincronizado',
       );
+      debugPrint('[submitReport] Relatório enviado diretamente ao Firestore: ${state.uuid}');
     } catch (e) {
-      debugPrint('Erro no triggerSync de submitReport: $e');
+      debugPrint('[submitReport] Erro no envio direto: $e — tentando via sync queue...');
+      try {
+        await ref.read(syncControllerProvider.notifier).triggerSync();
+        state = state.copyWith(
+          syncStatus: ReportSyncStatus.synced,
+          reportStatus: 'Sincronizado',
+        );
+      } catch (e2) {
+        debugPrint('[submitReport] Erro no sync queue: $e2');
+      }
     }
 
     return true;
   }
 
-  /// Salva o relatório atual como pendente e aciona a sincronização,
+  /// Salva o relatório atual como pendente e o envia diretamente ao Firestore.
   /// SEM executar `validateForm()`. Use este método nos formulários que
   /// possuem sua própria lógica de validação (ex: Mecânica, Elétrica).
   Future<void> saveAndSyncReport() async {
@@ -153,14 +167,28 @@ class ReportFormController extends Notifier<ReportFormState> {
 
     await _autosave();
 
+    // Envio direto ao Firestore
     try {
-      await ref.read(syncControllerProvider.notifier).triggerSync();
+      final entity = _stateToEntity();
+      final remoteDataSource = ref.read(reportRemoteDataSourceProvider);
+      await remoteDataSource.sendReport(entity);
+      await _repository.markAsSynced(state.uuid);
       state = state.copyWith(
         syncStatus: ReportSyncStatus.synced,
         reportStatus: 'Sincronizado',
       );
+      debugPrint('[saveAndSyncReport] Relatório enviado diretamente ao Firestore: ${state.uuid}');
     } catch (e) {
-      debugPrint('Erro no triggerSync de saveAndSyncReport: $e');
+      debugPrint('[saveAndSyncReport] Erro no envio direto: $e — tentando via sync queue...');
+      try {
+        await ref.read(syncControllerProvider.notifier).triggerSync();
+        state = state.copyWith(
+          syncStatus: ReportSyncStatus.synced,
+          reportStatus: 'Sincronizado',
+        );
+      } catch (e2) {
+        debugPrint('[saveAndSyncReport] Erro no sync queue: $e2');
+      }
     }
   }
 
@@ -191,15 +219,27 @@ class ReportFormController extends Notifier<ReportFormState> {
       await _repository.saveReport(entity);
       state = state.copyWith(autosaveStatus: AutosaveStatus.saved);
 
-      await ref.read(syncControllerProvider.notifier).triggerSync();
+      // Envio direto ao Firestore (garante chegada em web e mobile)
+      final remoteDataSource = ref.read(reportRemoteDataSourceProvider);
+      await remoteDataSource.sendReport(entity);
+      await _repository.markAsSynced(mcId);
       state = state.copyWith(
         syncStatus: ReportSyncStatus.synced,
         reportStatus: 'Sincronizado',
       );
-      debugPrint('Relatório mecânico salvo com sucesso: $mcId → mechanical_reports');
+      debugPrint('[saveAndSyncMechanicalReport] Relatório mecânico enviado diretamente: $mcId → mechanical_reports');
     } catch (e) {
       state = state.copyWith(autosaveStatus: AutosaveStatus.error);
-      debugPrint('Erro ao salvar relatório mecânico: $e');
+      debugPrint('[saveAndSyncMechanicalReport] Erro no envio direto: $e — tentando via sync queue...');
+      try {
+        await ref.read(syncControllerProvider.notifier).triggerSync();
+        state = state.copyWith(
+          syncStatus: ReportSyncStatus.synced,
+          reportStatus: 'Sincronizado',
+        );
+      } catch (e2) {
+        debugPrint('[saveAndSyncMechanicalReport] Erro no sync queue: $e2');
+      }
     }
   }
 

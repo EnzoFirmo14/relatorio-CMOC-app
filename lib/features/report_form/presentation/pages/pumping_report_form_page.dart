@@ -956,9 +956,20 @@ class _PumpingReportFormPageState extends ConsumerState<PumpingReportFormPage> {
 
       final repository = ref.read(reportRepositoryProvider);
       await repository.saveReport(report);
-      await ref.read(syncControllerProvider.notifier).triggerSync();
+
+      // Envio direto ao Firestore (garante chegada em web e mobile)
+      final remoteDataSource = ref.read(reportRemoteDataSourceProvider);
+      await remoteDataSource.sendReport(report);
+      await repository.markAsSynced(report.uuid);
+      debugPrint('[Bombeamento] Relatório enviado ao Firestore: ${report.uuid} → pumping_reports');
     } catch (e) {
       debugPrint('Erro ao salvar relatório de bombeamento no Firestore: $e');
+      // Fallback via sync queue
+      try {
+        await ref.read(syncControllerProvider.notifier).triggerSync();
+      } catch (e2) {
+        debugPrint('[Bombeamento] Erro no sync queue: $e2');
+      }
     }
   }
 

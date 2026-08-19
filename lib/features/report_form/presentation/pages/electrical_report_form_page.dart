@@ -599,7 +599,6 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
   Future<void> _salvarESincronizarRelatorio() async {
     try {
       final repository = ref.read(reportRepositoryProvider);
-      final syncController = ref.read(syncControllerProvider.notifier);
       
       final reportId = 'EL-${const Uuid().v4().substring(0, 8).toUpperCase()}';
 
@@ -649,10 +648,21 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
       );
 
       await repository.saveReport(report);
-      await syncController.triggerSync();
-      debugPrint('Relatório elétrico salvo e enfileirado para sincronização com sucesso: $reportId');
+
+      // Envio direto ao Firestore (garante chegada em web e mobile)
+      final remoteDataSource = ref.read(reportRemoteDataSourceProvider);
+      await remoteDataSource.sendReport(report);
+      await repository.markAsSynced(reportId);
+      debugPrint('[Elétrica] Relatório enviado diretamente ao Firestore: $reportId → electrical_reports');
     } catch (e) {
       debugPrint('Erro ao salvar relatório elétrico: $e');
+      // Fallback via sync queue
+      try {
+        final syncController = ref.read(syncControllerProvider.notifier);
+        await syncController.triggerSync();
+      } catch (e2) {
+        debugPrint('[Elétrica] Erro no sync queue: $e2');
+      }
     }
   }
 
