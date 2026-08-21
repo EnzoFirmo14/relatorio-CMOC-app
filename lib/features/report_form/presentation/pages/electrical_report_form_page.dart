@@ -1101,7 +1101,7 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _buildLabel('⛽', 'NÍVEL DO COMBUSTÍVEL (%)', isRequired: true),
+                  Expanded(child: _buildLabel('⛽', 'NÍVEL DO COMBUSTÍVEL (%)', isRequired: true)),
                   Text(
                     '${_combustivel.round()}%',
                     style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF2B2F3A)),
@@ -1202,7 +1202,7 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildLabel('👷', 'EXECUTANTE ${i + 1}', isRequired: isReq),
+              Expanded(child: _buildLabel('👷', 'EXECUTANTE ${i + 1}', isRequired: isReq)),
               if (!isReq)
                 InkWell(
                   onTap: () => setState(() => _execs.removeAt(i)),
@@ -1423,7 +1423,7 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      _buildLabel('⏸️', 'EQUIPAMENTO FICOU PARADO?'),
+                      Expanded(child: _buildLabel('⏸️', 'EQUIPAMENTO FICOU PARADO?')),
                       InkWell(
                         onTap: () => setState(() {
                           o.parado = !o.parado;
@@ -1534,7 +1534,7 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    _buildLabel('🧰', 'MATERIAIS UTILIZADOS', isRequired: true),
+                    Expanded(child: _buildLabel('🧰', 'MATERIAIS UTILIZADOS', isRequired: true)),
                     InkWell(
                       onTap: () => setState(() {
                         o.matNA = !o.matNA;
