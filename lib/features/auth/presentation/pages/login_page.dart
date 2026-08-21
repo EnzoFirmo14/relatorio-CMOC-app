@@ -119,32 +119,32 @@ class LoginPage extends StatelessWidget {
                     ),
                   ).animate().fade(delay: 400.ms).scale(begin: const Offset(0.95, 0.95)),
 
-                  const SizedBox(height: 32),
-
-                  // Segurança CMOC
-                  const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.gpp_good_outlined, size: 20, color: AppTheme.cmocGreen),
-                      SizedBox(width: 8),
-                      Text(
-                        'Acesso Seguro CMOC',
-                        style: TextStyle(
-                          color: AppTheme.cmocGreen,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                          letterSpacing: 0.2,
-                        ),
-                      ),
-                    ],
-                  ).animate().fade(delay: 500.ms),
-
                   const Spacer(flex: 8), // Aumentado de 5 para 8 para jogar tudo para cima
 
-                  // Rodapé
+                  // Rodapé e Segurança CMOC
                   Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                      // Segurança CMOC
+                      const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.gpp_good_outlined, size: 20, color: AppTheme.cmocGreen),
+                          SizedBox(width: 8),
+                          Text(
+                            'Acesso Seguro CMOC',
+                            style: TextStyle(
+                              color: AppTheme.cmocGreen,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              letterSpacing: 0.2,
+                            ),
+                          ),
+                        ],
+                      ).animate().fade(delay: 500.ms),
+                      
+                      const SizedBox(height: 24),
+                      
                       const Text(
                         'InfraLog CMOC © 2026',
                         style: TextStyle(
@@ -158,10 +158,11 @@ class LoginPage extends StatelessWidget {
                         'Desenvolvido por WP & EF',
                         style: TextStyle(
                           color: const Color(0xFFA78BFA).withValues(alpha: 0.9), // Roxo combinando com o título
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
+                      const SizedBox(height: 16),
                     ],
                   ).animate().fade(delay: 600.ms),
                 ],
