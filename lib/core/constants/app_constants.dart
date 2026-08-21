@@ -29,7 +29,8 @@ class AppConstants {
     'Corretiva',
     'Recuo',
     'Transporte',
-    'Apoio'
+    'Apoio',
+    'Instalação'
   ];
 
   static const Map<String, List<String>> causaMap = {
@@ -55,6 +56,9 @@ class AppConstants {
     ],
     'Transporte': [
       'Transporte'
+    ],
+    'Instalação': [
+      'Instalação'
     ]
   };
 

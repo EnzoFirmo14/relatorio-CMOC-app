@@ -4,11 +4,13 @@ import 'package:flutter_svg/flutter_svg.dart';
 class CmocLogo extends StatelessWidget {
   final double height;
   final bool showSubtitle;
+  final Color? color;
 
   const CmocLogo({
     super.key,
     this.height = 36.0,
     this.showSubtitle = true,
+    this.color,
   });
 
   @override
@@ -17,7 +19,8 @@ class CmocLogo extends StatelessWidget {
       'assets/images/CMOC_bilingual_logo.svg',
       height: height,
       fit: BoxFit.contain,
-      placeholderBuilder: (context) => const SizedBox(
+      colorFilter: color != null ? ColorFilter.mode(color!, BlendMode.srcIn) : null,
+      placeholderBuilder: (context) => SizedBox(
         width: 100,
         height: 30,
         child: Center(
@@ -26,7 +29,7 @@ class CmocLogo extends StatelessWidget {
             style: TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 18,
-              color: Color(0xFF0F4C81),
+              color: color ?? const Color(0xFF0F4C81),
             ),
           ),
         ),

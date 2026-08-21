@@ -97,7 +97,7 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
   int _currentTab = 0; // 0: Relatório, 1: Cadastros & Locais
 
   // Constantes de Opções idênticas ao relatorio-eletrica.html
-  static const List<String> _tiposOS = ['Corretiva', 'Avanço', 'Recuo', 'Transporte', 'Apoio'];
+  static const List<String> _tiposOS = ['Corretiva', 'Avanço', 'Recuo', 'Transporte', 'Apoio', 'Instalação'];
 
   static const Map<String, List<String>> _causasMap = {
     'Corretiva': [
@@ -129,6 +129,7 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
     ],
     'Transporte': [],
     'Apoio': [],
+    'Instalação': [],
   };
 
   static final List<String> _tagsPadrao = (() {
@@ -1745,15 +1746,22 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(icon, style: const TextStyle(fontSize: 14)),
           const SizedBox(width: 6),
-          Text(
-            text,
-            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 0.8, color: Color(0xFF8A90A2)),
+          Expanded(
+            child: Text.rich(
+              TextSpan(
+                text: text,
+                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 0.8, color: Color(0xFF8A90A2)),
+                children: [
+                  if (isRequired)
+                    const TextSpan(text: ' *', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                ],
+              ),
+            ),
           ),
-          if (isRequired)
-            const Text(' *', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
         ],
       ),
     );

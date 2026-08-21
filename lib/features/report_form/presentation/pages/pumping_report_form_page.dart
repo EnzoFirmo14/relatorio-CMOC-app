@@ -186,6 +186,7 @@ class DetalheRampa {
   bool? limpeza; // true = sim (precisa), false = nao
   List<String> ocorrencias;
   bool avisouLider;
+  bool avisouSalaControle;
 
   DetalheRampa({
     this.metragem,
@@ -193,6 +194,7 @@ class DetalheRampa {
     this.limpeza,
     List<String>? ocorrencias,
     this.avisouLider = false,
+    this.avisouSalaControle = false,
   }) : ocorrencias = ocorrencias ?? [];
 
   Map<String, dynamic> toJson() => {
@@ -201,6 +203,7 @@ class DetalheRampa {
         'limpeza': limpeza,
         'ocorrencias': ocorrencias,
         'avisouLider': avisouLider,
+        'avisouSalaControle': avisouSalaControle,
       };
 
   factory DetalheRampa.fromJson(Map<String, dynamic> json) => DetalheRampa(
@@ -209,6 +212,7 @@ class DetalheRampa {
         limpeza: json['limpeza'],
         ocorrencias: (json['ocorrencias'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
         avisouLider: json['avisouLider'] ?? false,
+        avisouSalaControle: json['avisouSalaControle'] ?? false,
       );
 }
 
@@ -910,7 +914,15 @@ class _PumpingReportFormPageState extends ConsumerState<PumpingReportFormPage> {
       for (final r in _rampas) {
         final det = insp.rampas[r.id];
         if (det != null) {
-          final ocorrenciasText = det.ocorrencias.join(', ');
+          final List<String> ocorrenciasList = List.from(det.ocorrencias);
+          if (det.bomba == false || det.limpeza == true) {
+            ocorrenciasList.add('Comunicações:');
+            if (det.limpeza == true) {
+              ocorrenciasList.add('- Sala de Controle: ${det.avisouSalaControle ? "Avisada" : "Não Avisada"}');
+            }
+            ocorrenciasList.add('- Líder da Infraestrutura: ${det.avisouLider ? "Avisado" : "Não Avisado"}');
+          }
+          final ocorrenciasText = ocorrenciasList.join(', ');
 
           pumps.add(PumpEntity(
             name: r.nome,
@@ -1784,15 +1796,17 @@ class _PumpingReportFormPageState extends ConsumerState<PumpingReportFormPage> {
                   onPressed: () {
                     setState(() {
                       final curr = d.metragem ?? 0;
-                      d.metragem = (curr - 5);
-                      _salvarEstado();
+                      if (curr > 0) {
+                        d.metragem = curr - 1;
+                        _salvarEstado();
+                      }
                     });
                   },
                 ),
                 Expanded(
                   child: TextFormField(
                     key: Key('metragem_${r.id}_${d.metragem}'),
-                    initialValue: d.metragem?.toString() ?? '',
+                    initialValue: d.metragem?.toString() ?? '0',
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: theme.agua),
@@ -1805,7 +1819,12 @@ class _PumpingReportFormPageState extends ConsumerState<PumpingReportFormPage> {
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                     ),
                     onChanged: (val) {
-                      d.metragem = double.tryParse(val);
+                      final parsed = double.tryParse(val);
+                      if (parsed != null && parsed >= 0 && parsed <= 100) {
+                        d.metragem = parsed;
+                      } else if (val.isEmpty) {
+                         d.metragem = 0;
+                      }
                       _salvarEstado();
                     },
                   ),
@@ -1816,11 +1835,23 @@ class _PumpingReportFormPageState extends ConsumerState<PumpingReportFormPage> {
                   onPressed: () {
                     setState(() {
                       final curr = d.metragem ?? 0;
-                      d.metragem = (curr + 5);
-                      _salvarEstado();
+                      if (curr < 100) {
+                        d.metragem = curr + 1;
+                        _salvarEstado();
+                      }
                     });
                   },
                 ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            // Escala visual de referência
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('ponto zero', style: TextStyle(fontSize: 10, color: theme.isDark ? Colors.white70 : Colors.black87)),
+                Text('crítico ≤ 25 m', style: TextStyle(fontSize: 10, color: theme.isDark ? Colors.white70 : Colors.black87)),
+                Text('100 m', style: TextStyle(fontSize: 10, color: theme.isDark ? Colors.white70 : Colors.black87)),
               ],
             ),
             const SizedBox(height: 8),
@@ -1881,10 +1912,17 @@ class _PumpingReportFormPageState extends ConsumerState<PumpingReportFormPage> {
                   label: 'Sim',
                   selected: d.limpeza == true,
                   activeColor: theme.alerta,
-                  onTap: () => setState(() {
-                    d.limpeza = d.limpeza == true ? null : true;
-                    _salvarEstado();
-                  }),
+                  onTap: () {
+                    setState(() {
+                      final wasTrue = d.limpeza == true;
+                      d.limpeza = wasTrue ? null : true;
+                      _salvarEstado();
+                      if (!wasTrue) {
+                        // Quando muda para Sim, abre o modal
+                        _showLimpezaModal(theme, d);
+                      }
+                    });
+                  },
                 ),
               ),
             ],
@@ -1893,6 +1931,159 @@ class _PumpingReportFormPageState extends ConsumerState<PumpingReportFormPage> {
 
           // Seletor de Ocorrências idêntico ao modelo HTML (.barra-sel)
           _buildOcorrenciasSelector(theme, r, d),
+          
+          if (d.bomba == false || d.limpeza == true)
+            _buildAlertCard(theme, r, d),
+        ],
+      ),
+    );
+  }
+
+  void _showLimpezaModal(PumpingTheme theme, DetalheRampa d) {
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          backgroundColor: theme.painel,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Text(
+            'AVISE A SALA DE CONTROLE E O LÍDER',
+            style: TextStyle(color: theme.critico, fontWeight: FontWeight.bold, fontSize: 16),
+          ),
+          content: Text(
+            'Você registrou que o equipamento precisa de limpeza.\n\nComunique a sala de controle e o líder da infraestrutura.',
+            style: TextStyle(color: theme.isDark ? Colors.white : Colors.black87),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(ctx).pop();
+                _abrirWhatsApp('Necessidade de limpeza identificada.', _zapControle);
+              },
+              child: const Text('AVISAR SALA DE CONTROLE', style: TextStyle(color: Colors.green)),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(ctx).pop();
+                _abrirWhatsApp('Necessidade de limpeza identificada.', _zapLider);
+              },
+              child: const Text('AVISAR LÍDER', style: TextStyle(color: Colors.green)),
+            ),
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  d.avisouLider = true;
+                  d.avisouSalaControle = true;
+                  _salvarEstado();
+                });
+                Navigator.of(ctx).pop();
+              },
+              child: Text('JÁ AVISEI', style: TextStyle(color: theme.agua)),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: Text('FECHAR', style: TextStyle(color: theme.isDark ? Colors.white54 : Colors.black54)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildAlertCard(PumpingTheme theme, RampaModel r, DetalheRampa d) {
+    final title = d.limpeza == true ? 'COMUNICAR A SALA DE CONTROLE E O LÍDER DA INFRAESTRUTURA' : 'COMUNICAR A LÍDER DA INFRAESTRUTURA';
+    
+    final List<String> motivos = [];
+    if (d.bomba == false) motivos.add('bomba parada');
+    if (d.limpeza == true) motivos.add('necessidade de limpeza');
+    
+    final text = '${r.nome}: ${motivos.join(' e ')}.';
+
+    return Container(
+      margin: const EdgeInsets.only(top: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: theme.fundo,
+        border: Border.all(color: theme.critico),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: theme.critico, size: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(title, style: TextStyle(color: theme.critico, fontWeight: FontWeight.bold, fontSize: 12)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(text, style: TextStyle(color: theme.isDark ? Colors.white70 : Colors.black87, fontSize: 13)),
+          const SizedBox(height: 12),
+          
+          if (d.limpeza == true)
+            InkWell(
+              onTap: () => _abrirWhatsApp(text, _zapControle),
+              child: Container(
+                width: double.infinity,
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(color: Colors.green, borderRadius: BorderRadius.circular(6)),
+                alignment: Alignment.center,
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.chat_bubble_outline, color: Colors.white, size: 16),
+                    SizedBox(width: 8),
+                    Text('AVISAR SALA DE CONTROLE', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                  ],
+                ),
+              ),
+            ),
+            
+          InkWell(
+            onTap: () => _abrirWhatsApp(text, _zapLider),
+            child: Container(
+              width: double.infinity,
+              margin: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              decoration: BoxDecoration(color: Colors.green, borderRadius: BorderRadius.circular(6)),
+              alignment: Alignment.center,
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.chat_bubble_outline, color: Colors.white, size: 16),
+                  SizedBox(width: 8),
+                  Text('AVISAR LÍDER DA INFRAESTRUTURA', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                ],
+              ),
+            ),
+          ),
+          
+          InkWell(
+            onTap: () {
+              setState(() {
+                d.avisouLider = true;
+                if (d.limpeza == true) d.avisouSalaControle = true;
+                _salvarEstado();
+              });
+            },
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              decoration: BoxDecoration(
+                border: Border.all(color: theme.isDark ? Colors.white38 : Colors.black38),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                (d.avisouLider && (d.limpeza != true || d.avisouSalaControle)) ? '✓ AVISADO' : 'JÁ AVISEI', 
+                style: TextStyle(color: (d.avisouLider && (d.limpeza != true || d.avisouSalaControle)) ? Colors.green : (theme.isDark ? Colors.white : Colors.black87), fontWeight: FontWeight.bold, fontSize: 13)
+              ),
+            ),
+          ),
         ],
       ),
     );
