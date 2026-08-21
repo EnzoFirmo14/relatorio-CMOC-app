@@ -1,0 +1,16 @@
+﻿      const exportRows: Array<{
+        date: Date | null;
+        shift: string;
+        team: string;
+        equipe: string;
+        maintType: string;
+        location: string;
+        workshop: string;
+        material: string;
+        qty: number | '';
+        startTime: string;
+        endTime: string;
+        cause: string;
+        intervention: string;
+        status: string;
+      }> = [];

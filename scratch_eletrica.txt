@@ -1,0 +1,189 @@
+﻿export const exportElectricalToExcel = async (
+  reports: import('./electricalService').ElectricalReportPayload[],
+  filename = 'relatorio_eletrica_cmoc.xlsx'
+): Promise<boolean> => {
+  if (!reports || reports.length === 0) return false;
+
+  try {
+    const workbook = new ExcelJS.Workbook();
+    const ws = workbook.addWorksheet('Relatórios Elétrica');
+
+    const headers = [
+      'Data',
+      'Turno',
+      'Líder',
+      'Membros',
+      'Local (Geral)',
+      'Tipo Serviço',
+      'Equipamento',
+      'Atividade',
+      'Local Ativ.',
+      'Início',
+      'Fim',
+      'Status',
+      'Item (Material)',
+      'Qtd',
+      'Unidade',
+      'Part Number',
+      'APR?',
+      'LOTO?',
+      'Medição Gás?',
+      'Equip. Desenergizado?',
+      'EPI?',
+      'Observações',
+    ];
+
+    const headerRow = ws.getRow(1);
+    headers.forEach((h, i) => {
+      const cell = headerRow.getCell(i + 1);
+      cell.value = h;
+      cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11 };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF23005B' } };
+      cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+      cell.border = {
+        top: { style: 'thin', color: { argb: 'FF4C1D95' } },
+        bottom: { style: 'thin', color: { argb: 'FF4C1D95' } },
+        left: { style: 'thin', color: { argb: 'FF4C1D95' } },
+        right: { style: 'thin', color: { argb: 'FF4C1D95' } },
+      };
+    });
+    headerRow.height = 30;
+    headerRow.commit();
+
+    const colWidths = [14,14,20,30,20,18,18,35,20,12,12,16,20,10,12,16,10,10,14,22,10,40];
+    ws.columns = colWidths.map(w => ({ width: w }));
+
+    let rowNum = 2;
+
+    reports.forEach(r => {
+      let dateObj: Date | null = null;
+      if (r.createdAt?.toDate) {
+        dateObj = r.createdAt.toDate();
+      } else if (r.date) {
+        const parts = r.date.split('/');
+        if (parts.length === 3) {
+          const parsed = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+          if (!isNaN(parsed.getTime())) dateObj = parsed;
+        }
+      }
+
+      const dateStr = dateObj ? dateObj.toLocaleDateString('pt-BR') : r.date || '';
+      const shiftStr = (r.shift || '').toUpperCase();
+      const leaderStr = (r.leader || '').toUpperCase();
+      const membersStr = (r.members || []).map((m: string) => m.toUpperCase()).join(', ');
+      const locationStr = (r.location || '').toUpperCase();
+      const obsStr = (r.observations || '').toUpperCase();
+      
+      const apr = r.safetyCheck?.hasAPR ? 'SIM' : 'NÃO';
+      const loto = r.safetyCheck?.hasLOTO ? 'SIM' : 'NÃO';
+      const gas = r.safetyCheck?.gasMeasured ? 'SIM' : 'NÃO';
+      const deenergized = r.safetyCheck?.equipmentDeenergized ? 'SIM' : 'NÃO';
+      const ppe = r.safetyCheck?.ppeUsed ? 'SIM' : 'NÃO';
+
+      const hasActivities = r.activities && r.activities.length > 0;
+      const hasMaterials = r.materialsUsed && r.materialsUsed.length > 0;
+
+      if (!hasActivities && !hasMaterials) {
+        const row = ws.getRow(rowNum++);
+        row.values = [
+          dateStr, shiftStr, leaderStr, membersStr, locationStr,
+          '', '', '', '', '', '', '',
+          '', '', '', '',
+          apr, loto, gas, deenergized, ppe, obsStr
+        ];
+        return;
+      }
+
+      if (hasActivities) {
+        r.activities.forEach(act => {
+          if (!hasMaterials) {
+            const row = ws.getRow(rowNum++);
+            row.values = [
+              dateStr, shiftStr, leaderStr, membersStr, locationStr,
+              (act.serviceType || '').toUpperCase(),
+              (act.equipment || '').toUpperCase(),
+              (act.description || '').toUpperCase(),
+              (act.location || '').toUpperCase(),
+              act.startTime || '',
+              act.endTime || '',
+              (act.status || '').toUpperCase(),
+              '', '', '', '',
+              apr, loto, gas, deenergized, ppe, obsStr
+            ];
+          } else {
+            r.materialsUsed!.forEach((mat: any, idx: number) => {
+              const row = ws.getRow(rowNum++);
+              if (idx === 0) {
+                row.values = [
+                  dateStr, shiftStr, leaderStr, membersStr, locationStr,
+                  (act.serviceType || '').toUpperCase(),
+                  (act.equipment || '').toUpperCase(),
+                  (act.description || '').toUpperCase(),
+                  (act.location || '').toUpperCase(),
+                  act.startTime || '',
+                  act.endTime || '',
+                  (act.status || '').toUpperCase(),
+                  (mat.item || '').toUpperCase(),
+                  mat.quantity ?? '',
+                  (mat.unit || '').toUpperCase(),
+                  (mat.partNumber || '').toUpperCase(),
+                  apr, loto, gas, deenergized, ppe, obsStr
+                ];
+              } else {
+                row.values = [
+                  '', '', '', '', '',
+                  '', '', '', '', '', '', '',
+                  (mat.item || '').toUpperCase(),
+                  mat.quantity ?? '',
+                  (mat.unit || '').toUpperCase(),
+                  (mat.partNumber || '').toUpperCase(),
+                  '', '', '', '', '', ''
+                ];
+              }
+            });
+          }
+        });
+      } else if (hasMaterials) {
+        r.materialsUsed!.forEach((mat: any) => {
+          const row = ws.getRow(rowNum++);
+          row.values = [
+            dateStr, shiftStr, leaderStr, membersStr, locationStr,
+            '', '', '', '', '', '', '',
+            (mat.item || '').toUpperCase(),
+            mat.quantity ?? '',
+            (mat.unit || '').toUpperCase(),
+            (mat.partNumber || '').toUpperCase(),
+            apr, loto, gas, deenergized, ppe, obsStr
+          ];
+        });
+      }
+    });
+
+    for (let rIdx = 2; rIdx < rowNum; rIdx++) {
+      const row = ws.getRow(rIdx);
+      row.eachCell({ includeEmpty: true }, (cell) => {
+        cell.alignment = { vertical: 'middle', horizontal: 'left', wrapText: true };
+        cell.border = {
+          top: { style: 'thin', color: { argb: 'FFDDDDDD' } },
+          bottom: { style: 'thin', color: { argb: 'FFDDDDDD' } },
+          left: { style: 'thin', color: { argb: 'FFDDDDDD' } },
+          right: { style: 'thin', color: { argb: 'FFDDDDDD' } },
+        };
+      });
+    }
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.click();
+    window.URL.revokeObjectURL(url);
+    
+    return true;
+  } catch (error) {
+    console.error('Erro na exportação Elétrica (Custom):', error);
+    return false;
+  }
+};
