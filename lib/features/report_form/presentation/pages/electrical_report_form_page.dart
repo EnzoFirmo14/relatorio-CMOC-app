@@ -18,6 +18,7 @@ class ElectricalWorkOrder {
   String tipo;
   String causa;
   String causaOutros;
+  String distanciaFace;
   String local;
   String tag;
   bool parado;
@@ -35,6 +36,7 @@ class ElectricalWorkOrder {
     this.tipo = '',
     this.causa = '',
     this.causaOutros = '',
+    this.distanciaFace = '',
     this.local = '',
     this.tag = '',
     this.parado = false,
@@ -53,6 +55,7 @@ class ElectricalWorkOrder {
         'tipo': tipo,
         'causa': causa,
         'causaOutros': causaOutros,
+        'distanciaFace': distanciaFace,
         'local': local,
         'tag': tag,
         'parado': parado,
@@ -71,6 +74,7 @@ class ElectricalWorkOrder {
         tipo: json['tipo'] ?? '',
         causa: json['causa'] ?? '',
         causaOutros: json['causaOutros'] ?? '',
+        distanciaFace: json['distanciaFace']?.toString() ?? '',
         local: json['local'] ?? '',
         tag: json['tag'] ?? '',
         parado: json['parado'] ?? false,
@@ -118,14 +122,12 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
       'Avançar tomada',
       'Avançar painel de bomba',
       'Avançar comunicação',
-      'Avançar tomada e comunicação',
       'Outros'
     ],
     'Recuo': [
       'Recuar tomada',
       'Recuar painel de bomba',
       'Recuar comunicação',
-      'Recuar tomada e comunicação',
       'Outros'
     ],
     'Transporte': [],
@@ -504,6 +506,10 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
       if (causas.isNotEmpty && o.causa.isEmpty) err['causa'] = true;
       if (o.causa == 'Outros' && o.causaOutros.trim().isEmpty) err['causaOutros'] = true;
 
+      final precisaDistancia = (o.tipo == 'Avanço' && (o.causa == 'Avançar tomada' || o.causa == 'Avançar comunicação')) ||
+                               (o.tipo == 'Recuo' && (o.causa == 'Recuar tomada' || o.causa == 'Recuar comunicação'));
+      if (precisaDistancia && o.distanciaFace.trim().isEmpty) err['distanciaFace'] = true;
+
       if (o.local.trim().isEmpty) err['local'] = true;
 
       final precisaTag = o.tipo.isNotEmpty && o.tipo != 'Transporte' && o.tipo != 'Apoio';
@@ -572,6 +578,12 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
           c = 'Outros: ${o.causaOutros}';
         }
         L.add('• Causa: $c');
+      }
+
+      final precisaDistancia = (o.tipo == 'Avanço' && (o.causa == 'Avançar tomada' || o.causa == 'Avançar comunicação')) ||
+                               (o.tipo == 'Recuo' && (o.causa == 'Recuar tomada' || o.causa == 'Recuar comunicação'));
+      if (precisaDistancia) {
+        L.add('• Distância até a face: ${o.distanciaFace.isNotEmpty ? o.distanciaFace : '—'} m');
       }
 
       L.add("• Local: ${o.local.isNotEmpty ? o.local : '—'}");
@@ -1333,6 +1345,7 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
                       o.tipo = val;
                       o.causa = '';
                       o.causaOutros = '';
+                      o.distanciaFace = '';
                       if (val == 'Transporte' || val == 'Apoio') {
                         o.parado = false;
                         o.paradoIni = '';
@@ -1354,6 +1367,12 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
                     onSelect: (val) => setState(() {
                       o.causa = val;
                       if (val != 'Outros') o.causaOutros = '';
+                      
+                      final precisaDistancia = (o.tipo == 'Avanço' && (val == 'Avançar tomada' || val == 'Avançar comunicação')) ||
+                                               (o.tipo == 'Recuo' && (val == 'Recuar tomada' || val == 'Recuar comunicação'));
+                      if (!precisaDistancia) {
+                        o.distanciaFace = '';
+                      }
                     }),
                   ),
                   if (o.causa == 'Outros') ...[
@@ -1368,6 +1387,43 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
                   ],
                   const SizedBox(height: 14),
                 ],
+                
+                Builder(builder: (context) {
+                  final precisaDistancia = (o.tipo == 'Avanço' && (o.causa == 'Avançar tomada' || o.causa == 'Avançar comunicação')) ||
+                                           (o.tipo == 'Recuo' && (o.causa == 'Recuar tomada' || o.causa == 'Recuar comunicação'));
+                  if (!precisaDistancia) return const SizedBox.shrink();
+                  
+                  double currentDist = double.tryParse(o.distanciaFace.replaceAll(',', '.')) ?? 0.0;
+                  
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(child: _buildLabel('📏', 'DISTÂNCIA ATÉ A FACE (m)', isRequired: true)),
+                          Text(
+                            '${currentDist.round()} m',
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF2B2F3A)),
+                          ),
+                        ],
+                      ),
+                      Slider(
+                        value: currentDist.clamp(0.0, 200.0),
+                        min: 0,
+                        max: 200,
+                        divisions: 200,
+                        activeColor: const Color(0xFF4F46E5),
+                        onChanged: (v) {
+                          setState(() {
+                            o.distanciaFace = v.round().toString();
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 14),
+                    ],
+                  );
+                }),
 
                 // 3. LOCAL DA ATIVIDADE
                 _buildLabel('📍', 'LOCAL DA ATIVIDADE', isRequired: true),
