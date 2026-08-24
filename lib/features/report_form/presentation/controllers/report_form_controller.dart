@@ -195,25 +195,16 @@ class ReportFormController extends Notifier<ReportFormState> {
     _syncInBackground(entity);
   }
 
-  /// Dispara sincronização Firestore sem bloquear a UI.
-  /// Erros são capturados e logados silenciosamente.
   void _syncInBackground([ReportEntity? specificEntity]) {
     final entityToSend = specificEntity ?? _stateToEntity();
     Future.microtask(() async {
       try {
-        final remoteDataSource = ref.read(reportRemoteDataSourceProvider);
-        await remoteDataSource.sendReport(entityToSend);
-        await _repository.markAsSynced(entityToSend.uuid);
-        state = state.copyWith(
-          syncStatus: ReportSyncStatus.synced,
-          reportStatus: 'Sincronizado',
-        );
-        debugPrint('[_syncInBackground] Sincronizado com Firestore: ${entityToSend.uuid} → ${entityToSend.type}');
+        await _repository.saveReport(entityToSend);
+        await ref.read(syncControllerProvider.notifier).triggerSync();
+        // O status "sincronizado" dependerá do que aconteceu no triggerSync, 
+        // mas para a UI local, podemos assumir que finalizou o ciclo de tentativa.
       } catch (e) {
-        debugPrint('[_syncInBackground] Sem internet ou erro — pendente para sync posterior: $e');
-        try {
-          await ref.read(syncControllerProvider.notifier).triggerSync();
-        } catch (_) {}
+        debugPrint('[_syncInBackground] Erro ao sincronizar: $e');
       }
     });
   }
@@ -262,28 +253,11 @@ class ReportFormController extends Notifier<ReportFormState> {
 
     await _autosave();
 
-    // Envio direto ao Firestore
     try {
-      final entity = _stateToEntity();
-      final remoteDataSource = ref.read(reportRemoteDataSourceProvider);
-      await remoteDataSource.sendReport(entity);
-      await _repository.markAsSynced(state.uuid);
-      state = state.copyWith(
-        syncStatus: ReportSyncStatus.synced,
-        reportStatus: 'Sincronizado',
-      );
-      debugPrint('[saveAndSyncReport] Relatório enviado diretamente ao Firestore: ${state.uuid}');
+      await ref.read(syncControllerProvider.notifier).triggerSync();
+      // O sync atualizará o status na store se sucesso ou erro.
     } catch (e) {
-      debugPrint('[saveAndSyncReport] Erro no envio direto: $e — tentando via sync queue...');
-      try {
-        await ref.read(syncControllerProvider.notifier).triggerSync();
-        state = state.copyWith(
-          syncStatus: ReportSyncStatus.synced,
-          reportStatus: 'Sincronizado',
-        );
-      } catch (e2) {
-        debugPrint('[saveAndSyncReport] Erro no sync queue: $e2');
-      }
+      debugPrint('[saveAndSyncReport] Erro no sync queue: $e');
     }
   }
 
@@ -314,27 +288,14 @@ class ReportFormController extends Notifier<ReportFormState> {
       await _repository.saveReport(entity);
       state = state.copyWith(autosaveStatus: AutosaveStatus.saved);
 
-      // Envio direto ao Firestore (garante chegada em web e mobile)
-      final remoteDataSource = ref.read(reportRemoteDataSourceProvider);
-      await remoteDataSource.sendReport(entity);
-      await _repository.markAsSynced(mcId);
-      state = state.copyWith(
-        syncStatus: ReportSyncStatus.synced,
-        reportStatus: 'Sincronizado',
-      );
-      debugPrint('[saveAndSyncMechanicalReport] Relatório mecânico enviado diretamente: $mcId → mechanical_reports');
-    } catch (e) {
-      state = state.copyWith(autosaveStatus: AutosaveStatus.error);
-      debugPrint('[saveAndSyncMechanicalReport] Erro no envio direto: $e — tentando via sync queue...');
       try {
         await ref.read(syncControllerProvider.notifier).triggerSync();
-        state = state.copyWith(
-          syncStatus: ReportSyncStatus.synced,
-          reportStatus: 'Sincronizado',
-        );
       } catch (e2) {
         debugPrint('[saveAndSyncMechanicalReport] Erro no sync queue: $e2');
       }
+    } catch (e) {
+      state = state.copyWith(autosaveStatus: AutosaveStatus.error);
+      debugPrint('[saveAndSyncMechanicalReport] Erro ao salvar localmente: $e');
     }
   }
 

@@ -89,8 +89,10 @@ class SyncService {
                 updatedPhotoPaths.add(secureUrl);
                 osHasChanges = true;
               } catch (e) {
-                debugPrint('Erro ao fazer upload da imagem para o Cloudinary: $e');
-                updatedPhotoPaths.add(path);
+                debugPrint('Erro CRÍTICO ao fazer upload da imagem para o Cloudinary: $e');
+                // Se a imagem falhar, nós lançamos a exceção para interromper o envio do relatório.
+                // Isso garante que o relatório continue "pendente" e não seja enviado sem a foto.
+                throw Exception('Falha ao enviar imagem. Relatório mantido como pendente.');
               }
             } else {
               updatedPhotoPaths.add(path);

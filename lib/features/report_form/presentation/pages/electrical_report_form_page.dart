@@ -609,19 +609,10 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
     // Sincronização em background sem bloquear a UI
     Future.microtask(() async {
       try {
-        final repository = ref.read(reportRepositoryProvider);
-        final remoteDataSource = ref.read(reportRemoteDataSourceProvider);
-        await remoteDataSource.sendReport(report);
-        await repository.markAsSynced(report.uuid);
-        debugPrint('[Elétrica] Relatório enviado ao Firestore: ${report.uuid} → electrical_reports');
-      } catch (e) {
-        debugPrint('[Elétrica] Firestore sync falhou ou offline: $e');
-        try {
-          final syncController = ref.read(syncControllerProvider.notifier);
-          await syncController.triggerSync();
-        } catch (e2) {
-          debugPrint('[Elétrica] Erro no sync queue: $e2');
-        }
+        final syncController = ref.read(syncControllerProvider.notifier);
+        await syncController.triggerSync();
+      } catch (e2) {
+        debugPrint('[Elétrica] Erro no sync queue: $e2');
       }
     });
   }

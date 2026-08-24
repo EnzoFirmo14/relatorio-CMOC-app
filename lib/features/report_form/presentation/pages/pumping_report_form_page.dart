@@ -977,21 +977,11 @@ class _PumpingReportFormPageState extends ConsumerState<PumpingReportFormPage> {
 
     // Sincronização em background sem bloquear a interface/modal
     if (report != null) {
-      final reportToSend = report;
       Future.microtask(() async {
         try {
-          final repository = ref.read(reportRepositoryProvider);
-          final remoteDataSource = ref.read(reportRemoteDataSourceProvider);
-          await remoteDataSource.sendReport(reportToSend);
-          await repository.markAsSynced(reportToSend.uuid);
-          debugPrint('[Bombeamento] Relatório enviado ao Firestore: ${reportToSend.uuid} → pumping_reports');
-        } catch (e) {
-          debugPrint('[Bombeamento] Firestore sync falhou ou offline: $e');
-          try {
-            await ref.read(syncControllerProvider.notifier).triggerSync();
-          } catch (e2) {
-            debugPrint('[Bombeamento] Erro no sync queue: $e2');
-          }
+          await ref.read(syncControllerProvider.notifier).triggerSync();
+        } catch (e2) {
+          debugPrint('[Bombeamento] Erro no sync queue: $e2');
         }
       });
     }
