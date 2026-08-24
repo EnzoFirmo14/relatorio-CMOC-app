@@ -102,6 +102,7 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
   static const Map<String, List<String>> _causasMap = {
     'Corretiva': [
       'Tomada desarmada',
+      'Tomada desarmada por temperatura',
       'Painel desarmado',
       'Painel com falha',
       'Sem comunicação',
