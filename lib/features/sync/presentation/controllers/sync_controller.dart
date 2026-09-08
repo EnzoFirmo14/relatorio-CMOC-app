@@ -170,6 +170,9 @@ class SyncController extends StateNotifier<SyncState> {
             constraints: Constraints(
               networkType: NetworkType.connected,
             ),
+            existingWorkPolicy: ExistingWorkPolicy.append,
+            backoffPolicy: BackoffPolicy.exponential,
+            backoffPolicyDelay: const Duration(seconds: 15),
           );
         } catch (_) {}
       }

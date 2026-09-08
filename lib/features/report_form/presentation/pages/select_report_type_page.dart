@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/providers/dev_mode_provider.dart';
+import '../../../../core/services/battery_optimization_service.dart';
 
 class SelectReportTypePage extends ConsumerStatefulWidget {
   const SelectReportTypePage({super.key});
@@ -14,6 +15,14 @@ class SelectReportTypePage extends ConsumerStatefulWidget {
 class _SelectReportTypePageState extends ConsumerState<SelectReportTypePage> {
   int _tapCount = 0;
   Timer? _tapTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      BatteryOptimizationService.showOptimizationPromptIfNeeded(context);
+    });
+  }
 
   void _handleLogoTap() {
     _tapCount++;

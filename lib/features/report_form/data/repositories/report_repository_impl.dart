@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+import 'package:workmanager/workmanager.dart';
 import '../../domain/entities/report_entity.dart';
 import '../../domain/repositories/report_repository.dart';
 import '../datasources/report_local_datasource.dart';
@@ -11,8 +13,25 @@ class ReportRepositoryImpl implements IReportRepository {
   const ReportRepositoryImpl(this._localDataSource);
 
   @override
-  Future<String> saveReport(ReportEntity report) {
-    return _localDataSource.saveReport(report);
+  Future<String> saveReport(ReportEntity report) async {
+    final result = await _localDataSource.saveReport(report);
+    if (report.syncStatus != ReportSyncStatus.synced && !kIsWeb) {
+      try {
+        await Workmanager().registerOneOffTask(
+          'sync-oneoff-${DateTime.now().millisecondsSinceEpoch}',
+          'sync-task',
+          constraints: Constraints(
+            networkType: NetworkType.connected,
+          ),
+          existingWorkPolicy: ExistingWorkPolicy.append,
+          backoffPolicy: BackoffPolicy.exponential,
+          backoffPolicyDelay: const Duration(seconds: 15),
+        );
+      } catch (e) {
+        debugPrint('[ReportRepositoryImpl] Falha ao agendar WorkManager: $e');
+      }
+    }
+    return result;
   }
 
   @override

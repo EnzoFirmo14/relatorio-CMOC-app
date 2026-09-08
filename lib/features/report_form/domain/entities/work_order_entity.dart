@@ -21,6 +21,7 @@ class WorkOrderEntity {
   final List<String> materialsUsed;
   final String quantityMeters;
   final String quantityPieces;
+  final String callTime;
   final String startTime;
   final String endTime;
   final bool hasStoppage;
@@ -57,6 +58,7 @@ class WorkOrderEntity {
     this.materialsUsed = const [],
     this.quantityMeters = '',
     this.quantityPieces = '',
+    this.callTime = '',
     this.startTime = '',
     this.endTime = '',
     this.hasStoppage = false,
@@ -94,6 +96,7 @@ class WorkOrderEntity {
     List<String>? materialsUsed,
     String? quantityMeters,
     String? quantityPieces,
+    String? callTime,
     String? startTime,
     String? endTime,
     bool? hasStoppage,
@@ -130,6 +133,7 @@ class WorkOrderEntity {
       materialsUsed: materialsUsed ?? this.materialsUsed,
       quantityMeters: quantityMeters ?? this.quantityMeters,
       quantityPieces: quantityPieces ?? this.quantityPieces,
+      callTime: callTime ?? this.callTime,
       startTime: startTime ?? this.startTime,
       endTime: endTime ?? this.endTime,
       hasStoppage: hasStoppage ?? this.hasStoppage,

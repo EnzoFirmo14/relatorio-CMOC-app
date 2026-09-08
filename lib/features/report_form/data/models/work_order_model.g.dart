@@ -11,143 +11,148 @@ part of 'work_order_model.dart';
 
 const WorkOrderModelSchema = Schema(
   name: r'WorkOrderModel',
-  id: -5680994862373141504,
+  id: -5680994862373141074,
   properties: {
     r'activities': PropertySchema(
       id: 0,
       name: r'activities',
       type: IsarType.string,
     ),
-    r'cause': PropertySchema(id: 1, name: r'cause', type: IsarType.string),
+    r'callTime': PropertySchema(
+      id: 1,
+      name: r'callTime',
+      type: IsarType.string,
+    ),
+    r'cause': PropertySchema(id: 2, name: r'cause', type: IsarType.string),
     r'datasulOm': PropertySchema(
-      id: 2,
+      id: 3,
       name: r'datasulOm',
       type: IsarType.string,
     ),
-    r'endTime': PropertySchema(id: 3, name: r'endTime', type: IsarType.string),
+    r'endTime': PropertySchema(id: 4, name: r'endTime', type: IsarType.string),
     r'equipmentOutro': PropertySchema(
-      id: 4,
+      id: 5,
       name: r'equipmentOutro',
       type: IsarType.string,
     ),
     r'equipmentType': PropertySchema(
-      id: 5,
+      id: 6,
       name: r'equipmentType',
       type: IsarType.string,
     ),
     r'hasStoppage': PropertySchema(
-      id: 6,
+      id: 7,
       name: r'hasStoppage',
       type: IsarType.bool,
     ),
     r'horometer': PropertySchema(
-      id: 7,
+      id: 8,
       name: r'horometer',
       type: IsarType.string,
     ),
-    r'id': PropertySchema(id: 8, name: r'id', type: IsarType.string),
+    r'id': PropertySchema(id: 9, name: r'id', type: IsarType.string),
     r'intervention': PropertySchema(
-      id: 9,
+      id: 10,
       name: r'intervention',
       type: IsarType.string,
     ),
     r'isFinalized': PropertySchema(
-      id: 10,
+      id: 11,
       name: r'isFinalized',
       type: IsarType.bool,
     ),
     r'location': PropertySchema(
-      id: 11,
+      id: 12,
       name: r'location',
       type: IsarType.string,
     ),
     r'maintenanceType': PropertySchema(
-      id: 12,
+      id: 13,
       name: r'maintenanceType',
       type: IsarType.string,
     ),
     r'maintenanceTypeOutro': PropertySchema(
-      id: 13,
+      id: 14,
       name: r'maintenanceTypeOutro',
       type: IsarType.string,
     ),
     r'materialsUsed': PropertySchema(
-      id: 14,
+      id: 15,
       name: r'materialsUsed',
       type: IsarType.stringList,
     ),
-    r'number': PropertySchema(id: 15, name: r'number', type: IsarType.string),
+    r'number': PropertySchema(id: 16, name: r'number', type: IsarType.string),
     r'osStatus': PropertySchema(
-      id: 16,
+      id: 17,
       name: r'osStatus',
       type: IsarType.string,
     ),
     r'photoPaths': PropertySchema(
-      id: 17,
+      id: 18,
       name: r'photoPaths',
       type: IsarType.stringList,
     ),
     r'predOtherDesc': PropertySchema(
-      id: 18,
+      id: 19,
       name: r'predOtherDesc',
       type: IsarType.string,
     ),
     r'pressure': PropertySchema(
-      id: 19,
+      id: 20,
       name: r'pressure',
       type: IsarType.string,
     ),
     r'quantityMeters': PropertySchema(
-      id: 20,
+      id: 21,
       name: r'quantityMeters',
       type: IsarType.string,
     ),
     r'quantityPieces': PropertySchema(
-      id: 21,
+      id: 22,
       name: r'quantityPieces',
       type: IsarType.string,
     ),
     r'startTime': PropertySchema(
-      id: 22,
+      id: 23,
       name: r'startTime',
       type: IsarType.string,
     ),
-    r'status': PropertySchema(id: 23, name: r'status', type: IsarType.string),
+    r'status': PropertySchema(id: 24, name: r'status', type: IsarType.string),
     r'stoppageEndTime': PropertySchema(
-      id: 24,
+      id: 25,
       name: r'stoppageEndTime',
       type: IsarType.string,
     ),
     r'stoppageStartTime': PropertySchema(
-      id: 25,
+      id: 26,
       name: r'stoppageStartTime',
       type: IsarType.string,
     ),
-    r'symptom': PropertySchema(id: 26, name: r'symptom', type: IsarType.string),
-    r'tagDesc': PropertySchema(id: 27, name: r'tagDesc', type: IsarType.string),
+    r'symptom': PropertySchema(id: 27, name: r'symptom', type: IsarType.string),
+    r'tagDesc': PropertySchema(id: 28, name: r'tagDesc', type: IsarType.string),
     r'tagOutro': PropertySchema(
-      id: 28,
+      id: 29,
       name: r'tagOutro',
       type: IsarType.string,
     ),
-    r'tagVal': PropertySchema(id: 29, name: r'tagVal', type: IsarType.string),
+    r'tagVal': PropertySchema(id: 30, name: r'tagVal', type: IsarType.string),
     r'tasksJson': PropertySchema(
-      id: 30,
+      id: 31,
       name: r'tasksJson',
       type: IsarType.string,
     ),
     r'vibrationGe': PropertySchema(
-      id: 31,
+      id: 32,
       name: r'vibrationGe',
       type: IsarType.string,
     ),
     r'vibrationSpeed': PropertySchema(
-      id: 32,
+      id: 33,
       name: r'vibrationSpeed',
       type: IsarType.string,
     ),
     r'vibrationTemp': PropertySchema(
-      id: 33,
+      id: 34,
       name: r'vibrationTemp',
       type: IsarType.string,
     ),
@@ -166,6 +171,7 @@ int _workOrderModelEstimateSize(
 ) {
   var bytesCount = offsets.last;
   bytesCount += 3 + object.activities.length * 3;
+  bytesCount += 3 + object.callTime.length * 3;
   bytesCount += 3 + object.cause.length * 3;
   bytesCount += 3 + object.datasulOm.length * 3;
   bytesCount += 3 + object.endTime.length * 3;
@@ -219,39 +225,40 @@ void _workOrderModelSerialize(
   Map<Type, List<int>> allOffsets,
 ) {
   writer.writeString(offsets[0], object.activities);
-  writer.writeString(offsets[1], object.cause);
-  writer.writeString(offsets[2], object.datasulOm);
-  writer.writeString(offsets[3], object.endTime);
-  writer.writeString(offsets[4], object.equipmentOutro);
-  writer.writeString(offsets[5], object.equipmentType);
-  writer.writeBool(offsets[6], object.hasStoppage);
-  writer.writeString(offsets[7], object.horometer);
-  writer.writeString(offsets[8], object.id);
-  writer.writeString(offsets[9], object.intervention);
-  writer.writeBool(offsets[10], object.isFinalized);
-  writer.writeString(offsets[11], object.location);
-  writer.writeString(offsets[12], object.maintenanceType);
-  writer.writeString(offsets[13], object.maintenanceTypeOutro);
-  writer.writeStringList(offsets[14], object.materialsUsed);
-  writer.writeString(offsets[15], object.number);
-  writer.writeString(offsets[16], object.osStatus);
-  writer.writeStringList(offsets[17], object.photoPaths);
-  writer.writeString(offsets[18], object.predOtherDesc);
-  writer.writeString(offsets[19], object.pressure);
-  writer.writeString(offsets[20], object.quantityMeters);
-  writer.writeString(offsets[21], object.quantityPieces);
-  writer.writeString(offsets[22], object.startTime);
-  writer.writeString(offsets[23], object.status);
-  writer.writeString(offsets[24], object.stoppageEndTime);
-  writer.writeString(offsets[25], object.stoppageStartTime);
-  writer.writeString(offsets[26], object.symptom);
-  writer.writeString(offsets[27], object.tagDesc);
-  writer.writeString(offsets[28], object.tagOutro);
-  writer.writeString(offsets[29], object.tagVal);
-  writer.writeString(offsets[30], object.tasksJson);
-  writer.writeString(offsets[31], object.vibrationGe);
-  writer.writeString(offsets[32], object.vibrationSpeed);
-  writer.writeString(offsets[33], object.vibrationTemp);
+  writer.writeString(offsets[1], object.callTime);
+  writer.writeString(offsets[2], object.cause);
+  writer.writeString(offsets[3], object.datasulOm);
+  writer.writeString(offsets[4], object.endTime);
+  writer.writeString(offsets[5], object.equipmentOutro);
+  writer.writeString(offsets[6], object.equipmentType);
+  writer.writeBool(offsets[7], object.hasStoppage);
+  writer.writeString(offsets[8], object.horometer);
+  writer.writeString(offsets[9], object.id);
+  writer.writeString(offsets[10], object.intervention);
+  writer.writeBool(offsets[11], object.isFinalized);
+  writer.writeString(offsets[12], object.location);
+  writer.writeString(offsets[13], object.maintenanceType);
+  writer.writeString(offsets[14], object.maintenanceTypeOutro);
+  writer.writeStringList(offsets[15], object.materialsUsed);
+  writer.writeString(offsets[16], object.number);
+  writer.writeString(offsets[17], object.osStatus);
+  writer.writeStringList(offsets[18], object.photoPaths);
+  writer.writeString(offsets[19], object.predOtherDesc);
+  writer.writeString(offsets[20], object.pressure);
+  writer.writeString(offsets[21], object.quantityMeters);
+  writer.writeString(offsets[22], object.quantityPieces);
+  writer.writeString(offsets[23], object.startTime);
+  writer.writeString(offsets[24], object.status);
+  writer.writeString(offsets[25], object.stoppageEndTime);
+  writer.writeString(offsets[26], object.stoppageStartTime);
+  writer.writeString(offsets[27], object.symptom);
+  writer.writeString(offsets[28], object.tagDesc);
+  writer.writeString(offsets[29], object.tagOutro);
+  writer.writeString(offsets[30], object.tagVal);
+  writer.writeString(offsets[31], object.tasksJson);
+  writer.writeString(offsets[32], object.vibrationGe);
+  writer.writeString(offsets[33], object.vibrationSpeed);
+  writer.writeString(offsets[34], object.vibrationTemp);
 }
 
 WorkOrderModel _workOrderModelDeserialize(
@@ -262,39 +269,40 @@ WorkOrderModel _workOrderModelDeserialize(
 ) {
   final object = WorkOrderModel();
   object.activities = reader.readString(offsets[0]);
-  object.cause = reader.readString(offsets[1]);
-  object.datasulOm = reader.readString(offsets[2]);
-  object.endTime = reader.readString(offsets[3]);
-  object.equipmentOutro = reader.readString(offsets[4]);
-  object.equipmentType = reader.readString(offsets[5]);
-  object.hasStoppage = reader.readBool(offsets[6]);
-  object.horometer = reader.readString(offsets[7]);
-  object.id = reader.readString(offsets[8]);
-  object.intervention = reader.readString(offsets[9]);
-  object.isFinalized = reader.readBool(offsets[10]);
-  object.location = reader.readString(offsets[11]);
-  object.maintenanceType = reader.readString(offsets[12]);
-  object.maintenanceTypeOutro = reader.readString(offsets[13]);
-  object.materialsUsed = reader.readStringList(offsets[14]) ?? [];
-  object.number = reader.readString(offsets[15]);
-  object.osStatus = reader.readString(offsets[16]);
-  object.photoPaths = reader.readStringList(offsets[17]) ?? [];
-  object.predOtherDesc = reader.readString(offsets[18]);
-  object.pressure = reader.readString(offsets[19]);
-  object.quantityMeters = reader.readString(offsets[20]);
-  object.quantityPieces = reader.readString(offsets[21]);
-  object.startTime = reader.readString(offsets[22]);
-  object.status = reader.readString(offsets[23]);
-  object.stoppageEndTime = reader.readString(offsets[24]);
-  object.stoppageStartTime = reader.readString(offsets[25]);
-  object.symptom = reader.readString(offsets[26]);
-  object.tagDesc = reader.readString(offsets[27]);
-  object.tagOutro = reader.readString(offsets[28]);
-  object.tagVal = reader.readString(offsets[29]);
-  object.tasksJson = reader.readString(offsets[30]);
-  object.vibrationGe = reader.readString(offsets[31]);
-  object.vibrationSpeed = reader.readString(offsets[32]);
-  object.vibrationTemp = reader.readString(offsets[33]);
+  object.callTime = reader.readString(offsets[1]);
+  object.cause = reader.readString(offsets[2]);
+  object.datasulOm = reader.readString(offsets[3]);
+  object.endTime = reader.readString(offsets[4]);
+  object.equipmentOutro = reader.readString(offsets[5]);
+  object.equipmentType = reader.readString(offsets[6]);
+  object.hasStoppage = reader.readBool(offsets[7]);
+  object.horometer = reader.readString(offsets[8]);
+  object.id = reader.readString(offsets[9]);
+  object.intervention = reader.readString(offsets[10]);
+  object.isFinalized = reader.readBool(offsets[11]);
+  object.location = reader.readString(offsets[12]);
+  object.maintenanceType = reader.readString(offsets[13]);
+  object.maintenanceTypeOutro = reader.readString(offsets[14]);
+  object.materialsUsed = reader.readStringList(offsets[15]) ?? [];
+  object.number = reader.readString(offsets[16]);
+  object.osStatus = reader.readString(offsets[17]);
+  object.photoPaths = reader.readStringList(offsets[18]) ?? [];
+  object.predOtherDesc = reader.readString(offsets[19]);
+  object.pressure = reader.readString(offsets[20]);
+  object.quantityMeters = reader.readString(offsets[21]);
+  object.quantityPieces = reader.readString(offsets[22]);
+  object.startTime = reader.readString(offsets[23]);
+  object.status = reader.readString(offsets[24]);
+  object.stoppageEndTime = reader.readString(offsets[25]);
+  object.stoppageStartTime = reader.readString(offsets[26]);
+  object.symptom = reader.readString(offsets[27]);
+  object.tagDesc = reader.readString(offsets[28]);
+  object.tagOutro = reader.readString(offsets[29]);
+  object.tagVal = reader.readString(offsets[30]);
+  object.tasksJson = reader.readString(offsets[31]);
+  object.vibrationGe = reader.readString(offsets[32]);
+  object.vibrationSpeed = reader.readString(offsets[33]);
+  object.vibrationTemp = reader.readString(offsets[34]);
   return object;
 }
 
@@ -318,31 +326,31 @@ P _workOrderModelDeserializeProp<P>(
     case 5:
       return (reader.readString(offset)) as P;
     case 6:
-      return (reader.readBool(offset)) as P;
-    case 7:
       return (reader.readString(offset)) as P;
+    case 7:
+      return (reader.readBool(offset)) as P;
     case 8:
       return (reader.readString(offset)) as P;
     case 9:
       return (reader.readString(offset)) as P;
     case 10:
-      return (reader.readBool(offset)) as P;
-    case 11:
       return (reader.readString(offset)) as P;
+    case 11:
+      return (reader.readBool(offset)) as P;
     case 12:
       return (reader.readString(offset)) as P;
     case 13:
       return (reader.readString(offset)) as P;
     case 14:
-      return (reader.readStringList(offset) ?? []) as P;
-    case 15:
       return (reader.readString(offset)) as P;
+    case 15:
+      return (reader.readStringList(offset) ?? []) as P;
     case 16:
       return (reader.readString(offset)) as P;
     case 17:
-      return (reader.readStringList(offset) ?? []) as P;
-    case 18:
       return (reader.readString(offset)) as P;
+    case 18:
+      return (reader.readStringList(offset) ?? []) as P;
     case 19:
       return (reader.readString(offset)) as P;
     case 20:
@@ -372,6 +380,8 @@ P _workOrderModelDeserializeProp<P>(
     case 32:
       return (reader.readString(offset)) as P;
     case 33:
+      return (reader.readString(offset)) as P;
+    case 34:
       return (reader.readString(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -517,6 +527,147 @@ extension WorkOrderModelQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.greaterThan(property: r'activities', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<WorkOrderModel, WorkOrderModel, QAfterFilterCondition>
+  callTimeEqualTo(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'callTime',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<WorkOrderModel, WorkOrderModel, QAfterFilterCondition>
+  callTimeGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'callTime',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<WorkOrderModel, WorkOrderModel, QAfterFilterCondition>
+  callTimeLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'callTime',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<WorkOrderModel, WorkOrderModel, QAfterFilterCondition>
+  callTimeBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'callTime',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<WorkOrderModel, WorkOrderModel, QAfterFilterCondition>
+  callTimeStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'callTime',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<WorkOrderModel, WorkOrderModel, QAfterFilterCondition>
+  callTimeEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'callTime',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<WorkOrderModel, WorkOrderModel, QAfterFilterCondition>
+  callTimeContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'callTime',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<WorkOrderModel, WorkOrderModel, QAfterFilterCondition>
+  callTimeMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'callTime',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<WorkOrderModel, WorkOrderModel, QAfterFilterCondition>
+  callTimeIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'callTime', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<WorkOrderModel, WorkOrderModel, QAfterFilterCondition>
+  callTimeIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'callTime', value: ''),
       );
     });
   }

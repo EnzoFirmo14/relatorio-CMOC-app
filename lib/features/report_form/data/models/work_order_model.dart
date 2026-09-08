@@ -27,6 +27,7 @@ class WorkOrderModel {
   late List<String> materialsUsed;
   late String quantityMeters;
   late String quantityPieces;
+  late String callTime;
   late String startTime;
   late String endTime;
   late bool hasStoppage;
@@ -66,6 +67,7 @@ class WorkOrderModel {
       ..materialsUsed = List<String>.from(entity.materialsUsed)
       ..quantityMeters = entity.quantityMeters
       ..quantityPieces = entity.quantityPieces
+      ..callTime = entity.callTime
       ..startTime = entity.startTime
       ..endTime = entity.endTime
       ..hasStoppage = entity.hasStoppage
@@ -114,6 +116,7 @@ class WorkOrderModel {
       materialsUsed: List<String>.from(materialsUsed),
       quantityMeters: quantityMeters,
       quantityPieces: quantityPieces,
+      callTime: callTime,
       startTime: startTime,
       endTime: endTime,
       hasStoppage: hasStoppage,

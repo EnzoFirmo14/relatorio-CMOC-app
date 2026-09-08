@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -26,6 +27,7 @@ class ElectricalWorkOrder {
   String atividades;
   String materiais;
   bool matNA;
+  String horaChamado;
   String horaIni;
   String horaFim;
   String status;
@@ -43,6 +45,7 @@ class ElectricalWorkOrder {
     this.atividades = '',
     this.materiais = '',
     this.matNA = false,
+    this.horaChamado = '',
     this.horaIni = '',
     this.horaFim = '',
     this.status = '',
@@ -61,6 +64,7 @@ class ElectricalWorkOrder {
         'atividades': atividades,
         'materiais': materiais,
         'matNA': matNA,
+        'horaChamado': horaChamado,
         'horaIni': horaIni,
         'horaFim': horaFim,
         'status': status,
@@ -79,6 +83,7 @@ class ElectricalWorkOrder {
         atividades: json['atividades'] ?? '',
         materiais: json['materiais'] ?? '',
         matNA: json['matNA'] ?? false,
+        horaChamado: json['horaChamado'] ?? '',
         horaIni: json['horaIni'] ?? '',
         horaFim: json['horaFim'] ?? '',
         status: json['status'] ?? '',
@@ -93,7 +98,8 @@ class ElectricalReportFormPage extends ConsumerStatefulWidget {
   ConsumerState<ElectricalReportFormPage> createState() => _ElectricalReportFormPageState();
 }
 
-class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormPage> {
+class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormPage>
+    with WidgetsBindingObserver {
   int _currentTab = 0; // 0: Relatório, 1: Cadastros & Locais
 
   // Constantes de Opções idênticas ao relatorio-eletrica.html
@@ -278,11 +284,98 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
   final _novoNomeEletCtrl = TextEditingController();
   final _novaMatEletCtrl = TextEditingController();
 
+  Timer? _autoSaveDebounceTimer;
+  Timer? _autoSavePeriodicTimer;
+  bool _draftLoaded = false;
+
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _pessoasEletrica = List.from(_pessoasPadrao);
     _carregarDraftLocal();
+    _localEquipCtrl.addListener(_triggerAutoSave);
+    _materiaisCtrl.addListener(_triggerAutoSave);
+    _autoSavePeriodicTimer = Timer.periodic(
+      const Duration(seconds: 1),
+      (_) => _salvarDraftSilencioso(),
+    );
+  }
+
+  void _triggerAutoSave() {
+    _autoSaveDebounceTimer?.cancel();
+    _autoSaveDebounceTimer = Timer(const Duration(milliseconds: 500), () {
+      _salvarDraftSilencioso();
+    });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.hidden) {
+      _salvarDraftSilencioso();
+    }
+  }
+
+  Future<void> _salvarDraftSilencioso() async {
+    if (!_draftLoaded) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (_rascunhoEstaVazio()) {
+        await prefs.remove('relatorio_eletrica_v1');
+        return;
+      }
+      final dataMap = {
+        'data': _selectedDate.toIso8601String().substring(0, 10),
+        'tipo': _tipo,
+        'turno': _turno,
+        'turma': _turma,
+        'semEquip': _semEquip,
+        'equipamento': _equipamento,
+        'local': _localEquipCtrl.text,
+        'combustivel': _combustivel,
+        'materiais': _materiaisCtrl.text,
+        'execs': _execs,
+        'os': _osList.map((os) => os.toJson()).toList(),
+      };
+      await prefs.setString('relatorio_eletrica_v1', jsonEncode(dataMap));
+    } catch (_) {}
+  }
+
+  bool _rascunhoEstaVazio() {
+    final hasExecutante = _execs.any(
+      (exec) => exec['nome']!.trim().isNotEmpty || exec['mat']!.trim().isNotEmpty,
+    );
+    final hasOrdemServico = _osList.any((os) {
+      return os.tipo.isNotEmpty ||
+          os.causa.isNotEmpty ||
+          os.causaOutros.isNotEmpty ||
+          os.local.isNotEmpty ||
+          os.tag.isNotEmpty ||
+          os.parado ||
+          os.paradoIni.isNotEmpty ||
+          os.paradoFim.isNotEmpty ||
+          os.atividades.isNotEmpty ||
+          os.materiais.isNotEmpty ||
+          os.matNA ||
+          os.horaChamado.isNotEmpty ||
+          os.horaIni.isNotEmpty ||
+          os.horaFim.isNotEmpty ||
+          os.status.isNotEmpty ||
+          os.pendencia.isNotEmpty;
+    });
+
+    return _tipo.isEmpty &&
+        _turno.isEmpty &&
+        _turma.isEmpty &&
+        !_semEquip &&
+        _equipamento.isEmpty &&
+        _localEquipCtrl.text.trim().isEmpty &&
+        _combustivel == 50.0 &&
+        _materiaisCtrl.text.trim().isEmpty &&
+        !hasExecutante &&
+        !hasOrdemServico;
   }
 
   Future<void> _carregarDraftLocal() async {
@@ -335,6 +428,8 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
       }
     }
 
+    _draftLoaded = true;
+
     // Carregar cadastros salvos
     final pessoasSaved = prefs.getStringList('eletrica_pessoas');
     if (pessoasSaved != null) {
@@ -362,22 +457,7 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
   }
 
   Future<void> _salvarDraftLocal() async {
-    final prefs = await SharedPreferences.getInstance();
-    final dataMap = {
-      'data': _selectedDate.toIso8601String().substring(0, 10),
-      'tipo': _tipo,
-      'turno': _turno,
-      'turma': _turma,
-      'semEquip': _semEquip,
-      'equipamento': _equipamento,
-      'local': _localEquipCtrl.text,
-      'combustivel': _combustivel,
-      'materiais': _materiaisCtrl.text,
-      'execs': _execs,
-      'os': _osList.map((os) => os.toJson()).toList(),
-    };
-
-    await prefs.setString('relatorio_eletrica_v1', jsonEncode(dataMap));
+    await _salvarDraftSilencioso();
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -432,6 +512,12 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _autoSaveDebounceTimer?.cancel();
+    _autoSavePeriodicTimer?.cancel();
+    _salvarDraftSilencioso();
+    _localEquipCtrl.removeListener(_triggerAutoSave);
+    _materiaisCtrl.removeListener(_triggerAutoSave);
     _localEquipCtrl.dispose();
     _materiaisCtrl.dispose();
     _novoNomeEletCtrl.dispose();
@@ -585,6 +671,7 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
 
       L.add("• Atividades: ${o.atividades.isNotEmpty ? o.atividades : '—'}");
       L.add("• Materiais: ${o.matNA ? 'Não se aplica' : (o.materiais.isNotEmpty ? o.materiais : '—')}");
+      L.add("• Horário do chamado: ${o.horaChamado.isNotEmpty ? o.horaChamado : '—'}");
       L.add("• Horário: ${o.horaIni.isNotEmpty ? o.horaIni : '--'} às ${o.horaFim.isNotEmpty ? o.horaFim : '--'}");
 
       String st = o.status.isNotEmpty ? o.status : '—';
@@ -663,6 +750,7 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
         materialsUsed: [os.materiais + (os.matNA ? ' (N/A)' : '')],
         quantityMeters: '0.0',
         quantityPieces: '0',
+        callTime: os.horaChamado,
         startTime: os.horaIni + (os.parado ? ' [Parado Ini: ${os.paradoIni}]' : ''),
         endTime: os.horaFim + (os.parado ? ' [Parado Fim: ${os.paradoFim}]' : ''),
         status: os.status,
@@ -696,6 +784,8 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
     setState(() {
       _limparFormulario();
     });
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('relatorio_eletrica_v1');
 
     // 5. Exibe o modal de prévia padronizado
     if (mounted) {
@@ -1575,8 +1665,34 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
 
                 const SizedBox(height: 14),
 
-                // 8. HORÁRIO
-                _buildLabel('⏰', 'HORÁRIO', isRequired: true),
+                // 8. HORÁRIO DO CHAMADO
+                _buildLabel('📞', 'HORÁRIO DO CHAMADO'),
+                InkWell(
+                  onTap: () async {
+                    final t = await showTimePicker(context: context, initialTime: TimeOfDay.now());
+                    if (t != null) {
+                      setState(() => o.horaChamado = '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}');
+                    }
+                  },
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF4F6FB),
+                      border: Border.all(color: const Color(0xFFE6E9F0)),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      o.horaChamado.isNotEmpty ? o.horaChamado : '--:--',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 14),
+
+                // 9. HORÁRIO DO REGISTRO
+                _buildLabel('⏰', 'HORÁRIO DO REGISTRO', isRequired: true),
                 Row(
                   children: [
                     Expanded(
