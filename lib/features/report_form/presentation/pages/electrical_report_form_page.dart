@@ -53,25 +53,26 @@ class ElectricalWorkOrder {
   });
 
   Map<String, dynamic> toJson() => {
-        'tipo': tipo,
-        'causa': causa,
-        'causaOutros': causaOutros,
-        'local': local,
-        'tag': tag,
-        'parado': parado,
-        'paradoIni': paradoIni,
-        'paradoFim': paradoFim,
-        'atividades': atividades,
-        'materiais': materiais,
-        'matNA': matNA,
-        'horaChamado': horaChamado,
-        'horaIni': horaIni,
-        'horaFim': horaFim,
-        'status': status,
-        'pendencia': pendencia,
-      };
+    'tipo': tipo,
+    'causa': causa,
+    'causaOutros': causaOutros,
+    'local': local,
+    'tag': tag,
+    'parado': parado,
+    'paradoIni': paradoIni,
+    'paradoFim': paradoFim,
+    'atividades': atividades,
+    'materiais': materiais,
+    'matNA': matNA,
+    'horaChamado': horaChamado,
+    'horaIni': horaIni,
+    'horaFim': horaFim,
+    'status': status,
+    'pendencia': pendencia,
+  };
 
-  factory ElectricalWorkOrder.fromJson(Map<String, dynamic> json) => ElectricalWorkOrder(
+  factory ElectricalWorkOrder.fromJson(Map<String, dynamic> json) =>
+      ElectricalWorkOrder(
         tipo: json['tipo'] ?? '',
         causa: json['causa'] ?? '',
         causaOutros: json['causaOutros'] ?? '',
@@ -95,15 +96,24 @@ class ElectricalReportFormPage extends ConsumerStatefulWidget {
   const ElectricalReportFormPage({super.key});
 
   @override
-  ConsumerState<ElectricalReportFormPage> createState() => _ElectricalReportFormPageState();
+  ConsumerState<ElectricalReportFormPage> createState() =>
+      _ElectricalReportFormPageState();
 }
 
-class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormPage>
+class _ElectricalReportFormPageState
+    extends ConsumerState<ElectricalReportFormPage>
     with WidgetsBindingObserver {
   int _currentTab = 0; // 0: Relatório, 1: Cadastros & Locais
 
   // Constantes de Opções idênticas ao relatorio-eletrica.html
-  static const List<String> _tiposOS = ['Corretiva', 'Avanço', 'Recuo', 'Transporte', 'Apoio', 'Instalação'];
+  static const List<String> _tiposOS = [
+    'Corretiva',
+    'Avanço',
+    'Recuo',
+    'Transporte',
+    'Apoio',
+    'Instalação',
+  ];
 
   static const Map<String, List<String>> _causasMap = {
     'Corretiva': [
@@ -117,21 +127,21 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
       'Cabo acidentado',
       'Cabo arriado',
       'Extensão danificada',
-      'Outros'
+      'Outros',
     ],
     'Avanço': [
       'Avançar tomada',
       'Avançar painel de bomba',
       'Avançar comunicação',
       'Avançar tomada e comunicação',
-      'Outros'
+      'Outros',
     ],
     'Recuo': [
       'Recuar tomada',
       'Recuar painel de bomba',
       'Recuar comunicação',
       'Recuar tomada e comunicação',
-      'Outros'
+      'Outros',
     ],
     'Transporte': [],
     'Apoio': [],
@@ -149,7 +159,14 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
     return list;
   })();
 
-  static const List<String> _equipamentosDrop = ['PT302', 'PT305', 'PT306', 'MT001', 'MT002', 'PT386'];
+  static const List<String> _equipamentosDrop = [
+    'PT302',
+    'PT305',
+    'PT306',
+    'MT001',
+    'MT002',
+    'PT386',
+  ];
 
   static const List<Map<String, String>> _pessoasPadrao = [
     {'nome': 'Acacio Oliveira Souza', 'mat': 'S/N'},
@@ -261,12 +278,14 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
   bool _semEquip = false;
   String _equipamento = '';
   final TextEditingController _localEquipCtrl = TextEditingController();
-  double _combustivel = 50.0;
+  final TextEditingController _distanciaTomadaCtrl = TextEditingController();
+  final TextEditingController _distanciaComunicacaoCtrl =
+      TextEditingController();
   final TextEditingController _materiaisCtrl = TextEditingController();
 
   // Executantes
   final List<Map<String, String>> _execs = [
-    {'nome': '', 'mat': ''}
+    {'nome': '', 'mat': ''},
   ];
 
   // Ordens de Serviço
@@ -295,6 +314,8 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
     _pessoasEletrica = List.from(_pessoasPadrao);
     _carregarDraftLocal();
     _localEquipCtrl.addListener(_triggerAutoSave);
+    _distanciaTomadaCtrl.addListener(_triggerAutoSave);
+    _distanciaComunicacaoCtrl.addListener(_triggerAutoSave);
     _materiaisCtrl.addListener(_triggerAutoSave);
     _autoSavePeriodicTimer = Timer.periodic(
       const Duration(seconds: 1),
@@ -334,7 +355,8 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
         'semEquip': _semEquip,
         'equipamento': _equipamento,
         'local': _localEquipCtrl.text,
-        'combustivel': _combustivel,
+        'distanciaTomada': _distanciaTomadaCtrl.text,
+        'distanciaComunicacao': _distanciaComunicacaoCtrl.text,
         'materiais': _materiaisCtrl.text,
         'execs': _execs,
         'os': _osList.map((os) => os.toJson()).toList(),
@@ -345,7 +367,8 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
 
   bool _rascunhoEstaVazio() {
     final hasExecutante = _execs.any(
-      (exec) => exec['nome']!.trim().isNotEmpty || exec['mat']!.trim().isNotEmpty,
+      (exec) =>
+          exec['nome']!.trim().isNotEmpty || exec['mat']!.trim().isNotEmpty,
     );
     final hasOrdemServico = _osList.any((os) {
       return os.tipo.isNotEmpty ||
@@ -372,7 +395,8 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
         !_semEquip &&
         _equipamento.isEmpty &&
         _localEquipCtrl.text.trim().isEmpty &&
-        _combustivel == 50.0 &&
+        _distanciaTomadaCtrl.text.trim().isEmpty &&
+        _distanciaComunicacaoCtrl.text.trim().isEmpty &&
         _materiaisCtrl.text.trim().isEmpty &&
         !hasExecutante &&
         !hasOrdemServico;
@@ -388,7 +412,8 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
           final data = Map<String, dynamic>.from(decoded);
           setState(() {
             if (data['data'] != null && data['data'].toString().isNotEmpty) {
-              _selectedDate = DateTime.tryParse(data['data'].toString()) ?? DateTime.now();
+              _selectedDate =
+                  DateTime.tryParse(data['data'].toString()) ?? DateTime.now();
             }
             _tipo = data['tipo'] ?? '';
             _turno = data['turno'] ?? '';
@@ -396,7 +421,8 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
             _semEquip = data['semEquip'] ?? false;
             _equipamento = data['equipamento'] ?? '';
             _localEquipCtrl.text = data['local'] ?? '';
-            _combustivel = (data['combustivel'] as num?)?.toDouble() ?? 50.0;
+            _distanciaTomadaCtrl.text = data['distanciaTomada'] ?? '';
+            _distanciaComunicacaoCtrl.text = data['distanciaComunicacao'] ?? '';
             _materiaisCtrl.text = data['materiais'] ?? '';
 
             if (data['execs'] != null && data['execs'] is List) {
@@ -416,7 +442,11 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
               _osList.clear();
               for (var osData in data['os'] as List) {
                 if (osData is Map) {
-                  _osList.add(ElectricalWorkOrder.fromJson(Map<String, dynamic>.from(osData)));
+                  _osList.add(
+                    ElectricalWorkOrder.fromJson(
+                      Map<String, dynamic>.from(osData),
+                    ),
+                  );
                 }
               }
             }
@@ -436,8 +466,13 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
       setState(() {
         _pessoasEletrica = pessoasSaved.map((item) {
           final decoded = jsonDecode(item);
-          final map = decoded is Map ? Map<String, dynamic>.from(decoded) : <String, dynamic>{};
-          return {'nome': map['nome']?.toString() ?? '', 'mat': map['mat']?.toString() ?? ''};
+          final map = decoded is Map
+              ? Map<String, dynamic>.from(decoded)
+              : <String, dynamic>{};
+          return {
+            'nome': map['nome']?.toString() ?? '',
+            'mat': map['mat']?.toString() ?? '',
+          };
         }).toList();
       });
     }
@@ -449,7 +484,9 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
         if (!mounted) return;
         if (data['colaboradores'] != null) {
           setState(() {
-            _pessoasEletrica = (data['colaboradores'] as List).map((p) => Map<String, String>.from(p)).toList();
+            _pessoasEletrica = (data['colaboradores'] as List)
+                .map((p) => Map<String, String>.from(p))
+                .toList();
           });
         }
       },
@@ -474,9 +511,14 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Limpar Formulário?'),
-        content: const Text('Isso apagará todas as informações preenchidas neste relatório.'),
+        content: const Text(
+          'Isso apagará todas as informações preenchidas neste relatório.',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar'),
+          ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: TextButton.styleFrom(foregroundColor: Colors.red),
@@ -497,7 +539,8 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
         _semEquip = false;
         _equipamento = '';
         _localEquipCtrl.clear();
-        _combustivel = 50.0;
+        _distanciaTomadaCtrl.clear();
+        _distanciaComunicacaoCtrl.clear();
         _materiaisCtrl.clear();
         _execs.clear();
         _execs.add({'nome': '', 'mat': ''});
@@ -517,8 +560,12 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
     _autoSavePeriodicTimer?.cancel();
     _salvarDraftSilencioso();
     _localEquipCtrl.removeListener(_triggerAutoSave);
+    _distanciaTomadaCtrl.removeListener(_triggerAutoSave);
+    _distanciaComunicacaoCtrl.removeListener(_triggerAutoSave);
     _materiaisCtrl.removeListener(_triggerAutoSave);
     _localEquipCtrl.dispose();
+    _distanciaTomadaCtrl.dispose();
+    _distanciaComunicacaoCtrl.dispose();
     _materiaisCtrl.dispose();
     _novoNomeEletCtrl.dispose();
     _novaMatEletCtrl.dispose();
@@ -534,7 +581,11 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
     final q = query.trim().toLowerCase();
     final nome = p['nome']!.toLowerCase();
     if (nome.contains(q)) return true;
-    final initials = p['nome']!.trim().split(RegExp(r'\s+')).map((w) => w.isNotEmpty ? w[0].toLowerCase() : '').join();
+    final initials = p['nome']!
+        .trim()
+        .split(RegExp(r'\s+'))
+        .map((w) => w.isNotEmpty ? w[0].toLowerCase() : '')
+        .join();
     if (initials.startsWith(q)) return true;
     if (p['mat']!.startsWith(query.trim())) return true;
     return false;
@@ -587,11 +638,13 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
 
       final causas = _causasMap[o.tipo] ?? [];
       if (causas.isNotEmpty && o.causa.isEmpty) err['causa'] = true;
-      if (o.causa == 'Outros' && o.causaOutros.trim().isEmpty) err['causaOutros'] = true;
+      if (o.causa == 'Outros' && o.causaOutros.trim().isEmpty)
+        err['causaOutros'] = true;
 
       if (o.local.trim().isEmpty) err['local'] = true;
 
-      final precisaTag = o.tipo.isNotEmpty && o.tipo != 'Transporte' && o.tipo != 'Apoio';
+      final precisaTag =
+          o.tipo.isNotEmpty && o.tipo != 'Transporte' && o.tipo != 'Apoio';
       if (precisaTag && o.tag.trim().isEmpty) err['tag'] = true;
 
       if (precisaTag && o.parado) {
@@ -607,7 +660,8 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
       if (o.horaFim.isEmpty) err['horaFim'] = true;
 
       if (o.status.isEmpty) err['status'] = true;
-      if (o.status == 'Pendente' && o.pendencia.trim().isEmpty) err['pendencia'] = true;
+      if (o.status == 'Pendente' && o.pendencia.trim().isEmpty)
+        err['pendencia'] = true;
 
       _osErrors.add(err);
       if (err.isNotEmpty) ok = false;
@@ -621,7 +675,9 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
     L.add('*RELATÓRIO ELÉTRICA*');
     L.add('📅 Data: ${_fmtBR(_selectedDate)}');
     L.add("⚡ Tipo: ${_tipo.isNotEmpty ? _tipo : '—'}");
-    L.add("🕐 Turno: ${_turno.isNotEmpty ? _turno : '—'}   |   👥 Turma: ${_turma.isNotEmpty ? _turma : '—'}");
+    L.add(
+      "🕐 Turno: ${_turno.isNotEmpty ? _turno : '—'}   |   👥 Turma: ${_turma.isNotEmpty ? _turma : '—'}",
+    );
     L.add('');
     L.add('👷 *Executantes:*');
     for (var e in _execs) {
@@ -636,9 +692,18 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
       L.add('• Nenhum equipamento utilizado neste turno');
     } else {
       L.add("• Equipamento: ${_equipamento.isNotEmpty ? _equipamento : '—'}");
-      L.add("• Local: ${_localEquipCtrl.text.isNotEmpty ? _localEquipCtrl.text : '—'}");
-      L.add('• Nível de combustível: ${_combustivel.round()}%');
-      L.add("• Materiais disponíveis: ${_materiaisCtrl.text.isNotEmpty ? _materiaisCtrl.text : '—'}");
+      L.add(
+        "• Local: ${_localEquipCtrl.text.isNotEmpty ? _localEquipCtrl.text : '—'}",
+      );
+      L.add(
+        "• Distância até a face TOMADA: ${_distanciaTomadaCtrl.text.isNotEmpty ? _distanciaTomadaCtrl.text : '—'}",
+      );
+      L.add(
+        "• Distância até a face COMUNICAÇÃO: ${_distanciaComunicacaoCtrl.text.isNotEmpty ? _distanciaComunicacaoCtrl.text : '—'}",
+      );
+      L.add(
+        "• Materiais disponíveis: ${_materiaisCtrl.text.isNotEmpty ? _materiaisCtrl.text : '—'}",
+      );
     }
     L.add('');
     L.add('📋 *Ordens de Serviço (${_osList.length}):*');
@@ -670,9 +735,15 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
       }
 
       L.add("• Atividades: ${o.atividades.isNotEmpty ? o.atividades : '—'}");
-      L.add("• Materiais: ${o.matNA ? 'Não se aplica' : (o.materiais.isNotEmpty ? o.materiais : '—')}");
-      L.add("• Horário do chamado: ${o.horaChamado.isNotEmpty ? o.horaChamado : '—'}");
-      L.add("• Horário: ${o.horaIni.isNotEmpty ? o.horaIni : '--'} às ${o.horaFim.isNotEmpty ? o.horaFim : '--'}");
+      L.add(
+        "• Materiais: ${o.matNA ? 'Não se aplica' : (o.materiais.isNotEmpty ? o.materiais : '—')}",
+      );
+      L.add(
+        "• Horário do chamado: ${o.horaChamado.isNotEmpty ? o.horaChamado : '—'}",
+      );
+      L.add(
+        "• Horário: ${o.horaIni.isNotEmpty ? o.horaIni : '--'} às ${o.horaFim.isNotEmpty ? o.horaFim : '--'}",
+      );
 
       String st = o.status.isNotEmpty ? o.status : '—';
       if (o.status == 'Pendente') {
@@ -700,7 +771,9 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
         final remoteDataSource = ref.read(reportRemoteDataSourceProvider);
         await remoteDataSource.sendReport(report);
         await repository.markAsSynced(report.uuid);
-        debugPrint('[Elétrica] Relatório enviado ao Firestore: ${report.uuid} → electrical_reports');
+        debugPrint(
+          '[Elétrica] Relatório enviado ao Firestore: ${report.uuid} → electrical_reports',
+        );
       } catch (e) {
         debugPrint('[Elétrica] Firestore sync falhou ou offline: $e');
         try {
@@ -721,7 +794,9 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
     if (!_validarFormulario()) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('⚠️ Preencha todos os campos obrigatórios destacados antes de enviar.'),
+          content: Text(
+            '⚠️ Preencha todos os campos obrigatórios destacados antes de enviar.',
+          ),
           backgroundColor: Colors.redAccent,
         ),
       );
@@ -733,11 +808,15 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
 
     // 2. Monta a entidade
     final reportId = 'EL-${const Uuid().v4().substring(0, 8).toUpperCase()}';
-    final operatorsList = _execs.map((e) => CollaboratorEntity(
-      id: e['mat'] ?? const Uuid().v4(),
-      registration: e['mat'] ?? '',
-      name: e['nome'] ?? '',
-    )).toList();
+    final operatorsList = _execs
+        .map(
+          (e) => CollaboratorEntity(
+            id: e['mat'] ?? const Uuid().v4(),
+            registration: e['mat'] ?? '',
+            name: e['nome'] ?? '',
+          ),
+        )
+        .toList();
 
     final List<WorkOrderEntity> workOrders = _osList.map((os) {
       return WorkOrderEntity(
@@ -745,14 +824,18 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
         number: os.tipo,
         location: os.local,
         maintenanceType: os.tipo,
-        cause: os.causa + (os.causaOutros.isNotEmpty ? ' - ${os.causaOutros}' : ''),
+        cause:
+            os.causa +
+            (os.causaOutros.isNotEmpty ? ' - ${os.causaOutros}' : ''),
         activities: os.atividades,
         materialsUsed: [os.materiais + (os.matNA ? ' (N/A)' : '')],
         quantityMeters: '0.0',
         quantityPieces: '0',
         callTime: os.horaChamado,
-        startTime: os.horaIni + (os.parado ? ' [Parado Ini: ${os.paradoIni}]' : ''),
-        endTime: os.horaFim + (os.parado ? ' [Parado Fim: ${os.paradoFim}]' : ''),
+        startTime:
+            os.horaIni + (os.parado ? ' [Parado Ini: ${os.paradoIni}]' : ''),
+        endTime:
+            os.horaFim + (os.parado ? ' [Parado Fim: ${os.paradoFim}]' : ''),
         status: os.status,
         osStatus: os.pendencia.isNotEmpty ? 'Pendente: ${os.pendencia}' : 'OK',
         photoPaths: const [],
@@ -767,9 +850,12 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
       type: 'Elétrica',
       globalEquipment: _semEquip ? 'Nenhum' : _equipamento,
       globalLocation: _semEquip ? '' : _localEquipCtrl.text,
-      fuelLevel: _semEquip ? 0.0 : _combustivel,
+      fuelLevel: 0.0,
       availableMaterials: _semEquip ? '' : _materiaisCtrl.text,
-      observations: '',
+      observations: [
+        'Distância até a face TOMADA: ${_distanciaTomadaCtrl.text}',
+        'Distância até a face COMUNICAÇÃO: ${_distanciaComunicacaoCtrl.text}',
+      ].join('\n'),
       syncStatus: ReportSyncStatus.pending,
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
@@ -791,9 +877,7 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
     if (mounted) {
       showDialog(
         context: context,
-        builder: (context) => WhatsappPreviewDialog(
-          formattedText: texto,
-        ),
+        builder: (context) => WhatsappPreviewDialog(formattedText: texto),
       );
     }
   }
@@ -807,7 +891,8 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
     _semEquip = false;
     _equipamento = '';
     _localEquipCtrl.clear();
-    _combustivel = 50.0;
+    _distanciaTomadaCtrl.clear();
+    _distanciaComunicacaoCtrl.clear();
     _materiaisCtrl.clear();
     _execs.clear();
     _execs.add({'nome': '', 'mat': ''});
@@ -828,49 +913,58 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
       _semEquip = false;
       _equipamento = 'PT302';
       _localEquipCtrl.text = 'Galeria Norte — Subestação S-02';
-      _combustivel = 75.0;
-      _materiaisCtrl.text = 'Cabos flexíveis 50mm² (15m), Fita isolante 3M, Disjuntor Caixa Moldada 100A, Conectores de cobre';
+      _distanciaTomadaCtrl.text = '12 m';
+      _distanciaComunicacaoCtrl.text = '18 m';
+      _materiaisCtrl.text =
+          'Cabos flexíveis 50mm² (15m), Fita isolante 3M, Disjuntor Caixa Moldada 100A, Conectores de cobre';
 
       _execs.clear();
       _execs.add({'nome': 'Acacio Oliveira Souza', 'mat': '4786'});
       _execs.add({'nome': 'Adailton Silva Santos', 'mat': '99300599'});
 
       _osList.clear();
-      _osList.add(ElectricalWorkOrder(
-        tipo: 'Corretiva',
-        causa: 'Painel desarmado',
-        causaOutros: '',
-        local: 'Subestação S-02 (Nível 4)',
-        tag: 'TMJI3005',
-        parado: true,
-        paradoIni: '08:00',
-        paradoFim: '09:15',
-        atividades: 'Inspeção do painel elétrico principal, reajuste do relé térmico e substituição de fusível queimado.',
-        materiais: 'Fusível 63A NH00, Conector prensa-cabo 3/4"',
-        matNA: false,
-        horaIni: '08:00',
-        horaFim: '09:30',
-        status: 'Liberado',
-        pendencia: '',
-      ));
+      _osList.add(
+        ElectricalWorkOrder(
+          tipo: 'Corretiva',
+          causa: 'Painel desarmado',
+          causaOutros: '',
+          local: 'Subestação S-02 (Nível 4)',
+          tag: 'TMJI3005',
+          parado: true,
+          paradoIni: '08:00',
+          paradoFim: '09:15',
+          atividades:
+              'Inspeção do painel elétrico principal, reajuste do relé térmico e substituição de fusível queimado.',
+          materiais: 'Fusível 63A NH00, Conector prensa-cabo 3/4"',
+          matNA: false,
+          horaIni: '08:00',
+          horaFim: '09:30',
+          status: 'Liberado',
+          pendencia: '',
+        ),
+      );
 
-      _osList.add(ElectricalWorkOrder(
-        tipo: 'Avanço',
-        causa: 'Avançar tomada e comunicação',
-        causaOutros: '',
-        local: 'Frente de Lavra 3B — Galeria Leste',
-        tag: 'PNVI3012',
-        parado: false,
-        paradoIni: '',
-        paradoFim: '',
-        atividades: 'Lançamento de extensão de cabo blindado 380V e fixação do painel de tomadas auxiliar.',
-        materiais: 'Cabo PP 4x6mm (30 metros), Braçadeiras metálicas, Tomada industrial 32A 3P+T',
-        matNA: false,
-        horaIni: '10:00',
-        horaFim: '11:45',
-        status: 'Liberado',
-        pendencia: '',
-      ));
+      _osList.add(
+        ElectricalWorkOrder(
+          tipo: 'Avanço',
+          causa: 'Avançar tomada e comunicação',
+          causaOutros: '',
+          local: 'Frente de Lavra 3B — Galeria Leste',
+          tag: 'PNVI3012',
+          parado: false,
+          paradoIni: '',
+          paradoFim: '',
+          atividades:
+              'Lançamento de extensão de cabo blindado 380V e fixação do painel de tomadas auxiliar.',
+          materiais:
+              'Cabo PP 4x6mm (30 metros), Braçadeiras metálicas, Tomada industrial 32A 3P+T',
+          matNA: false,
+          horaIni: '10:00',
+          horaFim: '11:45',
+          status: 'Liberado',
+          pendencia: '',
+        ),
+      );
 
       _showValidationErrors = false;
       _invalidFields.clear();
@@ -905,10 +999,20 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
           children: [
             RichText(
               text: const TextSpan(
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: -0.5),
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -0.5,
+                ),
                 children: [
-                  TextSpan(text: 'CM', style: TextStyle(color: Color(0xFF36A635))),
-                  TextSpan(text: 'OC', style: TextStyle(color: Color(0xFF5B2A8C))),
+                  TextSpan(
+                    text: 'CM',
+                    style: TextStyle(color: Color(0xFF36A635)),
+                  ),
+                  TextSpan(
+                    text: 'OC',
+                    style: TextStyle(color: Color(0xFF5B2A8C)),
+                  ),
                 ],
               ),
             ),
@@ -916,7 +1020,11 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
             Expanded(
               child: Text(
                 'Relatório de Turno — Elétrica',
-                style: TextStyle(color: isDark ? Colors.white70 : const Color(0xFF8A90A2), fontSize: 13, fontWeight: FontWeight.w600),
+                style: TextStyle(
+                  color: isDark ? Colors.white70 : const Color(0xFF8A90A2),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
@@ -934,13 +1042,17 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
             ),
             tooltip: isDark ? 'Modo Claro' : 'Modo Escuro CMOC',
             onPressed: () {
-              ref.read(themeModeProvider.notifier).state =
-                  isDark ? ThemeMode.light : ThemeMode.dark;
+              ref.read(themeModeProvider.notifier).state = isDark
+                  ? ThemeMode.light
+                  : ThemeMode.dark;
             },
           ),
           if (ref.watch(devModeProvider))
             IconButton(
-              icon: const Icon(Icons.flash_on_rounded, color: Color(0xFFF59E0B)),
+              icon: const Icon(
+                Icons.flash_on_rounded,
+                color: Color(0xFFF59E0B),
+              ),
               tooltip: 'Preencher Automático (Modo Dev)',
               onPressed: _preencherModoDev,
             ),
@@ -969,8 +1081,14 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
         selectedItemColor: primaryNavy,
         unselectedItemColor: Colors.grey,
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.assignment), label: 'Relatório Elétrica'),
-          BottomNavigationBarItem(icon: Icon(Icons.people_alt_outlined), label: 'Equipe & Cadastros'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.assignment),
+            label: 'Relatório Elétrica',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.people_alt_outlined),
+            label: 'Equipe & Cadastros',
+          ),
         ],
       ),
     );
@@ -987,7 +1105,8 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Banner de Erro de Validação
-          if (_showValidationErrors && (_invalidFields.isNotEmpty || _osErrors.any((e) => e.isNotEmpty)))
+          if (_showValidationErrors &&
+              (_invalidFields.isNotEmpty || _osErrors.any((e) => e.isNotEmpty)))
             Container(
               margin: const EdgeInsets.only(bottom: 14),
               padding: const EdgeInsets.all(12),
@@ -998,7 +1117,11 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
               ),
               child: const Text(
                 '⚠️ Preencha todos os campos obrigatórios destacados em vermelho antes de enviar.',
-                style: TextStyle(color: Color(0xFFC0392B), fontSize: 13, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  color: Color(0xFFC0392B),
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                ),
                 textAlign: TextAlign.center,
               ),
             ),
@@ -1012,15 +1135,25 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
               children: [
                 Expanded(
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 13,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFFF4F6FB),
-                      border: Border.all(color: const Color(0xFFE6E9F0), width: 1.5),
+                      border: Border.all(
+                        color: const Color(0xFFE6E9F0),
+                        width: 1.5,
+                      ),
                       borderRadius: BorderRadius.circular(11),
                     ),
                     child: Text(
                       _fmtBR(_selectedDate),
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF2B2F3A)),
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF2B2F3A),
+                      ),
                     ),
                   ),
                 ),
@@ -1040,10 +1173,15 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
                     height: 50,
                     decoration: BoxDecoration(
                       color: const Color(0xFFEEF0FF),
-                      border: Border.all(color: const Color(0xFFE6E9F0), width: 1.5),
+                      border: Border.all(
+                        color: const Color(0xFFE6E9F0),
+                        width: 1.5,
+                      ),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Center(child: Text('📅', style: TextStyle(fontSize: 20))),
+                    child: const Center(
+                      child: Text('📅', style: TextStyle(fontSize: 20)),
+                    ),
                   ),
                 ),
               ],
@@ -1057,7 +1195,10 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
               invalid: _showValidationErrors && _invalidFields.contains('tipo'),
               options: [
                 {'label': '⚡ Elétrica Rotina', 'value': 'Elétrica Rotina'},
-                {'label': '🛠️ Elétrica Programada', 'value': 'Elétrica Programada'},
+                {
+                  'label': '🛠️ Elétrica Programada',
+                  'value': 'Elétrica Programada',
+                },
               ],
               selectedValue: _tipo,
               onSelect: (val) => setState(() => _tipo = val),
@@ -1077,13 +1218,20 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
                   side: const BorderSide(color: Color(0xFF6366F1), width: 1.5),
                   backgroundColor: const Color(0xFFEEF0FF),
                   padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
                 ),
-                onPressed: () => setState(() => _execs.add({'nome': '', 'mat': ''})),
+                onPressed: () =>
+                    setState(() => _execs.add({'nome': '', 'mat': ''})),
                 icon: const Icon(Icons.add, color: Color(0xFF4F46E5)),
                 label: const Text(
                   '＋ Adicionar executante',
-                  style: TextStyle(color: Color(0xFF4F46E5), fontWeight: FontWeight.bold, fontSize: 15),
+                  style: TextStyle(
+                    color: Color(0xFF4F46E5),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                  ),
                 ),
               ),
             ),
@@ -1097,7 +1245,8 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
             // TURNO
             _buildLabel('🕐', 'TURNO', isRequired: true),
             _buildToggleRow(
-              invalid: _showValidationErrors && _invalidFields.contains('turno'),
+              invalid:
+                  _showValidationErrors && _invalidFields.contains('turno'),
               options: [
                 {'label': 'T1', 'value': 'T1'},
                 {'label': 'T2', 'value': 'T2'},
@@ -1113,7 +1262,8 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
             _buildLabel('👥', 'TURMA', isRequired: true),
             _buildToggleRow(
               activeColor: const Color(0xFF16A34A),
-              invalid: _showValidationErrors && _invalidFields.contains('turma'),
+              invalid:
+                  _showValidationErrors && _invalidFields.contains('turma'),
               options: [
                 {'label': 'Turma A', 'value': 'Turma A'},
                 {'label': 'Turma B', 'value': 'Turma B'},
@@ -1134,15 +1284,29 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Expanded(child: _buildLabel('🚫', 'NENHUM EQUIPAMENTO UTILIZADO NESTE TURNO')),
+                Expanded(
+                  child: _buildLabel(
+                    '🚫',
+                    'NENHUM EQUIPAMENTO UTILIZADO NESTE TURNO',
+                  ),
+                ),
                 InkWell(
                   onTap: () => setState(() => _semEquip = !_semEquip),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 150),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
-                      color: _semEquip ? const Color(0xFFF59E0B) : const Color(0xFFF4F6FB),
-                      border: Border.all(color: _semEquip ? const Color(0xFFF59E0B) : const Color(0xFFE6E9F0)),
+                      color: _semEquip
+                          ? const Color(0xFFF59E0B)
+                          : const Color(0xFFF4F6FB),
+                      border: Border.all(
+                        color: _semEquip
+                            ? const Color(0xFFF59E0B)
+                            : const Color(0xFFE6E9F0),
+                      ),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(
@@ -1150,7 +1314,9 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 13,
-                        color: _semEquip ? Colors.white : const Color(0xFF5A6072),
+                        color: _semEquip
+                            ? Colors.white
+                            : const Color(0xFF5A6072),
                       ),
                     ),
                   ),
@@ -1167,9 +1333,13 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
                 initialValue: _equipamento.isNotEmpty ? _equipamento : null,
                 decoration: _buildInputDecoration(
                   hint: '— Selecione —',
-                  invalid: _showValidationErrors && _invalidFields.contains('equipamento'),
+                  invalid:
+                      _showValidationErrors &&
+                      _invalidFields.contains('equipamento'),
                 ),
-                items: _equipamentosDrop.map((eq) => DropdownMenuItem(value: eq, child: Text(eq))).toList(),
+                items: _equipamentosDrop
+                    .map((eq) => DropdownMenuItem(value: eq, child: Text(eq)))
+                    .toList(),
                 onChanged: (val) => setState(() => _equipamento = val ?? ''),
               ),
 
@@ -1181,30 +1351,28 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
                 controller: _localEquipCtrl,
                 decoration: _buildInputDecoration(
                   hint: 'Ex: Galeria Norte, Poço 3...',
-                  invalid: _showValidationErrors && _invalidFields.contains('local'),
+                  invalid:
+                      _showValidationErrors && _invalidFields.contains('local'),
                 ),
               ),
 
               const SizedBox(height: 14),
 
-              // NÍVEL DE COMBUSTÍVEL
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(child: _buildLabel('⛽', 'NÍVEL DO COMBUSTÍVEL (%)', isRequired: true)),
-                  Text(
-                    '${_combustivel.round()}%',
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF2B2F3A)),
-                  ),
-                ],
+              // DISTÂNCIAS DAS FACES
+              _buildLabel('📏', 'Distância até a face TOMADA'),
+              TextField(
+                controller: _distanciaTomadaCtrl,
+                keyboardType: TextInputType.text,
+                decoration: _buildInputDecoration(hint: 'Ex: 12 m'),
               ),
-              Slider(
-                value: _combustivel,
-                min: 0,
-                max: 100,
-                divisions: 20,
-                activeColor: const Color(0xFF4F46E5),
-                onChanged: (v) => setState(() => _combustivel = v),
+
+              const SizedBox(height: 14),
+
+              _buildLabel('📏', 'Distância até a face COMUNICAÇÃO'),
+              TextField(
+                controller: _distanciaComunicacaoCtrl,
+                keyboardType: TextInputType.text,
+                decoration: _buildInputDecoration(hint: 'Ex: 18 m'),
               ),
 
               const SizedBox(height: 14),
@@ -1216,7 +1384,9 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
                 maxLines: 3,
                 decoration: _buildInputDecoration(
                   hint: 'Liste os materiais disponíveis...',
-                  invalid: _showValidationErrors && _invalidFields.contains('materiais'),
+                  invalid:
+                      _showValidationErrors &&
+                      _invalidFields.contains('materiais'),
                 ),
               ),
             ],
@@ -1238,13 +1408,20 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
                 side: const BorderSide(color: Color(0xFF6366F1), width: 1.5),
                 backgroundColor: const Color(0xFFEEF0FF),
                 padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
               ),
-              onPressed: () => setState(() => _osList.add(ElectricalWorkOrder())),
+              onPressed: () =>
+                  setState(() => _osList.add(ElectricalWorkOrder())),
               icon: const Icon(Icons.add, color: Color(0xFF4F46E5)),
               label: const Text(
                 '＋ Nova Ordem de Serviço',
-                style: TextStyle(color: Color(0xFF4F46E5), fontWeight: FontWeight.bold, fontSize: 15),
+                style: TextStyle(
+                  color: Color(0xFF4F46E5),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                ),
               ),
             ),
           ),
@@ -1257,12 +1434,17 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
               backgroundColor: const Color(0xFF25D366),
               foregroundColor: Colors.white,
               minimumSize: const Size(double.infinity, 54),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(15),
+              ),
               elevation: 4,
             ),
             onPressed: _enviarWhatsApp,
             icon: const Icon(Icons.send_rounded, size: 22),
-            label: const Text('📲 Enviar para o WhatsApp', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 17)),
+            label: const Text(
+              '📲 Enviar para o WhatsApp',
+              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 17),
+            ),
           ),
 
           const SizedBox(height: 12),
@@ -1270,7 +1452,11 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
             child: Text(
               '✓ Funciona 100% offline. Os dados ficam salvos no aparelho.\nO envio abre o WhatsApp com o relatório pronto.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Color(0xFF8A90A2), fontSize: 12, height: 1.4),
+              style: TextStyle(
+                color: Color(0xFF8A90A2),
+                fontSize: 12,
+                height: 1.4,
+              ),
             ),
           ),
           const SizedBox(height: 20),
@@ -1282,7 +1468,8 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
   Widget _buildExecutanteItem(int i) {
     final ex = _execs[i];
     final isReq = i == 0;
-    final isInvalid = _showValidationErrors && isReq && _invalidFields.contains('exec0');
+    final isInvalid =
+        _showValidationErrors && isReq && _invalidFields.contains('exec0');
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -1292,14 +1479,33 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Expanded(child: _buildLabel('👷', 'EXECUTANTE ${i + 1}', isRequired: isReq)),
+              Expanded(
+                child: _buildLabel(
+                  '👷',
+                  'EXECUTANTE ${i + 1}',
+                  isRequired: isReq,
+                ),
+              ),
               if (!isReq)
                 InkWell(
                   onTap: () => setState(() => _execs.removeAt(i)),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(color: const Color(0xFFFDECEB), borderRadius: BorderRadius.circular(8)),
-                    child: const Text('✕ Remover', style: TextStyle(color: Color(0xFFDC2626), fontSize: 12, fontWeight: FontWeight.bold)),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFDECEB),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Text(
+                      '✕ Remover',
+                      style: TextStyle(
+                        color: Color(0xFFDC2626),
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                 ),
             ],
@@ -1309,28 +1515,31 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
               Expanded(
                 child: Autocomplete<Map<String, String>>(
                   optionsBuilder: (textEditingValue) {
-                    return _pessoasEletrica.where((p) => _normMatch(p, textEditingValue.text)).take(8);
+                    return _pessoasEletrica
+                        .where((p) => _normMatch(p, textEditingValue.text))
+                        .take(8);
                   },
                   displayStringForOption: (option) => option['nome']!,
-                  fieldViewBuilder: (context, controller, focusNode, onEditingComplete) {
-                    if (controller.text.isEmpty && ex['nome']!.isNotEmpty) {
-                      controller.text = ex['nome']!;
-                    }
-                    return TextField(
-                      controller: controller,
-                      focusNode: focusNode,
-                      decoration: _buildInputDecoration(
-                        hint: 'Buscar nome ou iniciais...',
-                        invalid: isInvalid,
-                      ),
-                      onChanged: (val) {
-                        setState(() {
-                          ex['nome'] = val;
-                          ex['mat'] = '';
-                        });
+                  fieldViewBuilder:
+                      (context, controller, focusNode, onEditingComplete) {
+                        if (controller.text.isEmpty && ex['nome']!.isNotEmpty) {
+                          controller.text = ex['nome']!;
+                        }
+                        return TextField(
+                          controller: controller,
+                          focusNode: focusNode,
+                          decoration: _buildInputDecoration(
+                            hint: 'Buscar nome ou iniciais...',
+                            invalid: isInvalid,
+                          ),
+                          onChanged: (val) {
+                            setState(() {
+                              ex['nome'] = val;
+                              ex['mat'] = '';
+                            });
+                          },
+                        );
                       },
-                    );
-                  },
                   onSelected: (option) {
                     setState(() {
                       ex['nome'] = option['nome']!;
@@ -1342,22 +1551,37 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
               const SizedBox(width: 8),
               Container(
                 constraints: const BoxConstraints(minWidth: 90),
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFEEF0FF),
-                  border: Border.all(color: const Color(0xFFE6E9F0), width: 1.5),
+                  border: Border.all(
+                    color: const Color(0xFFE6E9F0),
+                    width: 1.5,
+                  ),
                   borderRadius: BorderRadius.circular(11),
                 ),
                 child: Column(
                   children: [
-                    const Text('MATRÍCULA', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Color(0xFF4F46E5))),
+                    const Text(
+                      'MATRÍCULA',
+                      style: TextStyle(
+                        fontSize: 9,
+                        fontWeight: FontWeight.w900,
+                        color: Color(0xFF4F46E5),
+                      ),
+                    ),
                     const SizedBox(height: 2),
                     Text(
                       ex['mat']!.isNotEmpty ? ex['mat']! : '—',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
-                        color: ex['mat']!.isNotEmpty ? const Color(0xFF2B2F3A) : const Color(0xFFC2C7D4),
+                        color: ex['mat']!.isNotEmpty
+                            ? const Color(0xFF2B2F3A)
+                            : const Color(0xFFC2C7D4),
                       ),
                     ),
                   ],
@@ -1372,10 +1596,13 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
 
   Widget _buildOSCard(int i) {
     final o = _osList[i];
-    final Map<String, bool> err = (_showValidationErrors && i < _osErrors.length) ? _osErrors[i] : {};
+    final Map<String, bool> err =
+        (_showValidationErrors && i < _osErrors.length) ? _osErrors[i] : {};
     final numStr = (i + 1).toString().padLeft(4, '0');
-    final temCausa = _causasMap.containsKey(o.tipo) && _causasMap[o.tipo]!.isNotEmpty;
-    final precisaTag = o.tipo.isNotEmpty && o.tipo != 'Transporte' && o.tipo != 'Apoio';
+    final temCausa =
+        _causasMap.containsKey(o.tipo) && _causasMap[o.tipo]!.isNotEmpty;
+    final precisaTag =
+        o.tipo.isNotEmpty && o.tipo != 'Transporte' && o.tipo != 'Apoio';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
@@ -1383,7 +1610,9 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
         color: Colors.white,
         border: Border.all(color: const Color(0xFFE6E9F0)),
         borderRadius: BorderRadius.circular(16),
-        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 6, offset: Offset(0, 2))],
+        boxShadow: const [
+          BoxShadow(color: Colors.black12, blurRadius: 6, offset: Offset(0, 2)),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1392,7 +1621,9 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: const BoxDecoration(
-              gradient: LinearGradient(colors: [Color(0xFF3B5BDB), Color(0xFF4C6EF5)]),
+              gradient: LinearGradient(
+                colors: [Color(0xFF3B5BDB), Color(0xFF4C6EF5)],
+              ),
               borderRadius: BorderRadius.vertical(top: Radius.circular(15)),
             ),
             child: Row(
@@ -1400,15 +1631,32 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
               children: [
                 Text(
                   'OS-$numStr · Ordem de Serviço ${i + 1}',
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
                 ),
                 if (_osList.length > 1)
                   InkWell(
                     onTap: () => setState(() => _osList.removeAt(i)),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(8)),
-                      child: const Text('✕ Remover', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white24,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Text(
+                        '✕ Remover',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                   ),
               ],
@@ -1424,7 +1672,9 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
                 _buildLabel('🛠️', 'TIPO DE MANUTENÇÃO', isRequired: true),
                 _buildToggleRow(
                   invalid: err['tipo'] == true,
-                  options: _tiposOS.map((t) => {'label': t, 'value': t}).toList(),
+                  options: _tiposOS
+                      .map((t) => {'label': t, 'value': t})
+                      .toList(),
                   selectedValue: o.tipo,
                   onSelect: (val) {
                     setState(() {
@@ -1447,7 +1697,9 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
                   _buildLabel('🔥', 'CAUSA', isRequired: true),
                   _buildToggleRow(
                     invalid: err['causa'] == true,
-                    options: _causasMap[o.tipo]!.map((c) => {'label': c, 'value': c}).toList(),
+                    options: _causasMap[o.tipo]!
+                        .map((c) => {'label': c, 'value': c})
+                        .toList(),
                     selectedValue: o.causa,
                     onSelect: (val) => setState(() {
                       o.causa = val;
@@ -1475,7 +1727,9 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
                     invalid: err['local'] == true,
                   ),
                   controller: TextEditingController(text: o.local)
-                    ..selection = TextSelection.collapsed(offset: o.local.length),
+                    ..selection = TextSelection.collapsed(
+                      offset: o.local.length,
+                    ),
                   onChanged: (val) => o.local = val,
                 ),
 
@@ -1490,20 +1744,21 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
                       if (q.isEmpty) return const Iterable.empty();
                       return _tagsPadrao.where((t) => t.contains(q)).take(10);
                     },
-                    fieldViewBuilder: (context, controller, focusNode, onEditingComplete) {
-                      if (controller.text.isEmpty && o.tag.isNotEmpty) {
-                        controller.text = o.tag;
-                      }
-                      return TextField(
-                        controller: controller,
-                        focusNode: focusNode,
-                        decoration: _buildInputDecoration(
-                          hint: 'Buscar tag (ex: TMJI3005) ou digitar...',
-                          invalid: err['tag'] == true,
-                        ),
-                        onChanged: (val) => setState(() => o.tag = val),
-                      );
-                    },
+                    fieldViewBuilder:
+                        (context, controller, focusNode, onEditingComplete) {
+                          if (controller.text.isEmpty && o.tag.isNotEmpty) {
+                            controller.text = o.tag;
+                          }
+                          return TextField(
+                            controller: controller,
+                            focusNode: focusNode,
+                            decoration: _buildInputDecoration(
+                              hint: 'Buscar tag (ex: TMJI3005) ou digitar...',
+                              invalid: err['tag'] == true,
+                            ),
+                            onChanged: (val) => setState(() => o.tag = val),
+                          );
+                        },
                     onSelected: (val) => setState(() => o.tag = val),
                   ),
 
@@ -1513,7 +1768,9 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Expanded(child: _buildLabel('⏸️', 'EQUIPAMENTO FICOU PARADO?')),
+                      Expanded(
+                        child: _buildLabel('⏸️', 'EQUIPAMENTO FICOU PARADO?'),
+                      ),
                       InkWell(
                         onTap: () => setState(() {
                           o.parado = !o.parado;
@@ -1523,9 +1780,14 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
                           }
                         }),
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
                           decoration: BoxDecoration(
-                            color: o.parado ? const Color(0xFFF59E0B) : const Color(0xFFF4F6FB),
+                            color: o.parado
+                                ? const Color(0xFFF59E0B)
+                                : const Color(0xFFF4F6FB),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Text(
@@ -1533,7 +1795,9 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 13,
-                              color: o.parado ? Colors.white : const Color(0xFF5A6072),
+                              color: o.parado
+                                  ? Colors.white
+                                  : const Color(0xFF5A6072),
                             ),
                           ),
                         ),
@@ -1549,23 +1813,50 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text('INÍCIO PARADA', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey)),
+                              const Text(
+                                'INÍCIO PARADA',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.grey,
+                                ),
+                              ),
                               const SizedBox(height: 4),
                               InkWell(
                                 onTap: () async {
-                                  final t = await showTimePicker(context: context, initialTime: TimeOfDay.now());
+                                  final t = await showTimePicker(
+                                    context: context,
+                                    initialTime: TimeOfDay.now(),
+                                  );
                                   if (t != null) {
-                                    setState(() => o.paradoIni = '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}');
+                                    setState(
+                                      () => o.paradoIni =
+                                          '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}',
+                                    );
                                   }
                                 },
                                 child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 12,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: const Color(0xFFF4F6FB),
-                                    border: Border.all(color: err['paradoIni'] == true ? Colors.red : const Color(0xFFE6E9F0)),
+                                    border: Border.all(
+                                      color: err['paradoIni'] == true
+                                          ? Colors.red
+                                          : const Color(0xFFE6E9F0),
+                                    ),
                                     borderRadius: BorderRadius.circular(10),
                                   ),
-                                  child: Text(o.paradoIni.isNotEmpty ? o.paradoIni : '--:--', style: const TextStyle(fontWeight: FontWeight.bold)),
+                                  child: Text(
+                                    o.paradoIni.isNotEmpty
+                                        ? o.paradoIni
+                                        : '--:--',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                                 ),
                               ),
                             ],
@@ -1576,23 +1867,50 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text('FIM PARADA', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey)),
+                              const Text(
+                                'FIM PARADA',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.grey,
+                                ),
+                              ),
                               const SizedBox(height: 4),
                               InkWell(
                                 onTap: () async {
-                                  final t = await showTimePicker(context: context, initialTime: TimeOfDay.now());
+                                  final t = await showTimePicker(
+                                    context: context,
+                                    initialTime: TimeOfDay.now(),
+                                  );
                                   if (t != null) {
-                                    setState(() => o.paradoFim = '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}');
+                                    setState(
+                                      () => o.paradoFim =
+                                          '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}',
+                                    );
                                   }
                                 },
                                 child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 12,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: const Color(0xFFF4F6FB),
-                                    border: Border.all(color: err['paradoFim'] == true ? Colors.red : const Color(0xFFE6E9F0)),
+                                    border: Border.all(
+                                      color: err['paradoFim'] == true
+                                          ? Colors.red
+                                          : const Color(0xFFE6E9F0),
+                                    ),
                                     borderRadius: BorderRadius.circular(10),
                                   ),
-                                  child: Text(o.paradoFim.isNotEmpty ? o.paradoFim : '--:--', style: const TextStyle(fontWeight: FontWeight.bold)),
+                                  child: Text(
+                                    o.paradoFim.isNotEmpty
+                                        ? o.paradoFim
+                                        : '--:--',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                                 ),
                               ),
                             ],
@@ -1614,7 +1932,9 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
                     invalid: err['atividades'] == true,
                   ),
                   controller: TextEditingController(text: o.atividades)
-                    ..selection = TextSelection.collapsed(offset: o.atividades.length),
+                    ..selection = TextSelection.collapsed(
+                      offset: o.atividades.length,
+                    ),
                   onChanged: (val) => o.atividades = val,
                 ),
 
@@ -1624,17 +1944,32 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Expanded(child: _buildLabel('🧰', 'MATERIAIS UTILIZADOS', isRequired: true)),
+                    Expanded(
+                      child: _buildLabel(
+                        '🧰',
+                        'MATERIAIS UTILIZADOS',
+                        isRequired: true,
+                      ),
+                    ),
                     InkWell(
                       onTap: () => setState(() {
                         o.matNA = !o.matNA;
                         if (o.matNA) o.materiais = '';
                       }),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 5,
+                        ),
                         decoration: BoxDecoration(
-                          color: o.matNA ? const Color(0xFFFDE8E8) : const Color(0xFFF4F6FB),
-                          border: Border.all(color: o.matNA ? const Color(0xFFF3A3A3) : const Color(0xFFE6E9F0)),
+                          color: o.matNA
+                              ? const Color(0xFFFDE8E8)
+                              : const Color(0xFFF4F6FB),
+                          border: Border.all(
+                            color: o.matNA
+                                ? const Color(0xFFF3A3A3)
+                                : const Color(0xFFE6E9F0),
+                          ),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
@@ -1642,7 +1977,9 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
-                            color: o.matNA ? const Color(0xFFDC2626) : const Color(0xFF5A6072),
+                            color: o.matNA
+                                ? const Color(0xFFDC2626)
+                                : const Color(0xFF5A6072),
                           ),
                         ),
                       ),
@@ -1658,7 +1995,9 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
                       invalid: err['materiais'] == true,
                     ),
                     controller: TextEditingController(text: o.materiais)
-                      ..selection = TextSelection.collapsed(offset: o.materiais.length),
+                      ..selection = TextSelection.collapsed(
+                        offset: o.materiais.length,
+                      ),
                     onChanged: (val) => o.materiais = val,
                   ),
                 ],
@@ -1669,14 +2008,23 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
                 _buildLabel('📞', 'HORÁRIO DO CHAMADO'),
                 InkWell(
                   onTap: () async {
-                    final t = await showTimePicker(context: context, initialTime: TimeOfDay.now());
+                    final t = await showTimePicker(
+                      context: context,
+                      initialTime: TimeOfDay.now(),
+                    );
                     if (t != null) {
-                      setState(() => o.horaChamado = '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}');
+                      setState(
+                        () => o.horaChamado =
+                            '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}',
+                      );
                     }
                   },
                   child: Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 12,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFFF4F6FB),
                       border: Border.all(color: const Color(0xFFE6E9F0)),
@@ -1699,23 +2047,48 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('INÍCIO', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey)),
+                          const Text(
+                            'INÍCIO',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey,
+                            ),
+                          ),
                           const SizedBox(height: 4),
                           InkWell(
                             onTap: () async {
-                              final t = await showTimePicker(context: context, initialTime: TimeOfDay.now());
+                              final t = await showTimePicker(
+                                context: context,
+                                initialTime: TimeOfDay.now(),
+                              );
                               if (t != null) {
-                                setState(() => o.horaIni = '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}');
+                                setState(
+                                  () => o.horaIni =
+                                      '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}',
+                                );
                               }
                             },
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 12,
+                              ),
                               decoration: BoxDecoration(
                                 color: const Color(0xFFF4F6FB),
-                                border: Border.all(color: err['horaIni'] == true ? Colors.red : const Color(0xFFE6E9F0)),
+                                border: Border.all(
+                                  color: err['horaIni'] == true
+                                      ? Colors.red
+                                      : const Color(0xFFE6E9F0),
+                                ),
                                 borderRadius: BorderRadius.circular(10),
                               ),
-                              child: Text(o.horaIni.isNotEmpty ? o.horaIni : '--:--', style: const TextStyle(fontWeight: FontWeight.bold)),
+                              child: Text(
+                                o.horaIni.isNotEmpty ? o.horaIni : '--:--',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                             ),
                           ),
                         ],
@@ -1726,23 +2099,48 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('TÉRMINO', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey)),
+                          const Text(
+                            'TÉRMINO',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey,
+                            ),
+                          ),
                           const SizedBox(height: 4),
                           InkWell(
                             onTap: () async {
-                              final t = await showTimePicker(context: context, initialTime: TimeOfDay.now());
+                              final t = await showTimePicker(
+                                context: context,
+                                initialTime: TimeOfDay.now(),
+                              );
                               if (t != null) {
-                                setState(() => o.horaFim = '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}');
+                                setState(
+                                  () => o.horaFim =
+                                      '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}',
+                                );
                               }
                             },
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 12,
+                              ),
                               decoration: BoxDecoration(
                                 color: const Color(0xFFF4F6FB),
-                                border: Border.all(color: err['horaFim'] == true ? Colors.red : const Color(0xFFE6E9F0)),
+                                border: Border.all(
+                                  color: err['horaFim'] == true
+                                      ? Colors.red
+                                      : const Color(0xFFE6E9F0),
+                                ),
                                 borderRadius: BorderRadius.circular(10),
                               ),
-                              child: Text(o.horaFim.isNotEmpty ? o.horaFim : '--:--', style: const TextStyle(fontWeight: FontWeight.bold)),
+                              child: Text(
+                                o.horaFim.isNotEmpty ? o.horaFim : '--:--',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                             ),
                           ),
                         ],
@@ -1766,16 +2164,24 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
                         child: Container(
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           decoration: BoxDecoration(
-                            color: o.status == 'Liberado' ? const Color(0xFF16A34A) : const Color(0xFFF4F6FB),
+                            color: o.status == 'Liberado'
+                                ? const Color(0xFF16A34A)
+                                : const Color(0xFFF4F6FB),
                             borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: o.status == 'Liberado' ? const Color(0xFF16A34A) : const Color(0xFFE6E9F0)),
+                            border: Border.all(
+                              color: o.status == 'Liberado'
+                                  ? const Color(0xFF16A34A)
+                                  : const Color(0xFFE6E9F0),
+                            ),
                           ),
                           child: Text(
                             '✔️ Liberado',
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
-                              color: o.status == 'Liberado' ? Colors.white : const Color(0xFF5A6072),
+                              color: o.status == 'Liberado'
+                                  ? Colors.white
+                                  : const Color(0xFF5A6072),
                             ),
                           ),
                         ),
@@ -1788,16 +2194,24 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
                         child: Container(
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           decoration: BoxDecoration(
-                            color: o.status == 'Pendente' ? const Color(0xFFF59E0B) : const Color(0xFFF4F6FB),
+                            color: o.status == 'Pendente'
+                                ? const Color(0xFFF59E0B)
+                                : const Color(0xFFF4F6FB),
                             borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: o.status == 'Pendente' ? const Color(0xFFF59E0B) : const Color(0xFFE6E9F0)),
+                            border: Border.all(
+                              color: o.status == 'Pendente'
+                                  ? const Color(0xFFF59E0B)
+                                  : const Color(0xFFE6E9F0),
+                            ),
                           ),
                           child: Text(
                             '⏳ Pendente',
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
-                              color: o.status == 'Pendente' ? Colors.white : const Color(0xFF5A6072),
+                              color: o.status == 'Pendente'
+                                  ? Colors.white
+                                  : const Color(0xFF5A6072),
                             ),
                           ),
                         ),
@@ -1815,7 +2229,9 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
                       invalid: err['pendencia'] == true,
                     ),
                     controller: TextEditingController(text: o.pendencia)
-                      ..selection = TextSelection.collapsed(offset: o.pendencia.length),
+                      ..selection = TextSelection.collapsed(
+                        offset: o.pendencia.length,
+                      ),
                     onChanged: (val) => o.pendencia = val,
                   ),
                 ],
@@ -1835,7 +2251,12 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
         children: [
           Text(
             title,
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: 1.2, color: Color(0xFF8A90A2)),
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 1.2,
+              color: Color(0xFF8A90A2),
+            ),
           ),
           const SizedBox(width: 8),
           const Expanded(child: Divider(color: Color(0xFFE6E9F0))),
@@ -1852,9 +2273,14 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
         color: Colors.white,
         border: Border.all(color: const Color(0xFFE6E9F0)),
         borderRadius: BorderRadius.circular(16),
-        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 1))],
+        boxShadow: const [
+          BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 1)),
+        ],
       ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: children),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: children,
+      ),
     );
   }
 
@@ -1870,10 +2296,21 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
             child: Text.rich(
               TextSpan(
                 text: text,
-                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 0.8, color: Color(0xFF8A90A2)),
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.8,
+                  color: Color(0xFF8A90A2),
+                ),
                 children: [
                   if (isRequired)
-                    const TextSpan(text: ' *', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                    const TextSpan(
+                      text: ' *',
+                      style: TextStyle(
+                        color: Colors.red,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -1907,9 +2344,19 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               decoration: BoxDecoration(
                 color: isSelected ? activeColor : const Color(0xFFF4F6FB),
-                border: Border.all(color: isSelected ? activeColor : const Color(0xFFE6E9F0)),
+                border: Border.all(
+                  color: isSelected ? activeColor : const Color(0xFFE6E9F0),
+                ),
                 borderRadius: BorderRadius.circular(12),
-                boxShadow: isSelected ? [BoxShadow(color: activeColor.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 3))] : null,
+                boxShadow: isSelected
+                    ? [
+                        BoxShadow(
+                          color: activeColor.withValues(alpha: 0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 3),
+                        ),
+                      ]
+                    : null,
               ),
               child: Text(
                 opt['label']!,
@@ -1926,7 +2373,10 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
     );
   }
 
-  InputDecoration _buildInputDecoration({required String hint, bool invalid = false}) {
+  InputDecoration _buildInputDecoration({
+    required String hint,
+    bool invalid = false,
+  }) {
     return InputDecoration(
       hintText: hint,
       hintStyle: const TextStyle(color: Color(0xFFAAB0C0)),
@@ -1935,7 +2385,10 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(11),
-        borderSide: BorderSide(color: invalid ? Colors.red : const Color(0xFFE6E9F0), width: invalid ? 1.5 : 1),
+        borderSide: BorderSide(
+          color: invalid ? Colors.red : const Color(0xFFE6E9F0),
+          width: invalid ? 1.5 : 1,
+        ),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(11),
@@ -1955,8 +2408,14 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildCardContainer([
-            Text('⚡ Cadastrar Colaborador / Eletricista (${_pessoasEletrica.length})',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: primaryNavy)),
+            Text(
+              '⚡ Cadastrar Colaborador / Eletricista (${_pessoasEletrica.length})',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: primaryNavy,
+              ),
+            ),
             const SizedBox(height: 12),
             TextField(
               controller: _novoNomeEletCtrl,
@@ -1975,7 +2434,9 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
                   backgroundColor: accentPurple,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
                 onPressed: () {
                   final nome = _novoNomeEletCtrl.text.trim();
@@ -1983,18 +2444,25 @@ class _ElectricalReportFormPageState extends ConsumerState<ElectricalReportFormP
                     setState(() {
                       _pessoasEletrica.add({
                         'nome': nome,
-                        'mat': _novaMatEletCtrl.text.trim().isEmpty ? 'S/N' : _novaMatEletCtrl.text.trim(),
+                        'mat': _novaMatEletCtrl.text.trim().isEmpty
+                            ? 'S/N'
+                            : _novaMatEletCtrl.text.trim(),
                       });
                       _novoNomeEletCtrl.clear();
                       _novaMatEletCtrl.clear();
                     });
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Colaborador cadastrado com sucesso!')),
+                      const SnackBar(
+                        content: Text('Colaborador cadastrado com sucesso!'),
+                      ),
                     );
                   }
                 },
                 icon: const Icon(Icons.person_add),
-                label: const Text('Salvar Colaborador', style: TextStyle(fontWeight: FontWeight.bold)),
+                label: const Text(
+                  'Salvar Colaborador',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
               ),
             ),
           ]),

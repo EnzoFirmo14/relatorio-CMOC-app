@@ -75,37 +75,41 @@ class HistoryPage extends ConsumerWidget {
             child: state.isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : state.filteredReports.isEmpty
-                    ? Center(
-                        child: Text(
-                          state.searchQuery.isNotEmpty || state.statusFilter != null
-                              ? '🔍 Nenhum resultado encontrado.'
-                              : 'Nenhum relatório salvo ainda.',
-                          style: const TextStyle(
-                            color: AppTheme.textMuted,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      )
-                    : ListView.builder(
-                        padding: const EdgeInsets.all(12.0),
-                        itemCount: state.filteredReports.length,
-                        itemBuilder: (context, index) {
-                          final report = state.filteredReports[index];
-                          return _buildReportCard(
-                            context,
-                            report,
-                            formController,
-                            controller,
-                          );
-                        },
+                ? Center(
+                    child: Text(
+                      state.searchQuery.isNotEmpty || state.statusFilter != null
+                          ? '🔍 Nenhum resultado encontrado.'
+                          : 'Nenhum relatório salvo ainda.',
+                      style: const TextStyle(
+                        color: AppTheme.textMuted,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
                       ),
+                    ),
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.all(12.0),
+                    itemCount: state.filteredReports.length,
+                    itemBuilder: (context, index) {
+                      final report = state.filteredReports[index];
+                      return _buildReportCard(
+                        context,
+                        report,
+                        formController,
+                        controller,
+                      );
+                    },
+                  ),
           ),
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 12.0),
             child: Text(
               '| Dev by WP & EF',
-              style: TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.w500),
+              style: TextStyle(
+                color: Colors.grey,
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+              ),
               textAlign: TextAlign.center,
             ),
           ),
@@ -195,7 +199,12 @@ class HistoryPage extends ConsumerWidget {
       color: AppTheme.cardColorLight,
       child: InkWell(
         borderRadius: BorderRadius.circular(14),
-        onTap: () => _showActionsDialog(context, report, formController, historyController),
+        onTap: () => _showActionsDialog(
+          context,
+          report,
+          formController,
+          historyController,
+        ),
         child: Padding(
           padding: const EdgeInsets.all(14.0),
           child: Column(
@@ -211,7 +220,11 @@ class HistoryPage extends ConsumerWidget {
                       runSpacing: 4,
                       crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
-                        const Icon(Icons.calendar_today, size: 14, color: AppTheme.textMuted),
+                        const Icon(
+                          Icons.calendar_today,
+                          size: 14,
+                          color: AppTheme.textMuted,
+                        ),
                         Text(
                           dateStr,
                           style: const TextStyle(
@@ -232,11 +245,17 @@ class HistoryPage extends ConsumerWidget {
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: statusColor.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: statusColor.withValues(alpha: 0.3), width: 1),
+                      border: Border.all(
+                        color: statusColor.withValues(alpha: 0.3),
+                        width: 1,
+                      ),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -267,27 +286,44 @@ class HistoryPage extends ConsumerWidget {
                   runSpacing: 4,
                   children: report.operators.map((op) {
                     return Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.grey.withValues(alpha: 0.05),
                         borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: AppTheme.borderLight.withValues(alpha: 0.5)),
+                        border: Border.all(
+                          color: AppTheme.borderLight.withValues(alpha: 0.5),
+                        ),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.person, size: 12, color: AppTheme.textMuted),
+                          const Icon(
+                            Icons.person,
+                            size: 12,
+                            color: AppTheme.textMuted,
+                          ),
                           const SizedBox(width: 4),
                           Text(
                             op.name,
-                            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                           if (op.registration.isNotEmpty) ...[
                             const SizedBox(width: 4),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0.5),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 4,
+                                vertical: 0.5,
+                              ),
                               decoration: BoxDecoration(
-                                color: AppTheme.primaryPurple.withValues(alpha: 0.1),
+                                color: AppTheme.primaryPurple.withValues(
+                                  alpha: 0.1,
+                                ),
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: Text(
@@ -321,7 +357,11 @@ class HistoryPage extends ConsumerWidget {
                         Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.assignment_outlined, size: 14, color: AppTheme.textMuted),
+                            const Icon(
+                              Icons.assignment_outlined,
+                              size: 14,
+                              color: AppTheme.textMuted,
+                            ),
                             const SizedBox(width: 6),
                             Text(
                               '$osCount OS${osCount != 1 ? 's' : ''} registrada${osCount != 1 ? 's' : ''}',
@@ -337,7 +377,11 @@ class HistoryPage extends ConsumerWidget {
                           Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(Icons.build_circle_outlined, size: 14, color: AppTheme.textMuted),
+                              const Icon(
+                                Icons.build_circle_outlined,
+                                size: 14,
+                                color: AppTheme.textMuted,
+                              ),
                               const SizedBox(width: 4),
                               Flexible(
                                 child: Text(
@@ -358,19 +402,90 @@ class HistoryPage extends ConsumerWidget {
                   const SizedBox(width: 8),
                   // Botão de deletar na lateral direita
                   IconButton(
-                    icon: const Icon(Icons.delete_outline, size: 20, color: AppTheme.textFaint),
-                    onPressed: () => _confirmDelete(context, report, historyController),
+                    icon: const Icon(
+                      Icons.delete_outline,
+                      size: 20,
+                      color: AppTheme.textFaint,
+                    ),
+                    onPressed: () =>
+                        _confirmDelete(context, report, historyController),
                     constraints: const BoxConstraints(),
                     padding: EdgeInsets.zero,
                     splashRadius: 20,
                   ),
                 ],
               ),
+              if (report.type.toLowerCase() == 'elétrica' ||
+                  report.type.toLowerCase() == 'eletrica') ...[
+                const SizedBox(height: 12),
+                _buildElectricalDistances(report),
+              ],
             ],
           ),
         ),
       ),
     );
+  }
+
+  Widget _buildElectricalDistances(ReportEntity report) {
+    final distanciaTomada = _extractObservation(
+      report.observations,
+      'Distância até a face TOMADA',
+    );
+    final distanciaComunicacao = _extractObservation(
+      report.observations,
+      'Distância até a face COMUNICAÇÃO',
+    );
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppTheme.primaryPurple.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: AppTheme.primaryPurple.withValues(alpha: 0.15),
+        ),
+      ),
+      child: Wrap(
+        spacing: 18,
+        runSpacing: 6,
+        children: [
+          _buildDistanceValue('Distância até a face TOMADA', distanciaTomada),
+          _buildDistanceValue(
+            'Distância até a face COMUNICAÇÃO',
+            distanciaComunicacao,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDistanceValue(String label, String value) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Icon(Icons.straighten, size: 14, color: AppTheme.primaryPurple),
+        const SizedBox(width: 5),
+        Text(
+          '$label: ${value.isNotEmpty ? value : '—'}',
+          style: const TextStyle(
+            fontSize: 11,
+            color: AppTheme.textDark,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _extractObservation(String observations, String label) {
+    for (final line in observations.split('\n')) {
+      if (line.startsWith('$label:')) {
+        return line.substring(label.length + 1).trim();
+      }
+    }
+    return '';
   }
 
   void _showActionsDialog(
@@ -401,9 +516,14 @@ class HistoryPage extends ConsumerWidget {
                   ),
                 ),
                 ListTile(
-                  leading: const Icon(Icons.picture_as_pdf, color: AppTheme.primaryBlue),
+                  leading: const Icon(
+                    Icons.picture_as_pdf,
+                    color: AppTheme.primaryBlue,
+                  ),
                   title: const Text('Exportar PDF & WhatsApp'),
-                  subtitle: const Text('Gerar documento em PDF, enviar ou imprimir'),
+                  subtitle: const Text(
+                    'Gerar documento em PDF, enviar ou imprimir',
+                  ),
                   onTap: () {
                     Navigator.pop(context); // fecha bottom sheet
                     ExportOptionsDialog.show(context, report);
@@ -412,7 +532,9 @@ class HistoryPage extends ConsumerWidget {
                 ListTile(
                   leading: const Icon(Icons.edit, color: AppTheme.primaryBlue),
                   title: const Text('Editar Relatório'),
-                  subtitle: const Text('Carregar e modificar dados no formulário'),
+                  subtitle: const Text(
+                    'Carregar e modificar dados no formulário',
+                  ),
                   onTap: () {
                     formController.loadReport(report);
                     Navigator.pop(context); // fecha bottom sheet
@@ -422,7 +544,9 @@ class HistoryPage extends ConsumerWidget {
                 ListTile(
                   leading: const Icon(Icons.copy, color: AppTheme.greenSuccess),
                   title: const Text('Duplicar como Modelo'),
-                  subtitle: const Text('Copia executantes, OSs e campos com data de hoje'),
+                  subtitle: const Text(
+                    'Copia executantes, OSs e campos com data de hoje',
+                  ),
                   onTap: () async {
                     await formController.duplicateReport(report);
                     if (!context.mounted) return;
@@ -433,7 +557,9 @@ class HistoryPage extends ConsumerWidget {
                 ListTile(
                   leading: const Icon(Icons.delete, color: Colors.red),
                   title: const Text('Excluir Relatório'),
-                  subtitle: const Text('Remover definitivamente do banco local'),
+                  subtitle: const Text(
+                    'Remover definitivamente do banco local',
+                  ),
                   onTap: () {
                     Navigator.pop(context); // fecha bottom sheet
                     _confirmDelete(context, report, historyController);
@@ -462,7 +588,10 @@ class HistoryPage extends ConsumerWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar', style: TextStyle(color: AppTheme.textMuted)),
+            child: const Text(
+              'Cancelar',
+              style: TextStyle(color: AppTheme.textMuted),
+            ),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -470,7 +599,9 @@ class HistoryPage extends ConsumerWidget {
               if (!context.mounted) return;
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('🗑 Relatório removido com sucesso')),
+                const SnackBar(
+                  content: Text('🗑 Relatório removido com sucesso'),
+                ),
               );
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
