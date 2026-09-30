@@ -207,6 +207,10 @@ class ReportFirestoreDataSource implements IReportRemoteDataSource {
               'status': os.status,
               'osStatus': os.osStatus,
               'photoPaths': os.photoPaths,
+              'distanciaTomada': os.distanciaTomada,
+              'distanciaComunicacao': os.distanciaComunicacao,
+              'distanciaTomadaFace': os.distanciaTomada,
+              'distanciaComunicacaoFace': os.distanciaComunicacao,
             },
           )
           .toList(),
@@ -360,6 +364,8 @@ class ReportFirestoreDataSource implements IReportRemoteDataSource {
           status: os['status']?.toString() ?? '',
           osStatus: os['osStatus']?.toString() ?? '',
           photoPaths: photosList,
+          distanciaTomada: (os['distanciaTomada'] ?? os['distanciaTomadaFace'] ?? '').toString(),
+          distanciaComunicacao: (os['distanciaComunicacao'] ?? os['distanciaComunicacaoFace'] ?? '').toString(),
         );
       }).toList();
     } catch (_) {

@@ -2,9 +2,46 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/cmoc_logo.dart';
+import '../../../../core/services/app_update_service.dart';
+import '../../../../core/widgets/update_dialog.dart';
 
-class LoginPage extends StatelessWidget {
+class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
+
+  @override
+  State<LoginPage> createState() => _LoginPageState();
+}
+
+class _LoginPageState extends State<LoginPage> {
+  String _currentAppVersion = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadVersionAndCheckUpdates();
+  }
+
+  Future<void> _loadVersionAndCheckUpdates() async {
+    final updateService = AppUpdateService();
+    try {
+      final info = await updateService.getPackageInfo();
+      if (mounted) {
+        setState(() {
+          _currentAppVersion = 'v${info.version}+${info.buildNumber}';
+        });
+      }
+
+      // Checa atualizações após renderizar a interface
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        final releaseInfo = await updateService.checkForUpdate();
+        if (mounted && releaseInfo != null && releaseInfo.isUpdateAvailable) {
+          UpdateDialog.show(context, releaseInfo);
+        }
+      });
+    } catch (e) {
+      debugPrint('[LoginPage] Erro ao checar versão: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -41,7 +78,7 @@ class LoginPage extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
               child: Column(
                 children: [
-                  const Spacer(flex: 1), // Reduzido de 3 para 1 para empurrar o conteúdo para cima
+                  const Spacer(flex: 1),
 
                   // Logo CMOC (Forçando branco)
                   const CmocLogo(height: 60, color: Colors.white).animate().fade(duration: 500.ms).scale(),
@@ -119,7 +156,7 @@ class LoginPage extends StatelessWidget {
                     ),
                   ).animate().fade(delay: 400.ms).scale(begin: const Offset(0.95, 0.95)),
 
-                  const Spacer(flex: 8), // Aumentado de 5 para 8 para jogar tudo para cima
+                  const Spacer(flex: 8),
 
                   // Rodapé e Segurança CMOC
                   Column(
@@ -145,9 +182,11 @@ class LoginPage extends StatelessWidget {
                       
                       const SizedBox(height: 24),
                       
-                      const Text(
-                        'InfraLog CMOC © 2026',
-                        style: TextStyle(
+                      Text(
+                        _currentAppVersion.isNotEmpty 
+                            ? 'InfraLog CMOC © 2026 • $_currentAppVersion'
+                            : 'InfraLog CMOC © 2026',
+                        style: const TextStyle(
                           color: Colors.white,
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
@@ -157,7 +196,7 @@ class LoginPage extends StatelessWidget {
                       Text(
                         'Desenvolvido por WP & EF',
                         style: TextStyle(
-                          color: const Color(0xFFA78BFA).withValues(alpha: 0.9), // Roxo combinando com o título
+                          color: const Color(0xFFA78BFA).withValues(alpha: 0.9),
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
                         ),

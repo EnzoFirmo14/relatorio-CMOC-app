@@ -38,6 +38,8 @@ class WorkOrderEntity {
   final String status;
   final String osStatus;
   final List<String> photoPaths;
+  final String distanciaTomada;
+  final String distanciaComunicacao;
 
   const WorkOrderEntity({
     required this.id,
@@ -75,6 +77,8 @@ class WorkOrderEntity {
     this.status = '',
     this.osStatus = '',
     this.photoPaths = const [],
+    this.distanciaTomada = '',
+    this.distanciaComunicacao = '',
   });
 
   WorkOrderEntity copyWith({
@@ -113,6 +117,8 @@ class WorkOrderEntity {
     String? status,
     String? osStatus,
     List<String>? photoPaths,
+    String? distanciaTomada,
+    String? distanciaComunicacao,
   }) {
     return WorkOrderEntity(
       id: id ?? this.id,
@@ -150,6 +156,8 @@ class WorkOrderEntity {
       status: status ?? this.status,
       osStatus: osStatus ?? this.osStatus,
       photoPaths: photoPaths ?? this.photoPaths,
+      distanciaTomada: distanciaTomada ?? this.distanciaTomada,
+      distanciaComunicacao: distanciaComunicacao ?? this.distanciaComunicacao,
     );
   }
 

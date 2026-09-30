@@ -80,8 +80,8 @@ class RampaModel {
   RampaModel({
     required this.id,
     required this.nome,
-    this.atencao = 50,
-    this.critico = 25,
+    this.atencao = 40,
+    this.critico = 20,
     this.sentido = 'menor',
     this.semMetragem = false,
   });
@@ -98,8 +98,8 @@ class RampaModel {
   factory RampaModel.fromJson(Map<String, dynamic> json) => RampaModel(
         id: json['id'] ?? '',
         nome: json['nome'] ?? '',
-        atencao: (json['atencao'] ?? 50).toDouble(),
-        critico: (json['critico'] ?? 25).toDouble(),
+        atencao: (json['atencao'] ?? 40).toDouble(),
+        critico: (json['critico'] ?? 20).toDouble(),
         sentido: json['sentido'] ?? 'menor',
         semMetragem: json['semMetragem'] ?? false,
       );
@@ -410,14 +410,14 @@ class _PumpingReportFormPageState extends ConsumerState<PumpingReportFormPage> {
   ];
 
   final List<RampaModel> _rampas = [
-    RampaModel(id: 'fr-1', nome: 'D200', atencao: 50, critico: 25),
-    RampaModel(id: 'fr-2', nome: 'W56', atencao: 50, critico: 25),
-    RampaModel(id: 'fr-3', nome: 'R4 – SAMP', atencao: 50, critico: 25, semMetragem: true),
-    RampaModel(id: 'fr-4', nome: 'R4 – E6', atencao: 50, critico: 25),
-    RampaModel(id: 'fr-5', nome: 'W47', atencao: 50, critico: 25, semMetragem: true),
-    RampaModel(id: 'fr-6', nome: 'W49', atencao: 50, critico: 25, semMetragem: true),
-    RampaModel(id: 'fr-7', nome: 'C170', atencao: 50, critico: 25, semMetragem: true),
-    RampaModel(id: 'fr-8', nome: 'E DEEP', atencao: 50, critico: 25),
+    RampaModel(id: 'fr-1', nome: 'D200', atencao: 40, critico: 20),
+    RampaModel(id: 'fr-2', nome: 'W56', atencao: 40, critico: 20),
+    RampaModel(id: 'fr-3', nome: 'R4 – SAMP', atencao: 40, critico: 20, semMetragem: true),
+    RampaModel(id: 'fr-4', nome: 'R4 – E6', atencao: 40, critico: 20),
+    RampaModel(id: 'fr-5', nome: 'W47', atencao: 40, critico: 20, semMetragem: true),
+    RampaModel(id: 'fr-6', nome: 'W49', atencao: 40, critico: 20, semMetragem: true),
+    RampaModel(id: 'fr-7', nome: 'C170', atencao: 40, critico: 20, semMetragem: true),
+    RampaModel(id: 'fr-8', nome: 'E DEEP', atencao: 40, critico: 20),
   ];
 
   late List<ColaboradorModel> _colaboradores;
@@ -466,8 +466,8 @@ class _PumpingReportFormPageState extends ConsumerState<PumpingReportFormPage> {
   String _cxSetorSel = 'Superfície';
 
   final _frNomeCtrl = TextEditingController();
-  final _frAtenCtrl = TextEditingController(text: '50');
-  final _frCritCtrl = TextEditingController(text: '25');
+  final _frAtenCtrl = TextEditingController(text: '40');
+  final _frCritCtrl = TextEditingController(text: '20');
 
   @override
   void initState() {
@@ -773,9 +773,8 @@ class _PumpingReportFormPageState extends ConsumerState<PumpingReportFormPage> {
   Map<String, String> _estadoCaixa(double? p) {
     if (p == null) return {'cls': '', 'selo': '', 'txt': 'não informado'};
     if (p <= _limiteCaixaBaixo) return {'cls': 'crit', 'selo': 'crit', 'txt': 'nível baixo'};
-    if (p >= _limiteCaixaAlto) return {'cls': 'crit', 'selo': 'crit', 'txt': 'risco de transbordo'};
-    if (p <= _limiteCaixaBaixo + 10 || p >= _limiteCaixaAlto - 10) return {'cls': 'aten', 'selo': 'aten', 'txt': 'atenção'};
-    return {'cls': '', 'selo': 'ok', 'txt': 'normal'};
+    if (p <= _limiteCaixaBaixo + 20) return {'cls': 'aten', 'selo': 'aten', 'txt': 'atenção'};
+    return {'cls': 'ok', 'selo': 'ok', 'txt': 'normal'};
   }
 
   Map<String, String> _estadoRampa(RampaModel r, double? m, DetalheRampa? d) {
@@ -793,11 +792,9 @@ class _PumpingReportFormPageState extends ConsumerState<PumpingReportFormPage> {
       if (v < 0) return {'cls': 'crit', 'selo': 'crit', 'txt': 'passou do ponto zero'};
       if (v == 0) return {'cls': 'crit', 'selo': 'crit', 'txt': 'água no ponto zero'};
       if (v <= r.critico) return {'cls': 'crit', 'selo': 'crit', 'txt': 'água próxima da rampa'};
-      if (v <= r.atencao) return {'cls': 'aten', 'selo': 'aten', 'txt': 'atenção'};
       return {'cls': '', 'selo': 'ok', 'txt': 'normal'};
     }
     if (v >= r.critico) return {'cls': 'crit', 'selo': 'crit', 'txt': 'água próxima da rampa'};
-    if (v >= r.atencao) return {'cls': 'aten', 'selo': 'aten', 'txt': 'atenção'};
     return {'cls': '', 'selo': 'ok', 'txt': 'normal'};
   }
 
@@ -1036,7 +1033,11 @@ class _PumpingReportFormPageState extends ConsumerState<PumpingReportFormPage> {
         final val = i.caixas[c.id]!.toInt();
         final e = _estadoCaixa(i.caixas[c.id]);
         final anot = _resumoCaixa(i.detalhesCaixas[c.id]);
-        final m = anot.isNotEmpty ? ' ⚠' : (e['selo'] == 'crit' ? ' 🔴' : (e['selo'] == 'aten' ? ' 🟡' : ''));
+        final m = anot.isNotEmpty
+            ? ' ⚠'
+            : (e['selo'] == 'crit'
+                ? ' 🔴'
+                : (e['selo'] == 'aten' ? ' 🟡' : (e['selo'] == 'ok' ? ' 🟢' : '')));
         L.add('• ${c.nome}: $val%$m');
         if (anot.isNotEmpty) L.add('   ↳ $anot');
       }
@@ -1050,7 +1051,9 @@ class _PumpingReportFormPageState extends ConsumerState<PumpingReportFormPage> {
       final d = i.rampas[r.id];
       if (d == null) continue;
       final e = _estadoRampa(r, d.metragem, d);
-      final m = e['selo'] == 'crit' ? ' 🔴' : (e['selo'] == 'aten' ? ' 🟡' : '');
+      final m = e['selo'] == 'crit'
+          ? ' 🔴'
+          : (e['selo'] == 'aten' ? ' 🟡' : '');
       final metTxt = r.semMetragem ? 'sem medição' : (d.metragem == null ? 'sem leitura' : '${d.metragem} m');
       L.add('• ${r.nome}: $metTxt$m');
       final bombaTxt = d.bomba == true ? 'operando' : (d.bomba == false ? '*PARADA*' : 'não informado');
@@ -2668,8 +2671,8 @@ class _PumpingReportFormPageState extends ConsumerState<PumpingReportFormPage> {
                       _rampas.add(RampaModel(
                         id: 'fr_${DateTime.now().millisecondsSinceEpoch}',
                         nome: nome,
-                        atencao: double.tryParse(_frAtenCtrl.text) ?? 50,
-                        critico: double.tryParse(_frCritCtrl.text) ?? 25,
+                        atencao: double.tryParse(_frAtenCtrl.text) ?? 40,
+                        critico: double.tryParse(_frCritCtrl.text) ?? 20,
                       ));
                       _frNomeCtrl.clear();
                       _salvarEstado();

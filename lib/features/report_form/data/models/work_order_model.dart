@@ -44,6 +44,8 @@ class WorkOrderModel {
   late String status;
   late String osStatus;
   late List<String> photoPaths;
+  late String distanciaTomada;
+  late String distanciaComunicacao;
 
   // ─── Converters ───────────────────────────────────────────────────────────
 
@@ -83,7 +85,9 @@ class WorkOrderModel {
       ..isFinalized = entity.isFinalized
       ..status = entity.status
       ..osStatus = entity.osStatus
-      ..photoPaths = List<String>.from(entity.photoPaths);
+      ..photoPaths = List<String>.from(entity.photoPaths)
+      ..distanciaTomada = entity.distanciaTomada
+      ..distanciaComunicacao = entity.distanciaComunicacao;
   }
 
   WorkOrderEntity toEntity() {
@@ -133,6 +137,8 @@ class WorkOrderModel {
       status: status,
       osStatus: osStatus,
       photoPaths: List<String>.from(photoPaths),
+      distanciaTomada: distanciaTomada,
+      distanciaComunicacao: distanciaComunicacao,
     );
   }
 }

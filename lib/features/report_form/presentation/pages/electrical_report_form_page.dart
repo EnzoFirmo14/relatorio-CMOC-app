@@ -32,6 +32,8 @@ class ElectricalWorkOrder {
   String horaFim;
   String status;
   String pendencia;
+  String distanciaTomada;
+  String distanciaComunicacao;
 
   ElectricalWorkOrder({
     this.tipo = '',
@@ -50,6 +52,8 @@ class ElectricalWorkOrder {
     this.horaFim = '',
     this.status = '',
     this.pendencia = '',
+    this.distanciaTomada = '',
+    this.distanciaComunicacao = '',
   });
 
   Map<String, dynamic> toJson() => {
@@ -69,6 +73,8 @@ class ElectricalWorkOrder {
     'horaFim': horaFim,
     'status': status,
     'pendencia': pendencia,
+    'distanciaTomada': distanciaTomada,
+    'distanciaComunicacao': distanciaComunicacao,
   };
 
   factory ElectricalWorkOrder.fromJson(Map<String, dynamic> json) =>
@@ -89,6 +95,8 @@ class ElectricalWorkOrder {
         horaFim: json['horaFim'] ?? '',
         status: json['status'] ?? '',
         pendencia: json['pendencia'] ?? '',
+        distanciaTomada: json['distanciaTomada'] ?? json['distanciaTomadaFace'] ?? '',
+        distanciaComunicacao: json['distanciaComunicacao'] ?? json['distanciaComunicacaoFace'] ?? '',
       );
 }
 
@@ -127,13 +135,14 @@ class _ElectricalReportFormPageState
       'Cabo acidentado',
       'Cabo arriado',
       'Extensão danificada',
+      'Temperatura alta',
+      'BA com baixa isolação',
       'Outros',
     ],
     'Avanço': [
       'Avançar tomada',
       'Avançar painel de bomba',
       'Avançar comunicação',
-      'Avançar tomada e comunicação',
       'Outros',
     ],
     'Recuo': [
@@ -696,12 +705,6 @@ class _ElectricalReportFormPageState
         "• Local: ${_localEquipCtrl.text.isNotEmpty ? _localEquipCtrl.text : '—'}",
       );
       L.add(
-        "• Distância até a face TOMADA: ${_distanciaTomadaCtrl.text.isNotEmpty ? _distanciaTomadaCtrl.text : '—'}",
-      );
-      L.add(
-        "• Distância até a face COMUNICAÇÃO: ${_distanciaComunicacaoCtrl.text.isNotEmpty ? _distanciaComunicacaoCtrl.text : '—'}",
-      );
-      L.add(
         "• Materiais disponíveis: ${_materiaisCtrl.text.isNotEmpty ? _materiaisCtrl.text : '—'}",
       );
     }
@@ -735,6 +738,16 @@ class _ElectricalReportFormPageState
       }
 
       L.add("• Atividades: ${o.atividades.isNotEmpty ? o.atividades : '—'}");
+
+      if (o.tipo == 'Avanço') {
+        L.add(
+          "• Dist. TOMADA até a face: ${o.distanciaTomada.isNotEmpty ? o.distanciaTomada : '—'}",
+        );
+        L.add(
+          "• Dist. COMUNICAÇÃO até a face: ${o.distanciaComunicacao.isNotEmpty ? o.distanciaComunicacao : '—'}",
+        );
+      }
+
       L.add(
         "• Materiais: ${o.matNA ? 'Não se aplica' : (o.materiais.isNotEmpty ? o.materiais : '—')}",
       );
@@ -839,6 +852,8 @@ class _ElectricalReportFormPageState
         status: os.status,
         osStatus: os.pendencia.isNotEmpty ? 'Pendente: ${os.pendencia}' : 'OK',
         photoPaths: const [],
+        distanciaTomada: os.distanciaTomada,
+        distanciaComunicacao: os.distanciaComunicacao,
       );
     }).toList();
 
@@ -852,10 +867,7 @@ class _ElectricalReportFormPageState
       globalLocation: _semEquip ? '' : _localEquipCtrl.text,
       fuelLevel: 0.0,
       availableMaterials: _semEquip ? '' : _materiaisCtrl.text,
-      observations: [
-        'Distância até a face TOMADA: ${_distanciaTomadaCtrl.text}',
-        'Distância até a face COMUNICAÇÃO: ${_distanciaComunicacaoCtrl.text}',
-      ].join('\n'),
+      observations: '',
       syncStatus: ReportSyncStatus.pending,
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
@@ -947,7 +959,7 @@ class _ElectricalReportFormPageState
       _osList.add(
         ElectricalWorkOrder(
           tipo: 'Avanço',
-          causa: 'Avançar tomada e comunicação',
+          causa: 'Avançar tomada',
           causaOutros: '',
           local: 'Frente de Lavra 3B — Galeria Leste',
           tag: 'PNVI3012',
@@ -1354,25 +1366,6 @@ class _ElectricalReportFormPageState
                   invalid:
                       _showValidationErrors && _invalidFields.contains('local'),
                 ),
-              ),
-
-              const SizedBox(height: 14),
-
-              // DISTÂNCIAS DAS FACES
-              _buildLabel('📏', 'Distância até a face TOMADA'),
-              TextField(
-                controller: _distanciaTomadaCtrl,
-                keyboardType: TextInputType.text,
-                decoration: _buildInputDecoration(hint: 'Ex: 12 m'),
-              ),
-
-              const SizedBox(height: 14),
-
-              _buildLabel('📏', 'Distância até a face COMUNICAÇÃO'),
-              TextField(
-                controller: _distanciaComunicacaoCtrl,
-                keyboardType: TextInputType.text,
-                decoration: _buildInputDecoration(hint: 'Ex: 18 m'),
               ),
 
               const SizedBox(height: 14),
@@ -1939,6 +1932,57 @@ class _ElectricalReportFormPageState
                 ),
 
                 const SizedBox(height: 14),
+
+                // 6b. DISTÂNCIAS DA FACE (apenas para Avanço)
+                if (o.tipo == 'Avanço') ...[
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEEF0FF),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFF6366F1).withValues(alpha: 0.3)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Row(
+                          children: [
+                            Icon(Icons.straighten, size: 16, color: Color(0xFF4F46E5)),
+                            SizedBox(width: 6),
+                            Text(
+                              'DISTÂNCIAS DA FACE',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF4F46E5),
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        _buildLabel('📏', 'Distância TOMADA até a face'),
+                        TextField(
+                          decoration: _buildInputDecoration(hint: 'Ex: 12 m'),
+                          keyboardType: TextInputType.text,
+                          controller: TextEditingController(text: o.distanciaTomada)
+                            ..selection = TextSelection.collapsed(offset: o.distanciaTomada.length),
+                          onChanged: (val) => setState(() => o.distanciaTomada = val),
+                        ),
+                        const SizedBox(height: 10),
+                        _buildLabel('📏', 'Distância COMUNICAÇÃO até a face'),
+                        TextField(
+                          decoration: _buildInputDecoration(hint: 'Ex: 18 m'),
+                          keyboardType: TextInputType.text,
+                          controller: TextEditingController(text: o.distanciaComunicacao)
+                            ..selection = TextSelection.collapsed(offset: o.distanciaComunicacao.length),
+                          onChanged: (val) => setState(() => o.distanciaComunicacao = val),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                ],
 
                 // 7. MATERIAIS UTILIZADOS
                 Row(
