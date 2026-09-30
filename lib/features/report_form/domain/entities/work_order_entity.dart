@@ -15,6 +15,7 @@ class WorkOrderEntity {
   final String tagDesc;
   final String tagOutro;
   final String cause;
+  final String causeOutro;
   final String symptom;
   final String intervention;
   final String activities;
@@ -40,6 +41,12 @@ class WorkOrderEntity {
   final List<String> photoPaths;
   final String distanciaTomada;
   final String distanciaComunicacao;
+  // Campos de Recuo / Realocação
+  final String? necessitaRecuperar; // 'Sim', 'Não', ou null
+  final String frenteDestino;
+  final String localOrigem;
+  final String localDestino;
+  final String observacaoRealocacao;
 
   const WorkOrderEntity({
     required this.id,
@@ -54,6 +61,7 @@ class WorkOrderEntity {
     this.tagDesc = '',
     this.tagOutro = '',
     this.cause = '',
+    this.causeOutro = '',
     this.symptom = '',
     this.intervention = '',
     this.activities = '',
@@ -79,6 +87,11 @@ class WorkOrderEntity {
     this.photoPaths = const [],
     this.distanciaTomada = '',
     this.distanciaComunicacao = '',
+    this.necessitaRecuperar,
+    this.frenteDestino = '',
+    this.localOrigem = '',
+    this.localDestino = '',
+    this.observacaoRealocacao = '',
   });
 
   WorkOrderEntity copyWith({
@@ -94,6 +107,7 @@ class WorkOrderEntity {
     String? tagDesc,
     String? tagOutro,
     String? cause,
+    String? causeOutro,
     String? symptom,
     String? intervention,
     String? activities,
@@ -119,6 +133,11 @@ class WorkOrderEntity {
     List<String>? photoPaths,
     String? distanciaTomada,
     String? distanciaComunicacao,
+    Object? necessitaRecuperar = _kUnset,
+    String? frenteDestino,
+    String? localOrigem,
+    String? localDestino,
+    String? observacaoRealocacao,
   }) {
     return WorkOrderEntity(
       id: id ?? this.id,
@@ -133,6 +152,7 @@ class WorkOrderEntity {
       tagDesc: tagDesc ?? this.tagDesc,
       tagOutro: tagOutro ?? this.tagOutro,
       cause: cause ?? this.cause,
+      causeOutro: causeOutro ?? this.causeOutro,
       symptom: symptom ?? this.symptom,
       intervention: intervention ?? this.intervention,
       activities: activities ?? this.activities,
@@ -158,6 +178,11 @@ class WorkOrderEntity {
       photoPaths: photoPaths ?? this.photoPaths,
       distanciaTomada: distanciaTomada ?? this.distanciaTomada,
       distanciaComunicacao: distanciaComunicacao ?? this.distanciaComunicacao,
+      necessitaRecuperar: identical(necessitaRecuperar, _kUnset) ? this.necessitaRecuperar : necessitaRecuperar as String?,
+      frenteDestino: frenteDestino ?? this.frenteDestino,
+      localOrigem: localOrigem ?? this.localOrigem,
+      localDestino: localDestino ?? this.localDestino,
+      observacaoRealocacao: observacaoRealocacao ?? this.observacaoRealocacao,
     );
   }
 
@@ -172,3 +197,5 @@ class WorkOrderEntity {
   int get hashCode => id.hashCode;
 }
 
+// Sentinel object para distinguir null explícito de não fornecido
+const _kUnset = Object();

@@ -185,6 +185,7 @@ class DetalheRampa {
   bool? bomba; // true = sim, false = nao
   bool? limpeza; // true = sim (precisa), false = nao
   List<String> ocorrencias;
+  String ocorrenciaOutro;
   bool avisouLider;
   bool avisouSalaControle;
 
@@ -193,6 +194,7 @@ class DetalheRampa {
     this.bomba,
     this.limpeza,
     List<String>? ocorrencias,
+    this.ocorrenciaOutro = '',
     this.avisouLider = false,
     this.avisouSalaControle = false,
   }) : ocorrencias = ocorrencias ?? [];
@@ -202,6 +204,7 @@ class DetalheRampa {
         'bomba': bomba,
         'limpeza': limpeza,
         'ocorrencias': ocorrencias,
+        'ocorrenciaOutro': ocorrenciaOutro,
         'avisouLider': avisouLider,
         'avisouSalaControle': avisouSalaControle,
       };
@@ -211,6 +214,7 @@ class DetalheRampa {
         bomba: json['bomba'],
         limpeza: json['limpeza'],
         ocorrencias: (json['ocorrencias'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
+        ocorrenciaOutro: json['ocorrenciaOutro'] ?? '',
         avisouLider: json['avisouLider'] ?? false,
         avisouSalaControle: json['avisouSalaControle'] ?? false,
       );
@@ -455,6 +459,7 @@ class _PumpingReportFormPageState extends ConsumerState<PumpingReportFormPage> {
     'Tubulação danificada',
     'Painel com falha',
     'Falta de energia',
+    'Outros',
   ];
 
   // Controllers para aba Cadastros
@@ -780,7 +785,15 @@ class _PumpingReportFormPageState extends ConsumerState<PumpingReportFormPage> {
   Map<String, String> _estadoRampa(RampaModel r, double? m, DetalheRampa? d) {
     if (d?.bomba == false) return {'cls': 'crit', 'selo': 'crit', 'txt': 'bomba parada'};
     if (d?.limpeza == true) return {'cls': 'aten', 'selo': 'aten', 'txt': 'precisa de limpeza'};
-    if (d != null && d.ocorrencias.isNotEmpty) return {'cls': 'aten', 'selo': 'aten', 'txt': d.ocorrencias.join(', ').toLowerCase()};
+    if (d != null && d.ocorrencias.isNotEmpty) {
+      final ocs = d.ocorrencias.map((o) {
+        if (o == 'Outros' && d.ocorrenciaOutro.trim().isNotEmpty) {
+          return 'Outros (${d.ocorrenciaOutro.trim()})';
+        }
+        return o;
+      }).toList();
+      return {'cls': 'aten', 'selo': 'aten', 'txt': ocs.join(', ').toLowerCase()};
+    }
     if (r.semMetragem) {
       final respondido = d != null && (d.bomba != null || d.limpeza != null);
       return respondido ? {'cls': '', 'selo': 'ok', 'txt': 'normal'} : {'cls': '', 'selo': '', 'txt': 'não informado'};
@@ -840,6 +853,15 @@ class _PumpingReportFormPageState extends ConsumerState<PumpingReportFormPage> {
       final p = <String>[];
       if (d.bomba == false) p.add('bomba parada');
       if (d.limpeza == true) p.add('necessidade de limpeza');
+      if (d.ocorrencias.isNotEmpty) {
+        final ocs = d.ocorrencias.map((o) {
+          if (o == 'Outros' && d.ocorrenciaOutro.trim().isNotEmpty) {
+            return 'Outros (${d.ocorrenciaOutro.trim()})';
+          }
+          return o;
+        }).join(', ');
+        p.add('ocorrência: $ocs');
+      }
       final valor = r.semMetragem ? '—' : (d.metragem == null ? '—' : '${d.metragem} m');
       if (p.isNotEmpty) {
         saida.add({'tipo': 'Fim de rampa', 'ponto': r.nome, 'valor': valor, 'motivo': p.join(' e ')});
@@ -911,7 +933,12 @@ class _PumpingReportFormPageState extends ConsumerState<PumpingReportFormPage> {
       for (final r in _rampas) {
         final det = insp.rampas[r.id];
         if (det != null) {
-          final List<String> ocorrenciasList = List.from(det.ocorrencias);
+          final List<String> ocorrenciasList = det.ocorrencias.map((o) {
+            if (o == 'Outros' && det.ocorrenciaOutro.trim().isNotEmpty) {
+              return 'Outros (${det.ocorrenciaOutro.trim()})';
+            }
+            return o;
+          }).toList();
           if (det.bomba == false || det.limpeza == true) {
             ocorrenciasList.add('Comunicações:');
             if (det.limpeza == true) {
@@ -1059,7 +1086,15 @@ class _PumpingReportFormPageState extends ConsumerState<PumpingReportFormPage> {
       final bombaTxt = d.bomba == true ? 'operando' : (d.bomba == false ? '*PARADA*' : 'não informado');
       final limpTxt = d.limpeza == true ? '*NECESSÁRIA*' : (d.limpeza == false ? 'não' : 'não informado');
       L.add('   ↳ Bomba: $bombaTxt  |  Limpeza: $limpTxt');
-      if (d.ocorrencias.isNotEmpty) L.add("   ↳ Ocorrência: ${d.ocorrencias.join(', ')}");
+      if (d.ocorrencias.isNotEmpty) {
+        final ocs = d.ocorrencias.map((o) {
+          if (o == 'Outros' && d.ocorrenciaOutro.trim().isNotEmpty) {
+            return 'Outros (${d.ocorrenciaOutro.trim()})';
+          }
+          return o;
+        }).join(', ');
+        L.add('   ↳ Ocorrência: $ocs');
+      }
     }
 
     L.add('');
@@ -1744,6 +1779,26 @@ class _PumpingReportFormPageState extends ConsumerState<PumpingReportFormPage> {
                 },
               ),
             ],
+
+            const SizedBox(height: 8),
+            _buildLabel(theme, 'Outras observações / anomalias da caixa:'),
+            TextFormField(
+              initialValue: d.obs,
+              style: TextStyle(color: textColor, fontSize: 13),
+              decoration: InputDecoration(
+                hintText: 'Alguma outra ocorrência ou anomalia...',
+                hintStyle: TextStyle(color: theme.isDark ? Colors.white38 : Colors.black38, fontSize: 12),
+                isDense: true,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                filled: true,
+                fillColor: theme.fundo,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide(color: theme.isDark ? Colors.white24 : Colors.black12)),
+              ),
+              onChanged: (val) {
+                d.obs = val;
+                _salvarEstado();
+              },
+            ),
           ],
         ],
       ),
@@ -2122,7 +2177,9 @@ class _PumpingReportFormPageState extends ConsumerState<PumpingReportFormPage> {
               children: [
                 Expanded(
                   child: Text(
-                    count > 0 ? d.ocorrencias.join(', ') : 'Sem anormalidade',
+                    count > 0
+                        ? d.ocorrencias.map((o) => o == 'Outros' && d.ocorrenciaOutro.trim().isNotEmpty ? 'Outros (${d.ocorrenciaOutro.trim()})' : o).join(', ')
+                        : 'Sem anormalidade',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: count > 0 ? FontWeight.bold : FontWeight.normal,
@@ -2147,42 +2204,71 @@ class _PumpingReportFormPageState extends ConsumerState<PumpingReportFormPage> {
             margin: const EdgeInsets.only(top: 6),
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(color: theme.fundo, borderRadius: BorderRadius.circular(8)),
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 8,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Chip "Sem anormalidade"
-                _buildChipButton(
-                  theme: theme,
-                  label: 'Sem anormalidade',
-                  selected: count == 0,
-                  activeColor: theme.agua,
-                  onTap: () {
-                    setState(() {
-                      d.ocorrencias.clear();
-                      _salvarEstado();
-                    });
-                  },
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    // Chip "Sem anormalidade"
+                    _buildChipButton(
+                      theme: theme,
+                      label: 'Sem anormalidade',
+                      selected: count == 0,
+                      activeColor: theme.agua,
+                      onTap: () {
+                        setState(() {
+                          d.ocorrencias.clear();
+                          d.ocorrenciaOutro = '';
+                          _salvarEstado();
+                        });
+                      },
+                    ),
+                    ..._ocorrenciasOpcoes.map((oc) {
+                      final sel = d.ocorrencias.contains(oc);
+                      return _buildChipButton(
+                        theme: theme,
+                        label: oc,
+                        selected: sel,
+                        activeColor: theme.alerta,
+                        onTap: () {
+                          setState(() {
+                            if (sel) {
+                              d.ocorrencias.remove(oc);
+                              if (oc == 'Outros') d.ocorrenciaOutro = '';
+                            } else {
+                              d.ocorrencias.add(oc);
+                            }
+                            _salvarEstado();
+                          });
+                        },
+                      );
+                    }),
+                  ],
                 ),
-                ..._ocorrenciasOpcoes.map((oc) {
-                  final sel = d.ocorrencias.contains(oc);
-                  return _buildChipButton(
-                    theme: theme,
-                    label: oc,
-                    selected: sel,
-                    activeColor: theme.alerta,
-                    onTap: () {
-                      setState(() {
-                        if (sel) {
-                          d.ocorrencias.remove(oc);
-                        } else {
-                          d.ocorrencias.add(oc);
-                        }
-                        _salvarEstado();
-                      });
+                if (d.ocorrencias.contains('Outros')) ...[
+                  const SizedBox(height: 10),
+                  _buildLabel(theme, 'Descreva a ocorrência / anomalia (Outros):'),
+                  TextFormField(
+                    initialValue: d.ocorrenciaOutro,
+                    style: TextStyle(color: theme.isDark ? Colors.white : Colors.black87, fontSize: 13),
+                    decoration: InputDecoration(
+                      hintText: 'Digite os detalhes da anomalia encontrada...',
+                      hintStyle: TextStyle(color: theme.isDark ? Colors.white38 : Colors.black38, fontSize: 12),
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                      filled: true,
+                      fillColor: theme.painel,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide(color: theme.alerta)),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide(color: theme.alerta, width: 1.5)),
+                    ),
+                    onChanged: (val) {
+                      d.ocorrenciaOutro = val;
+                      _salvarEstado();
                     },
-                  );
-                }),
+                  ),
+                ],
               ],
             ),
           ),

@@ -598,7 +598,22 @@ class ReportFormController extends Notifier<ReportFormState> {
           lines.add('*Tipo Manutenção:* ${os.maintenanceType}');
         }
         if (os.cause.isNotEmpty) {
-          lines.add('*Causa:* ${os.cause}');
+          final causeText = (os.cause == 'Outros' && os.causeOutro.trim().isNotEmpty)
+              ? 'Outros: ${os.causeOutro.trim()}'
+              : os.cause;
+          lines.add('*Causa:* $causeText');
+        }
+        // Campos de Recuo / Realocação
+        if ((os.maintenanceType == 'Recuo' || os.maintenanceType == 'Realocação')) {
+          if (os.necessitaRecuperar != null) {
+            lines.add('*Necessário Recuperar:* ${os.necessitaRecuperar}');
+          }
+        }
+        if (os.maintenanceType == 'Realocação') {
+          if (os.frenteDestino.isNotEmpty) lines.add('*Frente de Destino:* ${os.frenteDestino}');
+          if (os.localOrigem.isNotEmpty) lines.add('*Local de Origem:* ${os.localOrigem}');
+          if (os.localDestino.isNotEmpty) lines.add('*Local de Destino:* ${os.localDestino}');
+          if (os.observacaoRealocacao.isNotEmpty) lines.add('*Obs. Realocação:* ${os.observacaoRealocacao}');
         }
         if (os.activities.trim().isNotEmpty) {
           lines.add('*Atividades:* ${os.activities.trim()}');
@@ -883,6 +898,7 @@ class ReportFormController extends Notifier<ReportFormState> {
               tagDesc: os.tagDesc,
               tagOutro: os.tagOutro,
               cause: os.cause,
+              causeOutro: os.causeOutro,
               symptom: os.symptom,
               intervention: os.intervention,
               activities: os.activities,
@@ -905,6 +921,11 @@ class ReportFormController extends Notifier<ReportFormState> {
               status: os.status,
               osStatus: os.osStatus,
               photoPaths: os.photoPaths,
+              necessitaRecuperar: os.necessitaRecuperar,
+              frenteDestino: os.frenteDestino,
+              localOrigem: os.localOrigem,
+              localDestino: os.localDestino,
+              observacaoRealocacao: os.observacaoRealocacao,
             ),
           )
           .toList(),
@@ -933,6 +954,7 @@ class ReportFormController extends Notifier<ReportFormState> {
             tagDesc: e.tagDesc,
             tagOutro: e.tagOutro,
             cause: e.cause,
+            causeOutro: e.causeOutro,
             symptom: e.symptom,
             intervention: e.intervention,
             activities: e.activities,
@@ -955,6 +977,11 @@ class ReportFormController extends Notifier<ReportFormState> {
             status: e.status,
             osStatus: e.osStatus,
             photoPaths: e.photoPaths,
+            necessitaRecuperar: e.necessitaRecuperar,
+            frenteDestino: e.frenteDestino,
+            localOrigem: e.localOrigem,
+            localDestino: e.localDestino,
+            observacaoRealocacao: e.observacaoRealocacao,
           ),
         )
         .toList();

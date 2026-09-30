@@ -184,6 +184,7 @@ class ReportFirestoreDataSource implements IReportRemoteDataSource {
               'tagDesc': os.tagDesc,
               'tagOutro': os.tagOutro,
               'cause': os.cause,
+              'causeOutro': os.causeOutro,
               'symptom': os.symptom,
               'intervention': os.intervention,
               'activities': os.activities,
@@ -211,6 +212,11 @@ class ReportFirestoreDataSource implements IReportRemoteDataSource {
               'distanciaComunicacao': os.distanciaComunicacao,
               'distanciaTomadaFace': os.distanciaTomada,
               'distanciaComunicacaoFace': os.distanciaComunicacao,
+              'necessitaRecuperar': os.necessitaRecuperar ?? '',
+              'frenteDestino': os.frenteDestino,
+              'localOrigem': os.localOrigem,
+              'localDestino': os.localDestino,
+              'observacaoRealocacao': os.observacaoRealocacao,
             },
           )
           .toList(),
@@ -354,6 +360,7 @@ class ReportFirestoreDataSource implements IReportRemoteDataSource {
           location: os['location']?.toString() ?? '',
           maintenanceType: os['maintenanceType']?.toString() ?? '',
           cause: os['cause']?.toString() ?? '',
+          causeOutro: os['causeOutro']?.toString() ?? '',
           activities: os['activities']?.toString() ?? '',
           materialsUsed: matsList,
           quantityMeters: os['quantityMeters']?.toString() ?? '',
@@ -366,6 +373,11 @@ class ReportFirestoreDataSource implements IReportRemoteDataSource {
           photoPaths: photosList,
           distanciaTomada: (os['distanciaTomada'] ?? os['distanciaTomadaFace'] ?? '').toString(),
           distanciaComunicacao: (os['distanciaComunicacao'] ?? os['distanciaComunicacaoFace'] ?? '').toString(),
+          necessitaRecuperar: (os['necessitaRecuperar'] as String?)?.isEmpty == true ? null : os['necessitaRecuperar']?.toString(),
+          frenteDestino: os['frenteDestino']?.toString() ?? '',
+          localOrigem: os['localOrigem']?.toString() ?? '',
+          localDestino: os['localDestino']?.toString() ?? '',
+          observacaoRealocacao: os['observacaoRealocacao']?.toString() ?? '',
         );
       }).toList();
     } catch (_) {

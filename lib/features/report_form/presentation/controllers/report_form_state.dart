@@ -37,6 +37,7 @@ class WorkOrderState {
   final String tagDesc;
   final String tagOutro;
   final String cause;
+  final String causeOutro;
   final String symptom;
   final String intervention;
   final String activities;
@@ -59,6 +60,12 @@ class WorkOrderState {
   final String status;
   final String osStatus;
   final List<String> photoPaths;
+  // Campos de Recuo / Realocação
+  final String? necessitaRecuperar;
+  final String frenteDestino;
+  final String localOrigem;
+  final String localDestino;
+  final String observacaoRealocacao;
 
   const WorkOrderState({
     required this.id,
@@ -73,6 +80,7 @@ class WorkOrderState {
     this.tagDesc = '',
     this.tagOutro = '',
     this.cause = '',
+    this.causeOutro = '',
     this.symptom = '',
     this.intervention = '',
     this.activities = '',
@@ -95,6 +103,11 @@ class WorkOrderState {
     this.status = '',
     this.osStatus = 'Rascunho',
     this.photoPaths = const [],
+    this.necessitaRecuperar,
+    this.frenteDestino = '',
+    this.localOrigem = '',
+    this.localDestino = '',
+    this.observacaoRealocacao = '',
   });
 
   // Calcula a duracao em minutos
@@ -136,6 +149,7 @@ class WorkOrderState {
     String? tagDesc,
     String? tagOutro,
     String? cause,
+    String? causeOutro,
     String? symptom,
     String? intervention,
     String? activities,
@@ -158,6 +172,11 @@ class WorkOrderState {
     String? status,
     String? osStatus,
     List<String>? photoPaths,
+    Object? necessitaRecuperar = _kWoUnset,
+    String? frenteDestino,
+    String? localOrigem,
+    String? localDestino,
+    String? observacaoRealocacao,
   }) {
     return WorkOrderState(
       id: id ?? this.id,
@@ -172,6 +191,7 @@ class WorkOrderState {
       tagDesc: tagDesc ?? this.tagDesc,
       tagOutro: tagOutro ?? this.tagOutro,
       cause: cause ?? this.cause,
+      causeOutro: causeOutro ?? this.causeOutro,
       symptom: symptom ?? this.symptom,
       intervention: intervention ?? this.intervention,
       activities: activities ?? this.activities,
@@ -194,9 +214,16 @@ class WorkOrderState {
       status: status ?? this.status,
       osStatus: osStatus ?? this.osStatus,
       photoPaths: photoPaths ?? this.photoPaths,
+      necessitaRecuperar: identical(necessitaRecuperar, _kWoUnset) ? this.necessitaRecuperar : necessitaRecuperar as String?,
+      frenteDestino: frenteDestino ?? this.frenteDestino,
+      localOrigem: localOrigem ?? this.localOrigem,
+      localDestino: localDestino ?? this.localDestino,
+      observacaoRealocacao: observacaoRealocacao ?? this.observacaoRealocacao,
     );
   }
 }
+
+const _kWoUnset = Object();
 
 
 /// Status do autosave exibido no header.

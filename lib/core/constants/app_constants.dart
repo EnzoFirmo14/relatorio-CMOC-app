@@ -28,6 +28,7 @@ class AppConstants {
     'Avanço',
     'Corretiva',
     'Recuo',
+    'Realocação',
     'Transporte',
     'Apoio',
     'Instalação'
@@ -36,7 +37,8 @@ class AppConstants {
   static const Map<String, List<String>> causaMap = {
     'Avanço': [
       'Avanço de Ventilação',
-      'Avanço de Tubulação'
+      'Avanço de Tubulação',
+      'Outros'
     ],
     'Corretiva': [
       'Tubo Danificado',
@@ -45,20 +47,29 @@ class AppConstants {
       'Duto Acidentado',
       'Duto Arriado',
       'Duto Desacoplado',
-      'Ventilação Ineficiente'
+      'Ventilação Ineficiente',
+      'Outros'
     ],
     'Recuo': [
       'Recuar Tubulação',
-      'Recuar Ventilação'
+      'Recuar Ventilação',
+      'Outros'
+    ],
+    'Realocação': [
+      'Realocar para outra frente',
+      'Outros'
     ],
     'Apoio': [
-      'Apoio a Elétrica'
+      'Apoio a Elétrica',
+      'Outros'
     ],
     'Transporte': [
-      'Transporte'
+      'Transporte',
+      'Outros'
     ],
     'Instalação': [
-      'Instalação'
+      'Instalação',
+      'Outros'
     ]
   };
 

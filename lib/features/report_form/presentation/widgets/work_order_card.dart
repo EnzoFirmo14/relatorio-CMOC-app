@@ -224,7 +224,7 @@ class WorkOrderCard extends StatelessWidget {
 
                 // 2. Causa
                 const Text(
-                  'CAUSA',
+                  'CAUSA / MOTIVO',
                   style: TextStyle(
                     fontFamily: 'monospace',
                     fontSize: 10.0,
@@ -248,10 +248,144 @@ class WorkOrderCard extends StatelessWidget {
                   onChanged: os.maintenanceType.isEmpty 
                       ? null 
                       : (val) {
-                          onUpdate(os.copyWith(cause: val ?? ''));
+                          onUpdate(os.copyWith(
+                            cause: val ?? '',
+                            causeOutro: val != 'Outros' ? '' : os.causeOutro,
+                          ));
                         },
                 ),
+                // Campo de texto quando 'Outros' é selecionado
+                if (os.cause == 'Outros') ...[
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    key: ValueKey('causeOutro-${os.id}'),
+                    initialValue: os.causeOutro,
+                    maxLines: 2,
+                    decoration: const InputDecoration(
+                      hintText: 'Descreva a ocorrência / motivo...',
+                      prefixIcon: Icon(Icons.edit_note, size: 18),
+                    ),
+                    onChanged: (val) => onUpdate(os.copyWith(causeOutro: val)),
+                  ),
+                ],
                 const SizedBox(height: 12),
+
+                // Campos específicos de Recuo / Realocação
+                if (os.maintenanceType == 'Recuo' || os.maintenanceType == 'Realocação') ...[
+                  const Text(
+                    'NECESSÁRIO RECUPERAR?',
+                    style: TextStyle(
+                      fontFamily: 'monospace',
+                      fontSize: 10.0,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.accentPurple,
+                      letterSpacing: 1.0,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: ['Sim', 'Não'].map((opcao) {
+                      final isSel = os.necessitaRecuperar == opcao;
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 10),
+                        child: GestureDetector(
+                          onTap: () => onUpdate(os.copyWith(
+                            necessitaRecuperar: isSel ? null : opcao,
+                          )),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 180),
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+                            decoration: BoxDecoration(
+                              color: isSel
+                                  ? (opcao == 'Sim' ? AppTheme.redAlert.withValues(alpha: 0.12) : AppTheme.greenSuccess.withValues(alpha: 0.12))
+                                  : Colors.black.withValues(alpha: 0.03),
+                              border: Border.all(
+                                color: isSel
+                                    ? (opcao == 'Sim' ? AppTheme.redAlert : AppTheme.greenSuccess)
+                                    : AppTheme.borderLight,
+                                width: isSel ? 1.5 : 1,
+                              ),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              opcao,
+                              style: TextStyle(
+                                fontFamily: 'monospace',
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: isSel
+                                    ? (opcao == 'Sim' ? AppTheme.redAlert : AppTheme.greenSuccess)
+                                    : AppTheme.textMuted,
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+
+                // Campos específicos de Realocação
+                if (os.maintenanceType == 'Realocação') ...[
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryPurple.withValues(alpha: 0.04),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: AppTheme.primaryPurple.withValues(alpha: 0.2)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const Text(
+                          '🔄 DADOS DA REALOCAÇÃO',
+                          style: TextStyle(
+                            fontFamily: 'monospace',
+                            fontSize: 10.0,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.primaryPurple,
+                            letterSpacing: 1.0,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        const Text('FRENTE DE DESTINO', style: TextStyle(fontFamily: 'monospace', fontSize: 9, fontWeight: FontWeight.w700, color: AppTheme.textFaint)),
+                        const SizedBox(height: 4),
+                        TextFormField(
+                          initialValue: os.frenteDestino,
+                          decoration: const InputDecoration(hintText: 'Ex: Frente K-10, RV5...', isDense: true),
+                          onChanged: (val) => onUpdate(os.copyWith(frenteDestino: val)),
+                        ),
+                        const SizedBox(height: 10),
+                        const Text('LOCAL DE ORIGEM', style: TextStyle(fontFamily: 'monospace', fontSize: 9, fontWeight: FontWeight.w700, color: AppTheme.textFaint)),
+                        const SizedBox(height: 4),
+                        TextFormField(
+                          initialValue: os.localOrigem,
+                          decoration: const InputDecoration(hintText: 'De onde sai o duto...', isDense: true),
+                          onChanged: (val) => onUpdate(os.copyWith(localOrigem: val)),
+                        ),
+                        const SizedBox(height: 10),
+                        const Text('LOCAL DE DESTINO', style: TextStyle(fontFamily: 'monospace', fontSize: 9, fontWeight: FontWeight.w700, color: AppTheme.textFaint)),
+                        const SizedBox(height: 4),
+                        TextFormField(
+                          initialValue: os.localDestino,
+                          decoration: const InputDecoration(hintText: 'Para onde vai o duto...', isDense: true),
+                          onChanged: (val) => onUpdate(os.copyWith(localDestino: val)),
+                        ),
+                        const SizedBox(height: 10),
+                        const Text('OBSERVAÇÃO', style: TextStyle(fontFamily: 'monospace', fontSize: 9, fontWeight: FontWeight.w700, color: AppTheme.textFaint)),
+                        const SizedBox(height: 4),
+                        TextFormField(
+                          initialValue: os.observacaoRealocacao,
+                          maxLines: 2,
+                          decoration: const InputDecoration(hintText: 'Observações adicionais sobre a realocação...', isDense: true),
+                          onChanged: (val) => onUpdate(os.copyWith(observacaoRealocacao: val)),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
 
                 // 3. Atividades Realizadas
                 const Text(

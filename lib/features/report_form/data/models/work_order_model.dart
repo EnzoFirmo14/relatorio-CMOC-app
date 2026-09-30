@@ -21,6 +21,7 @@ class WorkOrderModel {
   late String tagDesc;
   late String tagOutro;
   late String cause;
+  late String causeOutro;
   late String symptom;
   late String intervention;
   late String activities;
@@ -46,6 +47,11 @@ class WorkOrderModel {
   late List<String> photoPaths;
   late String distanciaTomada;
   late String distanciaComunicacao;
+  late String necessitaRecuperar;
+  late String frenteDestino;
+  late String localOrigem;
+  late String localDestino;
+  late String observacaoRealocacao;
 
   // ─── Converters ───────────────────────────────────────────────────────────
 
@@ -63,6 +69,7 @@ class WorkOrderModel {
       ..tagDesc = entity.tagDesc
       ..tagOutro = entity.tagOutro
       ..cause = entity.cause
+      ..causeOutro = entity.causeOutro
       ..symptom = entity.symptom
       ..intervention = entity.intervention
       ..activities = entity.activities
@@ -87,7 +94,12 @@ class WorkOrderModel {
       ..osStatus = entity.osStatus
       ..photoPaths = List<String>.from(entity.photoPaths)
       ..distanciaTomada = entity.distanciaTomada
-      ..distanciaComunicacao = entity.distanciaComunicacao;
+      ..distanciaComunicacao = entity.distanciaComunicacao
+      ..necessitaRecuperar = entity.necessitaRecuperar ?? ''
+      ..frenteDestino = entity.frenteDestino
+      ..localOrigem = entity.localOrigem
+      ..localDestino = entity.localDestino
+      ..observacaoRealocacao = entity.observacaoRealocacao;
   }
 
   WorkOrderEntity toEntity() {
@@ -114,6 +126,7 @@ class WorkOrderModel {
       tagDesc: tagDesc,
       tagOutro: tagOutro,
       cause: cause,
+      causeOutro: causeOutro,
       symptom: symptom,
       intervention: intervention,
       activities: activities,
@@ -139,6 +152,11 @@ class WorkOrderModel {
       photoPaths: List<String>.from(photoPaths),
       distanciaTomada: distanciaTomada,
       distanciaComunicacao: distanciaComunicacao,
+      necessitaRecuperar: necessitaRecuperar.isEmpty ? null : necessitaRecuperar,
+      frenteDestino: frenteDestino,
+      localOrigem: localOrigem,
+      localDestino: localDestino,
+      observacaoRealocacao: observacaoRealocacao,
     );
   }
 }
