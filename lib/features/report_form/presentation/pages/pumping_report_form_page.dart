@@ -1843,77 +1843,10 @@ class _PumpingReportFormPageState extends ConsumerState<PumpingReportFormPage> {
           ),
           const SizedBox(height: 8),
 
-          // Stepper de Metragem
-          if (!r.semMetragem) ...[
-            _buildLabel(theme, 'Metragem da água até o ponto zero'),
-            Row(
-              children: [
-                IconButton(
-                  style: IconButton.styleFrom(backgroundColor: theme.fundo),
-                  icon: Icon(Icons.remove, color: theme.agua),
-                  onPressed: () {
-                    setState(() {
-                      final curr = d.metragem ?? 0;
-                      if (curr > 0) {
-                        d.metragem = curr - 1;
-                        _salvarEstado();
-                      }
-                    });
-                  },
-                ),
-                Expanded(
-                  child: TextFormField(
-                    key: Key('metragem_${r.id}_${d.metragem}'),
-                    initialValue: d.metragem?.toString() ?? '0',
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: theme.agua),
-                    decoration: InputDecoration(
-                      hintText: '0',
-                      hintStyle: TextStyle(color: theme.isDark ? Colors.white38 : Colors.black38),
-                      fillColor: theme.fundo,
-                      filled: true,
-                      isDense: true,
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                    ),
-                    onChanged: (val) {
-                      final parsed = double.tryParse(val);
-                      if (parsed != null && parsed >= 0 && parsed <= 100) {
-                        d.metragem = parsed;
-                      } else if (val.isEmpty) {
-                         d.metragem = 0;
-                      }
-                      _salvarEstado();
-                    },
-                  ),
-                ),
-                IconButton(
-                  style: IconButton.styleFrom(backgroundColor: theme.fundo),
-                  icon: Icon(Icons.add, color: theme.agua),
-                  onPressed: () {
-                    setState(() {
-                      final curr = d.metragem ?? 0;
-                      if (curr < 100) {
-                        d.metragem = curr + 1;
-                        _salvarEstado();
-                      }
-                    });
-                  },
-                ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            // Escala visual de referência
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('ponto zero', style: TextStyle(fontSize: 10, color: theme.isDark ? Colors.white70 : Colors.black87)),
-                Text('crítico ≤ 25 m', style: TextStyle(fontSize: 10, color: theme.isDark ? Colors.white70 : Colors.black87)),
-                Text('100 m', style: TextStyle(fontSize: 10, color: theme.isDark ? Colors.white70 : Colors.black87)),
-              ],
-            ),
-            const SizedBox(height: 8),
-          ],
+          // Seletor de Metragem Ergonômico para Luvas (Atalhos + Stepper Multissalto)
+          if (!r.semMetragem)
+            _buildMetragemInput(theme, r, d),
+
 
           // Perguntas Sim/Não
           _buildLabel(theme, 'A bomba está operando? *'),
@@ -1993,6 +1926,188 @@ class _PumpingReportFormPageState extends ConsumerState<PumpingReportFormPage> {
           if (d.bomba == false || d.limpeza == true)
             _buildAlertCard(theme, r, d),
         ],
+      ),
+    );
+  }
+
+  /// Componente ergonômico de metragem para ambiente subterrâneo com luvas
+  Widget _buildMetragemInput(PumpingTheme theme, RampaModel r, DetalheRampa d) {
+    final currentVal = d.metragem ?? 0;
+    const presets = [0.0, 10.0, 20.0, 30.0, 40.0, 50.0, 75.0, 100.0];
+
+    void updateMetragem(double newVal) {
+      setState(() {
+        d.metragem = newVal.clamp(0.0, 100.0);
+        _salvarEstado();
+      });
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildLabel(theme, 'Metragem da água até o ponto zero:'),
+        const SizedBox(height: 6),
+
+        // 1. Pílulas de Acesso Rápido (Toque fácil e instantâneo com luva)
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          child: Row(
+            children: presets.map((p) {
+              final isSelected = d.metragem == p;
+              return Padding(
+                padding: const EdgeInsets.only(right: 6),
+                child: Material(
+                  color: isSelected
+                      ? theme.agua
+                      : (theme.isDark ? theme.fundo.withValues(alpha: 0.8) : Colors.black.withValues(alpha: 0.05)),
+                  borderRadius: BorderRadius.circular(16),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(16),
+                    onTap: () => updateMetragem(p),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 7),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: isSelected
+                              ? theme.agua
+                              : (theme.isDark ? Colors.white24 : Colors.black12),
+                          width: isSelected ? 1.5 : 1,
+                        ),
+                      ),
+                      child: Text(
+                        '${p.toInt()}m',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                          color: isSelected
+                              ? Colors.black
+                              : (theme.isDark ? Colors.white : Colors.black87),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+        const SizedBox(height: 8),
+
+        // 2. Stepper Industrial Multissalto com Botões Grandes
+        Row(
+          children: [
+            // Botão -5
+            _buildStepperButton(
+              theme: theme,
+              label: '-5',
+              onTap: () => updateMetragem(currentVal - 5),
+            ),
+            const SizedBox(width: 4),
+            // Botão -1
+            _buildStepperButton(
+              theme: theme,
+              label: '-1',
+              isPrimary: true,
+              onTap: () => updateMetragem(currentVal - 1),
+            ),
+            const SizedBox(width: 6),
+
+            // Display Central com digitação direta estável (não fecha o teclado ao digitar/apagar)
+            Expanded(
+              child: _MetragemInputWidget(
+                key: ValueKey('metragem_${r.id}'),
+                theme: theme,
+                rampa: r,
+                detalhe: d,
+                onChanged: (val) {
+                  d.metragem = val;
+                  _salvarEstado();
+                },
+              ),
+            ),
+
+
+
+
+            const SizedBox(width: 6),
+            // Botão +1
+            _buildStepperButton(
+              theme: theme,
+              label: '+1',
+              isPrimary: true,
+              onTap: () => updateMetragem(currentVal + 1),
+            ),
+            const SizedBox(width: 4),
+            // Botão +5
+            _buildStepperButton(
+              theme: theme,
+              label: '+5',
+              onTap: () => updateMetragem(currentVal + 5),
+            ),
+          ],
+        ),
+        const SizedBox(height: 5),
+
+        // 3. Escala Visual de Referência com badges
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text('ponto zero (0 m)', style: TextStyle(fontSize: 10, color: theme.isDark ? Colors.white60 : Colors.black54)),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: theme.critico.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                'crítico ≤ ${r.critico.toInt()} m',
+                style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: theme.critico),
+              ),
+            ),
+            Text('100 m', style: TextStyle(fontSize: 10, color: theme.isDark ? Colors.white60 : Colors.black54)),
+          ],
+        ),
+        const SizedBox(height: 8),
+      ],
+    );
+  }
+
+  Widget _buildStepperButton({
+    required PumpingTheme theme,
+    required String label,
+    required VoidCallback onTap,
+    bool isPrimary = false,
+  }) {
+    return Material(
+      color: isPrimary
+          ? (theme.isDark ? const Color(0xFF23005B) : const Color(0xFF5C3FA3))
+          : theme.fundo,
+      borderRadius: BorderRadius.circular(8),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: onTap,
+        child: Container(
+          width: isPrimary ? 48 : 42,
+          height: 48,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: isPrimary ? theme.agua : (theme.isDark ? Colors.white24 : Colors.black12),
+              width: isPrimary ? 1.2 : 1,
+            ),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: isPrimary ? 16 : 14,
+              fontWeight: FontWeight.bold,
+              color: isPrimary ? Colors.white : (theme.isDark ? Colors.white : Colors.black87),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -2920,3 +3035,103 @@ class _PumpingReportFormPageState extends ConsumerState<PumpingReportFormPage> {
     );
   }
 }
+
+/// Widget com controller isolado para permitir digitação fluida sem fechar o teclado
+class _MetragemInputWidget extends StatefulWidget {
+  final PumpingTheme theme;
+  final RampaModel rampa;
+  final DetalheRampa detalhe;
+  final ValueChanged<double> onChanged;
+
+  const _MetragemInputWidget({
+    super.key,
+    required this.theme,
+    required this.rampa,
+    required this.detalhe,
+    required this.onChanged,
+  });
+
+  @override
+  State<_MetragemInputWidget> createState() => _MetragemInputWidgetState();
+}
+
+class _MetragemInputWidgetState extends State<_MetragemInputWidget> {
+  late TextEditingController _controller;
+  late FocusNode _focusNode;
+
+  @override
+  void initState() {
+    super.initState();
+    final val = widget.detalhe.metragem;
+    _controller = TextEditingController(text: val != null ? '${val.toInt()}' : '0');
+    _focusNode = FocusNode();
+  }
+
+  @override
+  void didUpdateWidget(covariant _MetragemInputWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Só sincroniza o texto se o usuário NÃO estiver digitando no campo
+    if (!_focusNode.hasFocus) {
+      final val = widget.detalhe.metragem;
+      final newText = val != null ? '${val.toInt()}' : '0';
+      if (_controller.text != newText) {
+        _controller.text = newText;
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final currentVal = widget.detalhe.metragem ?? 0;
+    final isCritico = currentVal <= widget.rampa.critico;
+
+    return TextFormField(
+      controller: _controller,
+      focusNode: _focusNode,
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      textAlign: TextAlign.center,
+      style: TextStyle(
+        fontSize: 22,
+        fontWeight: FontWeight.w900,
+        letterSpacing: 0.5,
+        color: isCritico ? widget.theme.critico : widget.theme.agua,
+      ),
+      decoration: InputDecoration(
+        hintText: '0',
+        hintStyle: TextStyle(
+          color: (isCritico ? widget.theme.critico : widget.theme.agua).withValues(alpha: 0.4),
+        ),
+        suffixText: 'm',
+        suffixStyle: TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.bold,
+          color: isCritico ? widget.theme.critico : widget.theme.agua,
+        ),
+        isDense: true,
+        filled: false,
+        contentPadding: EdgeInsets.zero,
+        border: InputBorder.none,
+        enabledBorder: InputBorder.none,
+        focusedBorder: InputBorder.none,
+        disabledBorder: InputBorder.none,
+      ),
+      onChanged: (val) {
+        final clean = val.replaceAll(',', '.');
+        final parsed = double.tryParse(clean);
+        if (parsed != null && parsed >= 0 && parsed <= 100) {
+          widget.onChanged(parsed);
+        } else if (clean.isEmpty) {
+          widget.onChanged(0);
+        }
+      },
+    );
+  }
+}
+
