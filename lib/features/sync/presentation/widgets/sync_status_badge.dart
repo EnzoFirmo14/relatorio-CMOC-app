@@ -48,7 +48,39 @@ class SyncStatusBadge extends ConsumerWidget {
 
     return GestureDetector(
       onTap: () {
-        if (!syncState.isSyncing) {
+        if (syncState.hasError && syncState.errorMessage != null) {
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Row(
+                children: [
+                  Icon(Icons.warning_amber_rounded, color: Colors.red),
+                  SizedBox(width: 8),
+                  Text('Erro de Sincronização'),
+                ],
+              ),
+              content: SingleChildScrollView(
+                child: Text(
+                  syncState.errorMessage!,
+                  style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Fechar'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    controller.triggerSync();
+                  },
+                  child: const Text('Tentar Novamente'),
+                ),
+              ],
+            ),
+          );
+        } else if (!syncState.isSyncing) {
           controller.triggerSync();
         }
       },

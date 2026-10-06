@@ -17,6 +17,7 @@ class SyncState {
   final int pendingCount;
   final bool hasError;
   final DateTime? lastSyncTime;
+  final String? errorMessage;
 
   const SyncState({
     this.isOnline = true,
@@ -24,6 +25,7 @@ class SyncState {
     this.pendingCount = 0,
     this.hasError = false,
     this.lastSyncTime,
+    this.errorMessage,
   });
 
   SyncState copyWith({
@@ -32,6 +34,7 @@ class SyncState {
     int? pendingCount,
     bool? hasError,
     DateTime? lastSyncTime,
+    String? errorMessage,
   }) {
     return SyncState(
       isOnline: isOnline ?? this.isOnline,
@@ -39,6 +42,7 @@ class SyncState {
       pendingCount: pendingCount ?? this.pendingCount,
       hasError: hasError ?? this.hasError,
       lastSyncTime: lastSyncTime ?? this.lastSyncTime,
+      errorMessage: errorMessage ?? this.errorMessage,
     );
   }
 }
@@ -156,7 +160,7 @@ class SyncController extends StateNotifier<SyncState> with WidgetsBindingObserve
   Future<void> triggerSync() async {
     if (state.isSyncing) return;
 
-    state = state.copyWith(isSyncing: true, hasError: false);
+    state = state.copyWith(isSyncing: true, hasError: false, errorMessage: null);
     try {
       final synced = await syncService.syncPendingReports();
       final pending = await repository.getPendingReports();
@@ -165,6 +169,7 @@ class SyncController extends StateNotifier<SyncState> with WidgetsBindingObserve
         isSyncing: false,
         pendingCount: pending.length,
         hasError: pending.any((r) => r.syncStatus.name == 'error'),
+        errorMessage: syncService.lastError,
         lastSyncTime: synced > 0 ? DateTime.now() : state.lastSyncTime,
       );
 
@@ -177,11 +182,15 @@ class SyncController extends StateNotifier<SyncState> with WidgetsBindingObserve
             constraints: Constraints(
               networkType: NetworkType.connected,
             ),
+            existingWorkPolicy: ExistingWorkPolicy.append,
+            backoffPolicy: BackoffPolicy.exponential,
+            backoffPolicyDelay: const Duration(seconds: 15),
           );
         } catch (_) {}
       }
-    } catch (_) {
-      state = state.copyWith(isSyncing: false, hasError: true);
+    } catch (e, stack) {
+      debugPrint('[SyncController] Erro no triggerSync: $e\n$stack');
+      state = state.copyWith(isSyncing: false, hasError: true, errorMessage: e.toString());
     }
   }
 }

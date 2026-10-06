@@ -62,10 +62,10 @@ class WorkOrderCard extends StatelessWidget {
         return StatefulBuilder(
           builder: (context, setStateDialog) {
             return AlertDialog(
-              backgroundColor: AppTheme.cardBg(context),
-              title: Text(
+              backgroundColor: AppTheme.cardColorLight,
+              title: const Text(
                 'Materiais Utilizados',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.0, color: AppTheme.textPrimary(context)),
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.0),
               ),
               content: SizedBox(
                 width: double.maxFinite,
@@ -78,10 +78,10 @@ class WorkOrderCard extends StatelessWidget {
                     return CheckboxListTile(
                       title: Text(
                         mat,
-                        style: TextStyle(fontSize: 14.0, fontFamily: 'monospace', color: AppTheme.textPrimary(context)),
+                        style: const TextStyle(fontSize: 14.0, fontFamily: 'monospace'),
                       ),
                       value: isChecked,
-                      activeColor: AppTheme.primary(context),
+                      activeColor: AppTheme.primaryPurple,
                       onChanged: (bool? val) {
                         setStateDialog(() {
                           if (val == true) {
@@ -124,7 +124,7 @@ class WorkOrderCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 10.0),
             decoration: BoxDecoration(
-              color: AppTheme.primary(context).withValues(alpha: 0.12),
+              color: AppTheme.primaryPurple.withValues(alpha: 0.07),
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(14.0),
                 topRight: Radius.circular(14.0),
@@ -139,32 +139,32 @@ class WorkOrderCard extends StatelessWidget {
                     children: [
                       Text(
                         '📋 ${os.number}',
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontFamily: 'monospace',
                           fontSize: 13.0,
                           fontWeight: FontWeight.w700,
-                          color: AppTheme.primary(context),
+                          color: AppTheme.primaryPurple,
                         ),
                       ),
                       if (os.location.isNotEmpty)
                         Text(
                           '📍 ${os.location}',
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontFamily: 'monospace',
                             fontSize: 11.0,
-                            color: AppTheme.textMutedColor(context),
+                            color: AppTheme.textMuted,
                           ),
                         ),
                     ],
                   ),
                 ),
                 IconButton(
-                  icon: Icon(Icons.delete_outline, size: 20, color: AppTheme.textMutedColor(context)),
+                  icon: const Icon(Icons.delete_outline, size: 20, color: AppTheme.textMuted),
                   onPressed: () {
                     showDialog(
                       context: context,
                       builder: (context) => AlertDialog(
-                        backgroundColor: AppTheme.cardBg(context),
+                        backgroundColor: AppTheme.cardColorLight,
                         title: const Text('Excluir Ordem de Serviço?'),
                         content: Text('Tem certeza de que deseja excluir a OS "${os.number} — ${os.location}"? Esta ação não pode ser desfeita.'),
                         actions: [
@@ -196,26 +196,21 @@ class WorkOrderCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // 1. Tipo de Manutencao
-                Text(
+                const Text(
                   'TIPO DE MANUTENÇÃO *',
                   style: TextStyle(
                     fontFamily: 'monospace',
                     fontSize: 10.0,
                     fontWeight: FontWeight.w700,
-                    color: AppTheme.accent(context),
+                    color: AppTheme.accentPurple,
                     letterSpacing: 1.0,
                   ),
                 ),
                 const SizedBox(height: 4),
                 DropdownButtonFormField<String>(
-                  initialValue: (os.maintenanceType.isEmpty || !AppConstants.manutOptions.contains(os.maintenanceType))
-                      ? (os.maintenanceType.isNotEmpty ? os.maintenanceType : null)
-                      : os.maintenanceType,
+                  initialValue: os.maintenanceType.isEmpty ? null : os.maintenanceType,
                   decoration: const InputDecoration(hintText: '— Selecione —'),
-                  items: (os.maintenanceType.isNotEmpty && !AppConstants.manutOptions.contains(os.maintenanceType)
-                          ? [...AppConstants.manutOptions, os.maintenanceType]
-                          : AppConstants.manutOptions)
-                      .map((opt) {
+                  items: AppConstants.manutOptions.map((opt) {
                     return DropdownMenuItem(value: opt, child: Text(opt));
                   }).toList(),
                   onChanged: (val) {
@@ -228,13 +223,13 @@ class WorkOrderCard extends StatelessWidget {
                 const SizedBox(height: 12),
 
                 // 2. Causa
-                Text(
-                  'CAUSA',
+                const Text(
+                  'CAUSA / MOTIVO',
                   style: TextStyle(
                     fontFamily: 'monospace',
                     fontSize: 10.0,
                     fontWeight: FontWeight.w700,
-                    color: AppTheme.accent(context),
+                    color: AppTheme.accentPurple,
                     letterSpacing: 1.0,
                   ),
                 ),
@@ -253,19 +248,225 @@ class WorkOrderCard extends StatelessWidget {
                   onChanged: os.maintenanceType.isEmpty 
                       ? null 
                       : (val) {
-                          onUpdate(os.copyWith(cause: val ?? ''));
+                          onUpdate(os.copyWith(
+                            cause: val ?? '',
+                            causeOutro: val != 'Outros' ? '' : os.causeOutro,
+                          ));
                         },
                 ),
+                // Campo de texto quando 'Outros' é selecionado
+                if (os.cause == 'Outros') ...[
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    key: ValueKey('causeOutro-${os.id}'),
+                    initialValue: os.causeOutro,
+                    maxLines: 2,
+                    decoration: const InputDecoration(
+                      hintText: 'Descreva a ocorrência / motivo...',
+                      prefixIcon: Icon(Icons.edit_note, size: 18),
+                    ),
+                    onChanged: (val) => onUpdate(os.copyWith(causeOutro: val)),
+                  ),
+                ],
                 const SizedBox(height: 12),
 
+                // Campos específicos de Avanço (Distâncias da Face)
+                if (os.maintenanceType == 'Avanço') ...[
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryPurple.withValues(alpha: 0.04),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: AppTheme.primaryPurple.withValues(alpha: 0.2)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const Row(
+                          children: [
+                            Icon(Icons.straighten, size: 16, color: AppTheme.primaryPurple),
+                            SizedBox(width: 6),
+                            Text(
+                              'DISTÂNCIAS DA FACE',
+                              style: TextStyle(
+                                fontFamily: 'monospace',
+                                fontSize: 10.0,
+                                fontWeight: FontWeight.w700,
+                                color: AppTheme.primaryPurple,
+                                letterSpacing: 1.0,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        const Text(
+                          'DISTÂNCIA DO DUTO ATÉ A FACE',
+                          style: TextStyle(
+                            fontFamily: 'monospace',
+                            fontSize: 9,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.textFaint,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        TextFormField(
+                          initialValue: os.distanciaDuto,
+                          decoration: const InputDecoration(
+                            hintText: 'Ex: 15 m',
+                            isDense: true,
+                          ),
+                          onChanged: (val) => onUpdate(os.copyWith(distanciaDuto: val)),
+                        ),
+                        const SizedBox(height: 10),
+                        const Text(
+                          'DISTÂNCIA DA PONTEIRA ATÉ A FACE',
+                          style: TextStyle(
+                            fontFamily: 'monospace',
+                            fontSize: 9,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.textFaint,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        TextFormField(
+                          initialValue: os.distanciaPonteira,
+                          decoration: const InputDecoration(
+                            hintText: 'Ex: 5 m',
+                            isDense: true,
+                          ),
+                          onChanged: (val) => onUpdate(os.copyWith(distanciaPonteira: val)),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+
+                // Campos específicos de Recuo / Realocação
+                if (os.maintenanceType == 'Recuo' || os.maintenanceType == 'Realocação') ...[
+                  const Text(
+                    'NECESSÁRIO RECUPERAR?',
+                    style: TextStyle(
+                      fontFamily: 'monospace',
+                      fontSize: 10.0,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.accentPurple,
+                      letterSpacing: 1.0,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: ['Sim', 'Não'].map((opcao) {
+                      final isSel = os.necessitaRecuperar == opcao;
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 10),
+                        child: GestureDetector(
+                          onTap: () => onUpdate(os.copyWith(
+                            necessitaRecuperar: isSel ? null : opcao,
+                          )),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 180),
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+                            decoration: BoxDecoration(
+                              color: isSel
+                                  ? (opcao == 'Sim' ? AppTheme.redAlert.withValues(alpha: 0.12) : AppTheme.greenSuccess.withValues(alpha: 0.12))
+                                  : Colors.black.withValues(alpha: 0.03),
+                              border: Border.all(
+                                color: isSel
+                                    ? (opcao == 'Sim' ? AppTheme.redAlert : AppTheme.greenSuccess)
+                                    : AppTheme.borderLight,
+                                width: isSel ? 1.5 : 1,
+                              ),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              opcao,
+                              style: TextStyle(
+                                fontFamily: 'monospace',
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: isSel
+                                    ? (opcao == 'Sim' ? AppTheme.redAlert : AppTheme.greenSuccess)
+                                    : AppTheme.textMuted,
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+
+                // Campos específicos de Realocação
+                if (os.maintenanceType == 'Realocação') ...[
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryPurple.withValues(alpha: 0.04),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: AppTheme.primaryPurple.withValues(alpha: 0.2)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const Text(
+                          '🔄 DADOS DA REALOCAÇÃO',
+                          style: TextStyle(
+                            fontFamily: 'monospace',
+                            fontSize: 10.0,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.primaryPurple,
+                            letterSpacing: 1.0,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        const Text('FRENTE DE DESTINO', style: TextStyle(fontFamily: 'monospace', fontSize: 9, fontWeight: FontWeight.w700, color: AppTheme.textFaint)),
+                        const SizedBox(height: 4),
+                        TextFormField(
+                          initialValue: os.frenteDestino,
+                          decoration: const InputDecoration(hintText: 'Ex: Frente K-10, RV5...', isDense: true),
+                          onChanged: (val) => onUpdate(os.copyWith(frenteDestino: val)),
+                        ),
+                        const SizedBox(height: 10),
+                        const Text('LOCAL DE ORIGEM', style: TextStyle(fontFamily: 'monospace', fontSize: 9, fontWeight: FontWeight.w700, color: AppTheme.textFaint)),
+                        const SizedBox(height: 4),
+                        TextFormField(
+                          initialValue: os.localOrigem,
+                          decoration: const InputDecoration(hintText: 'De onde sai o duto...', isDense: true),
+                          onChanged: (val) => onUpdate(os.copyWith(localOrigem: val)),
+                        ),
+                        const SizedBox(height: 10),
+                        const Text('LOCAL DE DESTINO', style: TextStyle(fontFamily: 'monospace', fontSize: 9, fontWeight: FontWeight.w700, color: AppTheme.textFaint)),
+                        const SizedBox(height: 4),
+                        TextFormField(
+                          initialValue: os.localDestino,
+                          decoration: const InputDecoration(hintText: 'Para onde vai o duto...', isDense: true),
+                          onChanged: (val) => onUpdate(os.copyWith(localDestino: val)),
+                        ),
+                        const SizedBox(height: 10),
+                        const Text('OBSERVAÇÃO', style: TextStyle(fontFamily: 'monospace', fontSize: 9, fontWeight: FontWeight.w700, color: AppTheme.textFaint)),
+                        const SizedBox(height: 4),
+                        TextFormField(
+                          initialValue: os.observacaoRealocacao,
+                          maxLines: 2,
+                          decoration: const InputDecoration(hintText: 'Observações adicionais sobre a realocação...', isDense: true),
+                          onChanged: (val) => onUpdate(os.copyWith(observacaoRealocacao: val)),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+
                 // 3. Atividades Realizadas
-                Text(
+                const Text(
                   'ATIVIDADES REALIZADAS *',
                   style: TextStyle(
                     fontFamily: 'monospace',
                     fontSize: 10.0,
                     fontWeight: FontWeight.w700,
-                    color: AppTheme.accent(context),
+                    color: AppTheme.accentPurple,
                     letterSpacing: 1.0,
                   ),
                 ),
@@ -283,13 +484,13 @@ class WorkOrderCard extends StatelessWidget {
                 const SizedBox(height: 12),
 
                 // 4. Materiais Utilizados (Multi-Select)
-                Text(
+                const Text(
                   'MATERIAIS UTILIZADOS',
                   style: TextStyle(
                     fontFamily: 'monospace',
                     fontSize: 10.0,
                     fontWeight: FontWeight.w700,
-                    color: AppTheme.accent(context),
+                    color: AppTheme.accentPurple,
                     letterSpacing: 1.0,
                   ),
                 ),
@@ -299,14 +500,13 @@ class WorkOrderCard extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 10.0),
                     decoration: BoxDecoration(
-                      color: AppTheme.subCardBg(context),
+                      color: Colors.black.withValues(alpha: 0.04),
                       borderRadius: BorderRadius.circular(8.0),
-                      border: Border.all(color: AppTheme.border(context)),
                     ),
                     child: os.materialsUsed.isEmpty
-                        ? Text(
+                        ? const Text(
                             '— Selecione um ou mais —',
-                            style: TextStyle(color: AppTheme.textFaintColor(context), fontSize: 14.0),
+                            style: TextStyle(color: AppTheme.textFaint, fontSize: 14.0),
                           )
                         : Wrap(
                             spacing: 6.0,
@@ -315,8 +515,8 @@ class WorkOrderCard extends StatelessWidget {
                               return Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                 decoration: BoxDecoration(
-                                  color: AppTheme.primary(context).withValues(alpha: 0.15),
-                                  border: Border.all(color: AppTheme.primary(context).withValues(alpha: 0.4)),
+                                  color: AppTheme.primaryPurple.withValues(alpha: 0.15),
+                                  border: Border.all(color: AppTheme.primaryPurple.withValues(alpha: 0.3)),
                                   borderRadius: BorderRadius.circular(4.0),
                                 ),
                                 child: Row(
@@ -324,11 +524,11 @@ class WorkOrderCard extends StatelessWidget {
                                   children: [
                                     Text(
                                       mat,
-                                      style: TextStyle(
+                                      style: const TextStyle(
                                         fontFamily: 'monospace',
                                         fontSize: 11.0,
                                         fontWeight: FontWeight.w600,
-                                        color: AppTheme.primary(context),
+                                        color: AppTheme.primaryPurple,
                                       ),
                                     ),
                                     const SizedBox(width: 4),
@@ -337,7 +537,7 @@ class WorkOrderCard extends StatelessWidget {
                                         final list = List<String>.from(os.materialsUsed)..remove(mat);
                                         onUpdate(os.copyWith(materialsUsed: list));
                                       },
-                                      child: Icon(Icons.close, size: 10, color: AppTheme.textMutedColor(context)),
+                                      child: const Icon(Icons.close, size: 10, color: AppTheme.textMuted),
                                     ),
                                   ],
                                 ),
@@ -393,13 +593,13 @@ class WorkOrderCard extends StatelessWidget {
                 const SizedBox(height: 12),
 
                 // 5. Horario (Inicio / Término)
-                Text(
+                const Text(
                   'HORÁRIO *',
                   style: TextStyle(
                     fontFamily: 'monospace',
                     fontSize: 10.0,
                     fontWeight: FontWeight.w700,
-                    color: AppTheme.accent(context),
+                    color: AppTheme.accentPurple,
                     letterSpacing: 1.0,
                   ),
                 ),
@@ -442,17 +642,17 @@ class WorkOrderCard extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                         decoration: BoxDecoration(
-                          color: AppTheme.primary(context).withValues(alpha: 0.15),
-                          border: Border.all(color: AppTheme.primary(context).withValues(alpha: 0.4)),
+                          color: AppTheme.primaryPurple.withValues(alpha: 0.12),
+                          border: Border.all(color: AppTheme.primaryPurple.withValues(alpha: 0.3)),
                           borderRadius: BorderRadius.circular(6.0),
                         ),
                         child: Text(
                           os.durationFormatted,
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontFamily: 'monospace',
                             fontSize: 12.0,
                             fontWeight: FontWeight.w700,
-                            color: AppTheme.primary(context),
+                            color: AppTheme.primaryPurple,
                           ),
                         ),
                       ),
@@ -462,7 +662,7 @@ class WorkOrderCard extends StatelessWidget {
                 if (invalidTime) ...[
                   const SizedBox(height: 4),
                   const Text(
-                    '⚠️ Início e Término não podem ser iguais',
+                    '⚠️ Término deve ser depois do Início',
                     style: TextStyle(
                       fontFamily: 'monospace',
                       fontSize: 10.0,
@@ -473,19 +673,89 @@ class WorkOrderCard extends StatelessWidget {
                 ],
                 const SizedBox(height: 12),
 
-                // 6. Fotos / Anexos
-                Text(
+
+
+                // 6.5. Fotos / Anexos
+                const Text(
                   'FOTOS / ANEXOS',
                   style: TextStyle(
                     fontFamily: 'monospace',
                     fontSize: 10.0,
                     fontWeight: FontWeight.w700,
-                    color: AppTheme.accent(context),
+                    color: AppTheme.accentPurple,
                     letterSpacing: 1.0,
                   ),
                 ),
                 const SizedBox(height: 6),
                 _buildPhotosSection(context),
+                const SizedBox(height: 14),
+
+                // 7. Status Chips da OS
+                const Divider(color: AppTheme.borderLight, height: 1),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    const Text(
+                      'STATUS OS:',
+                      style: TextStyle(
+                        fontFamily: 'monospace',
+                        fontSize: 10.0,
+                        fontWeight: FontWeight.w700,
+                        color: AppTheme.textFaint,
+                        letterSpacing: 1.0,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: ['Rascunho', 'Em Andamento', 'Finalizada'].map((st) {
+                          final isSel = os.osStatus == st;
+                          Color bg = Colors.black.withValues(alpha: 0.03);
+                          Color txt = AppTheme.textMuted;
+                          Color bdr = AppTheme.borderLight;
+
+                          if (isSel) {
+                            if (st == 'Rascunho') {
+                              bg = AppTheme.textMuted.withValues(alpha: 0.12);
+                              txt = AppTheme.textMuted;
+                              bdr = AppTheme.textMuted;
+                            } else if (st == 'Em Andamento') {
+                              bg = AppTheme.primaryPurple.withValues(alpha: 0.15);
+                              txt = AppTheme.primaryPurple;
+                              bdr = AppTheme.primaryPurple;
+                            } else {
+                              bg = AppTheme.greenSuccess.withValues(alpha: 0.14);
+                              txt = AppTheme.greenSuccess;
+                              bdr = AppTheme.greenSuccess;
+                            }
+                          }
+
+                          return GestureDetector(
+                            onTap: () => onUpdate(os.copyWith(osStatus: st)),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 4.0),
+                              decoration: BoxDecoration(
+                                color: bg,
+                                border: Border.all(color: bdr, width: 1.5),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                st,
+                                style: TextStyle(
+                                  fontFamily: 'monospace',
+                                  fontSize: 10.0,
+                                  fontWeight: FontWeight.w700,
+                                  color: txt,
+                                ),
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
@@ -609,24 +879,24 @@ class WorkOrderCard extends StatelessWidget {
               width: 90,
               height: 90,
               decoration: BoxDecoration(
-                color: AppTheme.subCardBg(context),
+                color: Colors.black.withValues(alpha: 0.02),
                 borderRadius: BorderRadius.circular(8.0),
                 border: Border.all(
-                  color: AppTheme.primary(context).withValues(alpha: 0.4),
-                  style: BorderStyle.solid,
+                  color: AppTheme.primaryPurple.withValues(alpha: 0.4),
+                  style: BorderStyle.solid, // Dotted style isn't native, solid purple looks very clean here
                 ),
               ),
-              child: Column(
+              child: const Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.add_a_photo_outlined, color: AppTheme.primary(context), size: 24),
-                  const SizedBox(height: 4),
+                  Icon(Icons.add_a_photo_outlined, color: AppTheme.primaryPurple, size: 24),
+                  SizedBox(height: 4),
                   Text(
                     'Add Foto',
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.bold,
-                      color: AppTheme.primary(context),
+                      color: AppTheme.primaryPurple,
                     ),
                   ),
                 ],
@@ -641,7 +911,6 @@ class WorkOrderCard extends StatelessWidget {
   void _showAddPhotoBottomSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppTheme.cardBg(context),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
@@ -650,8 +919,8 @@ class WorkOrderCard extends StatelessWidget {
           child: Wrap(
             children: <Widget>[
               ListTile(
-                leading: Icon(Icons.camera_alt_rounded, color: AppTheme.primary(context)),
-                title: Text('Câmera (Tirar Foto)', style: TextStyle(color: AppTheme.textPrimary(context))),
+                leading: const Icon(Icons.camera_alt_rounded, color: AppTheme.primaryPurple),
+                title: const Text('Câmera (Tirar Foto)'),
                 onTap: () async {
                   Navigator.of(context).pop();
                   final path = await ImageService.pickAndCompressImage(ImageSource.camera);
@@ -661,8 +930,8 @@ class WorkOrderCard extends StatelessWidget {
                 },
               ),
               ListTile(
-                leading: Icon(Icons.photo_library_rounded, color: AppTheme.primary(context)),
-                title: Text('Galeria (Escolher Foto)', style: TextStyle(color: AppTheme.textPrimary(context))),
+                leading: const Icon(Icons.photo_library_rounded, color: AppTheme.primaryPurple),
+                title: const Text('Galeria (Escolher Foto)'),
                 onTap: () async {
                   Navigator.of(context).pop();
                   final path = await ImageService.pickAndCompressImage(ImageSource.gallery);

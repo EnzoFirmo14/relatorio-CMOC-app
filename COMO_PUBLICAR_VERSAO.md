@@ -1,6 +1,6 @@
 # 🚀 Guia de Publicação de Novas Versões — App CMOC
 
-Este guia descreve o processo passo a passo para compilar, hospedar e publicar atualizações para o aplicativo. Com o mecanismo estilo **Steam** ativo, os dispositivos baixarão e instalarão a nova versão silenciosamente assim que o aplicativo for iniciado.
+Este guia descreve o processo completo passo a passo para compilar, hospedar e publicar atualizações para o aplicativo CMOC. Com o mecanismo estilo **Steam** (OTA via GitHub + Firebase), os dispositivos baixam e instalam a nova versão silenciosamente assim que o aplicativo for iniciado.
 
 ---
 
@@ -8,101 +8,152 @@ Este guia descreve o processo passo a passo para compilar, hospedar e publicar a
 
 ```mermaid
 graph TD
-    A[Atualizar versão no pubspec.yaml] --> B[Compilar APK de Produção]
+    A[Atualizar versão no pubspec.yaml] --> B[Compilar APK de Produção Assinado]
     B --> C[Publicar Release no GitHub]
     C --> D[Obter SHA-256 via PowerShell]
-    D --> E[Atualizar Firestore version_control/latest]
+    D --> E[Atualizar Firestore: version_control/latest]
     E --> F[Dispositivos atualizam automaticamente ao abrir o app]
+    E --> G[Commit e Tag no Git]
 ```
 
 ---
 
-## 📋 Passo a Passo
+## 📋 Passo a Passo para Publicação
 
 ### Passo 1: Incrementar a versão no código
-Abra o arquivo [pubspec.yaml](file:///c:/Users/Enzo/Documents/Projetos/Flutter/relatorio-CMOC-app/pubspec.yaml) e modifique a linha `version:` (por volta da linha 19):
+Abra o arquivo [pubspec.yaml](file:///c:/Codes/Projetos/relatorio-CMOC-app/pubspec.yaml) e modifique a linha `version:`:
+
 ```yaml
-version: 1.0.1+3
+version: 1.0.6+6
 ```
-* **Versão Nominal (antes do `+`)**: Versão visível do app (ex: `1.0.1`). Siga o padrão SemVer (Major.Minor.Patch).
-* **Build Number (depois do `+`)**: Número inteiro incremental de controle interno (ex: `3`). **Você deve sempre aumentá-lo em pelo menos +1 a cada nova compilação.** É através dele que o app detecta a existência de novidades.
+
+**Regras de Versionamento:**
+* **Versão Nominal (antes do `+`)**: `MAJOR.MINOR.PATCH` (ex: `1.0.6`).
+  * `PATCH (+0.0.1)`: Correções de bugs e pequenos ajustes.
+  * `MINOR (+0.1.0)`: Novas funcionalidades e melhorias de tela.
+  * `MAJOR (+1.0.0)`: Grandes mudanças arquiteturais ou reformulações.
+* **Build Number (depois do `+`)**: Número inteiro sequencial interno (ex: `6`). **Sempre incremente +1 a cada nova compilação.** É através dele que o app identifica a necessidade de atualização.
 
 ---
 
-### Passo 2: Compilar o APK de Produção
+### Passo 2: Verificar a Keystore de Assinatura
+Antes de gerar o build de produção, certifique-se de que as chaves de assinatura estão configuradas:
+* Arquivo da chave: `android/app/cmoc-release-key.jks`
+* Propriedades de acesso: `android/key.properties`
 
-> ⚠️ **IMPORTANTE**: Sempre use os flags `--build-name` e `--build-number` explicitamente. Sem eles, o Gradle pode usar o versionCode em cache e embutir um número de versão errado no APK, causando loop de atualização nos dispositivos.
+> ⚠️ **ATENÇÃO DE SEGURANÇA**: Nunca envie o arquivo `.jks` nem o `key.properties` para o repositório público do Git.
 
-No terminal da raiz do projeto Flutter, execute:
+---
+
+### Passo 3: Compilar o APK de Produção
+
+> ⚠️ **IMPORTANTE**: Sempre use as flags `--build-name` e `--build-number` explicitamente. Sem elas, o Gradle pode utilizar o versionCode em cache e embutir um número de versão desatualizado no APK, ocasionando loops de atualização nos dispositivos.
+
+Execute no terminal da raiz do projeto:
+
 ```bash
-flutter build apk --release --build-name=1.0.0 --build-number=5
+flutter build apk --release --build-name=1.0.6 --build-number=6
 ```
-Substitua `1.0.0` e `5` pelos valores da versão atual do [pubspec.yaml](file:///c:/Users/Enzo/Documents/Projetos/Flutter/relatorio-CMOC-app/pubspec.yaml).
+*(Substitua `1.0.6` e `6` pela versão e build number configurados no `pubspec.yaml`)*
 
-**Verifique sempre** se o versionCode foi gravado corretamente no APK antes de publicar:
+#### Validar o `versionCode` gravado no APK:
 ```powershell
 $aapt = Get-ChildItem "$env:LOCALAPPDATA\Android\Sdk\build-tools" -Filter "aapt.exe" -Recurse | Sort-Object LastWriteTime -Descending | Select-Object -First 1 -ExpandProperty FullName
 & $aapt dump badging "build\app\outputs\flutter-apk\app-release.apk" | Select-String "versionCode"
 ```
-O resultado deve mostrar `versionCode='5'` (ou o número correto da versão).
+O resultado deve confirmar `versionCode='6'` (ou o número da build atual).
 
-O arquivo APK assinado será gerado no caminho:
-📁 `build/app/outputs/flutter-apk/app-release.apk`
+* O APK gerado estará em: `build\app\outputs\flutter-apk\app-release.apk`
+* *(Caso necessite de App Bundle para Play Store: `flutter build appbundle --release` gerado em `build\app\outputs\bundle\release\app-release.aab`)*
 
 ---
 
-### Passo 3: Hospedar o APK no GitHub Releases
-1. Acesse o seu repositório no GitHub: **[relatorio-CMOC-app](https://github.com/EnzoFirmo14/relatorio-CMOC-app)**.
-2. Na barra lateral direita, clique em **Releases** > **Create a new release** (ou *Draft a new release*).
-3. Insira a Tag (ex: `v1.0.1`) e o Título (ex: `Release v1.0.1`).
-4. **Arraste e solte o arquivo `app-release.apk`** compilado no Passo 2 para a caixa de anexos binários.
+### Passo 4: Hospedar o APK no GitHub Releases
+1. Acesse o repositório no GitHub: **[relatorio-CMOC-app](https://github.com/EnzoFirmo14/relatorio-CMOC-app)**.
+2. Na barra lateral direita, clique em **Releases** > **Draft a new release** (ou *Create a new release*).
+3. Defina a **Tag** (ex: `v1.0.6`) e o **Título** (ex: `Release v1.0.6`).
+4. **Arraste e solte o arquivo `app-release.apk`** para a área de anexos binários.
 5. Clique em **Publish release**.
-6. Na lista de arquivos da release publicada, clique com o **botão direito no `app-release.apk`** e escolha **Copiar endereço do link** (Copy link address).
-   * *O link terá um formato direto como:*
-     `https://github.com/EnzoFirmo14/relatorio-CMOC-app/releases/download/v1.0.1/app-release.apk`
+6. Na lista de assets da release publicada, clique com o **botão direito no `app-release.apk`** e selecione **Copiar endereço do link** (*Copy link address*).
+   * Formato esperado:
+     `https://github.com/EnzoFirmo14/relatorio-CMOC-app/releases/download/v1.0.6/app-release.apk`
 
 ---
 
-### Passo 4: Calcular o Hash de Integridade (SHA-256)
-Para que os dispositivos aceitem o download com segurança (prevenindo arquivos corrompidos ou downloads interceptados), o aplicativo exige a validação do hash SHA-256.
+### Passo 5: Calcular o Hash de Integridade (SHA-256)
+Para garantir que o download seja seguro e que o arquivo não chegue corrompido aos dispositivos, calcule o SHA-256:
 
-Abra o **PowerShell** no Windows e execute o comando:
+No **PowerShell**, execute:
 ```powershell
 Get-FileHash build\app\outputs\flutter-apk\app-release.apk -Algorithm SHA256 | Format-List
 ```
-O console exibirá as informações do arquivo. Copie a sequência longa de caracteres exibida em **Hash** (ex: `68AE355FE8EAF...`).
+Copie o valor exibido no campo **Hash** (ex: `68AE355FE8EAF2BF7EFD610...`).
 
 ---
 
-### Passo 5: Publicar no Firebase Firestore
-Acesse o Console do Firebase, abra o **Firestore Database** e selecione a coleção **`version_control`** e o documento **`latest`**. Atualize os seguintes campos:
+### Passo 6: Publicar no Firebase Firestore
+Acesse o Console do Firebase, vá em **Firestore Database** e abra o documento:
+📁 Coleção: `version_control`  
+📄 Documento: `latest`
+
+Preencha/atualize os campos:
 
 | Nome do Campo | Tipo de Dado | Valor Exemplo | Descrição |
 | :--- | :--- | :--- | :--- |
-| **`version`** | `string` | `"1.0.1"` | A versão nominal definida no `pubspec.yaml` |
-| **`build_number`** | `number` | `3` | O número de compilação após o `+` no `pubspec.yaml` |
-| **`apk_url`** | `string` | `"https://github.com/..."` | Link direto do APK no GitHub Releases (Passo 3) |
-| **`sha256`** | `string` | `"68AE355FE8EAF2BF7EFD610..."` | Hash copiado no PowerShell (Passo 4) |
-| **`is_mandatory`** | `boolean` | `true` ou `false` | Se `true`, impede o uso do app antigo obrigando a atualizar |
-| **`changelog`** | `string` | `"Notas da versão"` | Pequeno resumo do que foi alterado |
+| **`version`** | `string` | `"1.0.6"` | Versão nominal configurada no `pubspec.yaml` |
+| **`build_number`** | `number` | `6` | Número de build (`versionCode`) após o `+` |
+| **`apk_url`** | `string` | `"https://github.com/.../app-release.apk"` | Link direto do APK gerado no GitHub Releases (Passo 4) |
+| **`sha256`** | `string` | `"68AE355FE8EAF2BF7EFD610..."` | Hash SHA-256 gerado no Passo 5 |
+| **`is_mandatory`** | `boolean` | `true` | Se `true`, exige a atualização imediata |
+| **`changelog`** | `string` | `"Slider de 5m em rampas de bombeamento, campos de avanço e reinstalação em equipagem"` | Resumo das novidades da versão |
 
 ---
 
-## ⚡ Comportamento dos Dispositivos (Estilo Steam)
+### Passo 7: Commit e Tag no Git
+Após publicar no Firebase, registre a versão no repositório:
 
-* **Fluxo de Atualização**: Quando o operador clica para abrir o app, o `LauncherPage` (Splash) faz a checagem com o Firestore. Se encontrar uma versão com `build_number` maior do que a instalada localmente, o app **inicia o download na hora**, mostrando o progresso em `%`.
-* **Sem interrupção para Offline**: Se o dispositivo estiver offline (ex: no subsolo da mina) ou se ocorrer algum erro na rede, o app ultrapassa o check em 1 segundo e abre a tela de login normalmente, sem travar o operador.
-* **Modo Desenvolvedor**: O botão de preenchimento automático de teste (raio) é oculto. Para mostrá-lo, **toque 5 vezes seguidas no logotipo da CMOC** no topo esquerdo do AppBar.
+```bash
+git add .
+git commit -m "chore: release v1.0.6"
+git tag v1.0.6
+git push origin main --tags
+```
 
 ---
 
-## 💡 Dica de Ouro: Instalação Inicial Sem Dores
+## ⚡ Comportamento dos Dispositivos (Auto-Update Estilo Steam)
 
-Para que os operadores leigos nunca vejam a tela de instrução solicitando que ativem fontes desconhecidas para o aplicativo CMOC, quem estiver realizando a configuração inicial no dispositivo (supervisor ou TI) pode conceder essa permissão imediatamente após a primeira instalação manual do APK:
+* **Detecção Automática**: Ao abrir o aplicativo, a tela de Splash (`LauncherPage`) consulta o Firestore. Se `build_number` do servidor for superior ao local, inicia o download em background exibindo o progresso em `%`.
+* **Resiliência Offline**: Se o aparelho estiver sem conexão (ex: subsolo da mina) ou com oscilação na rede, o check faz timeout em 1 segundo e libera o login normalmente sem travar o operador.
+* **Modo Desenvolvedor**: O botão de preenchimento automático para testes (ícone de raio) fica oculto. Para exibi-lo, **toque 5 vezes seguidas no logotipo da CMOC** no topo esquerdo do AppBar.
 
-1. Logo após instalar o primeiro APK no celular do colaborador, abra as **Configurações** do Android.
-2. Acesse **Aplicativos** > procure por **Relatório CMOC** (ou *CMOC*).
-3. Role a tela até a opção **Instalar apps desconhecidos** (ou *Instalar fontes desconhecidas*).
-4. **Ative a chave para "Permitir desta fonte"**.
+---
 
-Fazendo isso no primeiro dia de setup, o aplicativo CMOC já terá autorização prévia do Android e **todas as futuras atualizações serão baixadas e instaladas de forma 100% invisível e automática para os colaboradores!**
+## 💡 Instalação Inicial e Permissões
+
+Para que as futuras atualizações sejam **100% invisíveis e automáticas** sem pedir confirmações de permissão ao operador de campo:
+
+1. Ao realizar a primeira instalação manual do APK no aparelho:
+2. Abra as **Configurações do Android** > **Aplicativos** > **Relatório CMOC**.
+3. Selecione **Instalar apps desconhecidos** (ou *Instalar de fontes desconhecidas*).
+4. Marque **"Permitir desta fonte"**.
+
+---
+
+## 📜 CHANGELOG
+
+### v1.0.6 (2026-10-06)
+- **Bombeamento (Águas de Fim de Rampa)**: Substituição dos contadores repetitivos por Slider contínuo/discreto com divisões precisas de 5 em 5 metros (0 a 100m).
+- **Bombeamento**: Display central com indicação visual e dinâmica de criticidade (vermelho para crítico, amarelo para atenção, verde para seguro) e régua com marcadores visuais.
+- **Equipagem**: Novo tipo de manutenção "Reinstalação" com motivos "Reinstalação" e "Outros".
+- **Equipagem**: Tipo de manutenção "Avanço" com painel de "Distâncias da Face" ("Distância do duto até a Face" e "Distância da ponteira até a Face").
+- **Equipagem**: Atualização automática na exportação para WhatsApp e sincronização Firestore.
+
+### v1.0.5 (2026-09-30)
+- **Equipagem**: Adicionada opção "Outros" em Causa/Motivo com campo de texto livre.
+- **Equipagem > Dutos (Ventilação)**: Novo tipo "Realocação" com campos específicos (Frente de Destino, Local de Origem, Local de Destino, Observação, "Necessário Recuperar?").
+- **Bombeamento**: Símbolos e cores de nível de água padronizados (cheio=verde, vazio=vermelho).
+- **Bombeamento**: Fim de Rampa com alerta visual abaixo de 20m.
+
+### v1.0.4
+- Versão base estável inicial com formulários de Bombeamento, Equipagem, Subestações e sincronização Isar/Firestore.

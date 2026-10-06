@@ -1,6 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'collaborator_entity.dart';
 import 'work_order_entity.dart';
+import 'water_level_entity.dart';
+import 'pump_entity.dart';
+import 'material_entity.dart';
 
 /// Status do ciclo de vida do rascunho/relatório.
 enum ReportSyncStatus {
@@ -24,7 +27,11 @@ class ReportEntity {
   final String observations;
   final List<CollaboratorEntity> operators;
   final List<WorkOrderEntity> workOrders;
+  final List<WaterLevelEntity> waterLevels;
+  final List<PumpEntity> pumps;
+  final List<MaterialEntity> materialsUsed;
   final ReportSyncStatus syncStatus;
+  final String type;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -40,7 +47,11 @@ class ReportEntity {
     this.observations = '',
     this.operators = const [],
     this.workOrders = const [],
+    this.waterLevels = const [],
+    this.pumps = const [],
+    this.materialsUsed = const [],
     this.syncStatus = ReportSyncStatus.draft,
+    this.type = 'Equipagem',
     required this.createdAt,
     required this.updatedAt,
   });
@@ -61,7 +72,11 @@ class ReportEntity {
     String? observations,
     List<CollaboratorEntity>? operators,
     List<WorkOrderEntity>? workOrders,
+    List<WaterLevelEntity>? waterLevels,
+    List<PumpEntity>? pumps,
+    List<MaterialEntity>? materialsUsed,
     ReportSyncStatus? syncStatus,
+    String? type,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -77,7 +92,11 @@ class ReportEntity {
       observations: observations ?? this.observations,
       operators: operators ?? this.operators,
       workOrders: workOrders ?? this.workOrders,
+      waterLevels: waterLevels ?? this.waterLevels,
+      pumps: pumps ?? this.pumps,
+      materialsUsed: materialsUsed ?? this.materialsUsed,
       syncStatus: syncStatus ?? this.syncStatus,
+      type: type ?? this.type,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

@@ -17,12 +17,24 @@ import 'report_form_state.dart';
 // ─── Providers ─────────────────────────────────────────────────────────────
 
 /// Provider do repositório local — pode ser sobrescrito em testes com mock.
+/// NOTA: usa keepAlive para evitar que o Riverpod recrie o repositório
+/// (e tente acessar o Isar) em momentos inesperados do ciclo de vida.
 final reportRepositoryProvider = Provider<IReportRepository>((ref) {
+  ref.keepAlive();
   if (kIsWeb) {
     return InMemoryReportRepository();
   }
-  final dataSource = ReportLocalDataSource(IsarService.instance.isar);
-  return ReportRepositoryImpl(dataSource);
+  try {
+    final isarService = IsarService.instance;
+    // Garante que o Isar foi inicializado; se não, lança StateError
+    // que é capturado abaixo.
+    final isar = isarService.isar;
+    return ReportRepositoryImpl(ReportLocalDataSource(isar));
+  } catch (e) {
+    debugPrint('[reportRepositoryProvider] Isar não disponível ($e). '
+        'Usando repositório em memória temporariamente.');
+    return InMemoryReportRepository();
+  }
 });
 
 final reportFormControllerProvider =
@@ -115,8 +127,111 @@ class ReportFormController extends Notifier<ReportFormState> {
     }
   }
 
-  /// Valida o relatório, marca seu status como pendente e tenta enviá-lo imediatamente ao Firestore.
-  /// Se offline, permanece na fila pendente para sincronização automática futura.
+  /// Valida o formulário. Retorna true se válido, false se houver erros.
+  /// Não persiste nem sincroniza — use [saveLocallyAndTriggerSync] para isso.
+  bool validateAndMark() {
+    final errors = validateForm();
+    return errors.isEmpty;
+  }
+
+  /// Salva o relatório **localmente no Isar de forma imediata** (offline-first)
+  /// e dispara a sincronização com o Firestore em segundo plano sem bloquear a UI.
+  ///
+  /// Fluxo correto:
+  ///   1. Gera texto WhatsApp (antes de qualquer reset)
+  ///   2. Chama este método → salva local → dispara sync em background
+  ///   3. Chama [resetForm] → limpa o formulário
+  ///   4. Abre o WhatsappPreviewDialog com o texto gerado
+  ///
+  /// Funciona 100% offline — a UI nunca fica bloqueada esperando rede.
+  Future<void> saveLocallyAndTriggerSync() async {
+    state = state.copyWith(
+      syncStatus: ReportSyncStatus.pending,
+      reportStatus: 'Pendente',
+      autosaveStatus: AutosaveStatus.saving,
+    );
+
+    try {
+      final entity = _stateToEntity();
+      await _repository.saveReport(entity);
+      state = state.copyWith(autosaveStatus: AutosaveStatus.saved);
+      debugPrint('[saveLocallyAndTriggerSync] Salvo localmente: ${state.uuid}');
+    } catch (e) {
+      state = state.copyWith(autosaveStatus: AutosaveStatus.error);
+      debugPrint('[saveLocallyAndTriggerSync] Erro ao salvar local: $e');
+    }
+
+    // Dispara sync em background sem await — não bloqueia a UI
+    _syncInBackground();
+  }
+
+  /// Salva a Mecânica localmente e dispara sync em background (offline-first).
+  /// Versão de [saveLocallyAndTriggerSync] para relatórios Mecânicos (prefixo MC-).
+  Future<void> saveMechanicalLocallyAndTriggerSync() async {
+    final mcId = 'MC-${DateTime.now().millisecondsSinceEpoch}';
+    state = state.copyWith(
+      uuid: mcId,
+      type: 'Mecânica',
+      syncStatus: ReportSyncStatus.pending,
+      reportStatus: 'Pendente',
+      autosaveStatus: AutosaveStatus.saving,
+    );
+
+    final entity = _stateToEntity().copyWith(
+      uuid: mcId,
+      type: 'Mecânica',
+      syncStatus: ReportSyncStatus.pending,
+    );
+
+    try {
+      await _repository.saveReport(entity);
+      state = state.copyWith(autosaveStatus: AutosaveStatus.saved);
+      debugPrint('[saveMechanicalLocallyAndTriggerSync] Salvo localmente: $mcId');
+    } catch (e) {
+      state = state.copyWith(autosaveStatus: AutosaveStatus.error);
+      debugPrint('[saveMechanicalLocallyAndTriggerSync] Erro ao salvar local: $e');
+    }
+
+    // Dispara sync em background passando a entidade com type='Mecânica' garantido
+    _syncInBackground(entity);
+  }
+
+  /// Dispara sincronização Firestore sem bloquear a UI.
+  /// Erros são capturados e logados silenciosamente.
+  void _syncInBackground([ReportEntity? specificEntity]) {
+    final entityToSend = specificEntity ?? _stateToEntity();
+    Future.microtask(() async {
+      try {
+        final remoteDataSource = ref.read(reportRemoteDataSourceProvider);
+        await remoteDataSource.sendReport(entityToSend);
+        await _repository.markAsSynced(entityToSend.uuid);
+        state = state.copyWith(
+          syncStatus: ReportSyncStatus.synced,
+          reportStatus: 'Sincronizado',
+        );
+        debugPrint('[_syncInBackground] Sincronizado com Firestore: ${entityToSend.uuid} → ${entityToSend.type}');
+      } catch (e) {
+        debugPrint('[_syncInBackground] Sem internet ou erro — pendente para sync posterior: $e');
+        try {
+          await ref.read(syncControllerProvider.notifier).triggerSync();
+        } catch (_) {}
+      }
+    });
+  }
+
+  /// Limpa o formulário para um estado inicial vazio após envio.
+  /// Deleta o rascunho do banco local para evitar recarregamento acidental.
+  Future<void> resetForm() async {
+    final oldUuid = state.uuid;
+    state = ReportFormState(date: DateTime.now());
+    try {
+      await _repository.deleteReport(oldUuid);
+    } catch (_) {}
+    debugPrint('[resetForm] Formulário limpo após envio.');
+  }
+
+  /// Valida o relatório, marca seu status como pendente e o envia imediatamente ao Firestore.
+  /// @deprecated Use [saveLocallyAndTriggerSync] + [resetForm] para fluxo offline-first.
   Future<bool> submitReport() async {
     final errors = validateForm();
     if (errors.isNotEmpty) {
@@ -130,11 +245,98 @@ class ReportFormController extends Notifier<ReportFormState> {
 
     await _autosave();
 
-    try {
-      await ref.read(syncControllerProvider.notifier).triggerSync();
-    } catch (_) {}
+    // Dispara sync em background sem bloquear
+    _syncInBackground();
 
     return true;
+  }
+
+
+  /// Salva o relatório atual como pendente e o envia diretamente ao Firestore.
+  /// SEM executar `validateForm()`. Use este método nos formulários que
+  /// possuem sua própria lógica de validação (ex: Mecânica, Elétrica).
+  Future<void> saveAndSyncReport() async {
+    state = state.copyWith(
+      syncStatus: ReportSyncStatus.pending,
+      reportStatus: 'Pendente',
+    );
+
+    await _autosave();
+
+    // Envio direto ao Firestore
+    try {
+      final entity = _stateToEntity();
+      final remoteDataSource = ref.read(reportRemoteDataSourceProvider);
+      await remoteDataSource.sendReport(entity);
+      await _repository.markAsSynced(state.uuid);
+      state = state.copyWith(
+        syncStatus: ReportSyncStatus.synced,
+        reportStatus: 'Sincronizado',
+      );
+      debugPrint('[saveAndSyncReport] Relatório enviado diretamente ao Firestore: ${state.uuid}');
+    } catch (e) {
+      debugPrint('[saveAndSyncReport] Erro no envio direto: $e — tentando via sync queue...');
+      try {
+        await ref.read(syncControllerProvider.notifier).triggerSync();
+        state = state.copyWith(
+          syncStatus: ReportSyncStatus.synced,
+          reportStatus: 'Sincronizado',
+        );
+      } catch (e2) {
+        debugPrint('[saveAndSyncReport] Erro no sync queue: $e2');
+      }
+    }
+  }
+
+  /// Salva o relatório de **Manutenção Mecânica** com:
+  /// - UUID prefixado com `MC-` (ex: `MC-1753000000000`) para que o
+  ///   site web identifique a coleção `mechanical_reports` corretamente.
+  /// - Campo `type: 'Mecânica'` garantido, independente do estado atual.
+  ///
+  /// Não executa `validateForm()` — a validação fica por conta da página.
+  Future<void> saveAndSyncMechanicalReport() async {
+    // Gera ID com prefixo MC- usando timestamp em milissegundos
+    final mcId = 'MC-${DateTime.now().millisecondsSinceEpoch}';
+
+    state = state.copyWith(
+      uuid: mcId,
+      syncStatus: ReportSyncStatus.pending,
+      reportStatus: 'Pendente',
+    );
+
+    try {
+      // Constrói a entidade forçando type e uuid corretos
+      final entity = _stateToEntity().copyWith(
+        uuid: mcId,
+        type: 'Mecânica',
+        syncStatus: ReportSyncStatus.pending,
+      );
+
+      await _repository.saveReport(entity);
+      state = state.copyWith(autosaveStatus: AutosaveStatus.saved);
+
+      // Envio direto ao Firestore (garante chegada em web e mobile)
+      final remoteDataSource = ref.read(reportRemoteDataSourceProvider);
+      await remoteDataSource.sendReport(entity);
+      await _repository.markAsSynced(mcId);
+      state = state.copyWith(
+        syncStatus: ReportSyncStatus.synced,
+        reportStatus: 'Sincronizado',
+      );
+      debugPrint('[saveAndSyncMechanicalReport] Relatório mecânico enviado diretamente: $mcId → mechanical_reports');
+    } catch (e) {
+      state = state.copyWith(autosaveStatus: AutosaveStatus.error);
+      debugPrint('[saveAndSyncMechanicalReport] Erro no envio direto: $e — tentando via sync queue...');
+      try {
+        await ref.read(syncControllerProvider.notifier).triggerSync();
+        state = state.copyWith(
+          syncStatus: ReportSyncStatus.synced,
+          reportStatus: 'Sincronizado',
+        );
+      } catch (e2) {
+        debugPrint('[saveAndSyncMechanicalReport] Erro no sync queue: $e2');
+      }
+    }
   }
 
   // ─── Field Setters ─────────────────────────────────────────────────────
@@ -299,6 +501,23 @@ class ReportFormController extends Notifier<ReportFormState> {
       errors.add('Informe pelo menos um Executante');
     }
 
+    if (state.globalEquipment.trim().isEmpty) {
+      errors.add('Equipamento deve ser selecionado ou informado ("N/A")');
+    }
+    if (state.globalLocation.trim().isEmpty) {
+      errors.add('Local Global deve ser preenchido ou informado ("N/A")');
+    }
+    if (state.availableMaterials.trim().isEmpty) {
+      errors.add('Materiais Disponíveis deve ser preenchido ou informado ("N/A")');
+    }
+    if (state.observations.trim().isEmpty) {
+      errors.add('Observações Gerais devem ser preenchidas ou informadas ("N/A")');
+    }
+
+    if (state.workOrders.isEmpty) {
+      errors.add('Adicione pelo menos uma Ordem de Serviço (OS)');
+    }
+
     for (final os in state.workOrders) {
       final prefix = 'OS ${os.number}: ';
 
@@ -308,13 +527,27 @@ class ReportFormController extends Notifier<ReportFormState> {
       if (os.activities.trim().isEmpty) {
         errors.add('${prefix}Atividades realizadas não preenchidas');
       }
+      if (os.cause.trim().isEmpty) {
+        errors.add('${prefix}Causa/Motivo deve ser preenchido ou informado ("N/A")');
+      }
+      if (os.materialsUsed.isEmpty &&
+          os.quantityMeters.trim().isEmpty &&
+          os.quantityPieces.trim().isEmpty) {
+        errors.add('${prefix}Materiais/Metros/Peças devem ser informados ou marcados como "N/A"');
+      }
       if (os.startTime.isEmpty) {
         errors.add('${prefix}Horário de Início não preenchido');
+      }
+      if (os.endTime.isEmpty) {
+        errors.add('${prefix}Horário de Término não preenchido');
       }
       if (os.startTime.isNotEmpty && os.endTime.isNotEmpty) {
         if (os.durationInMinutes <= 0) {
           errors.add('${prefix}Horário de Início e Término não podem ser iguais');
         }
+      }
+      if (os.status.isEmpty) {
+        errors.add('${prefix}Status da OS não selecionado');
       }
     }
 
@@ -325,6 +558,7 @@ class ReportFormController extends Notifier<ReportFormState> {
 
     return errors;
   }
+
 
   // ─── WhatsApp Text Generator ───────────────────────────────────────────
 
@@ -365,7 +599,27 @@ class ReportFormController extends Notifier<ReportFormState> {
           lines.add('*Tipo Manutenção:* ${os.maintenanceType}');
         }
         if (os.cause.isNotEmpty) {
-          lines.add('*Causa:* ${os.cause}');
+          final causeText = (os.cause == 'Outros' && os.causeOutro.trim().isNotEmpty)
+              ? 'Outros: ${os.causeOutro.trim()}'
+              : os.cause;
+          lines.add('*Causa:* $causeText');
+        }
+        // Campos específicos de Avanço (Distâncias da Face)
+        if (os.maintenanceType == 'Avanço') {
+          if (os.distanciaDuto.isNotEmpty) lines.add('*Dist. Duto até a face:* ${os.distanciaDuto}');
+          if (os.distanciaPonteira.isNotEmpty) lines.add('*Dist. Ponteira até a face:* ${os.distanciaPonteira}');
+        }
+        // Campos de Recuo / Realocação
+        if ((os.maintenanceType == 'Recuo' || os.maintenanceType == 'Realocação')) {
+          if (os.necessitaRecuperar != null) {
+            lines.add('*Necessário Recuperar:* ${os.necessitaRecuperar}');
+          }
+        }
+        if (os.maintenanceType == 'Realocação') {
+          if (os.frenteDestino.isNotEmpty) lines.add('*Frente de Destino:* ${os.frenteDestino}');
+          if (os.localOrigem.isNotEmpty) lines.add('*Local de Origem:* ${os.localOrigem}');
+          if (os.localDestino.isNotEmpty) lines.add('*Local de Destino:* ${os.localDestino}');
+          if (os.observacaoRealocacao.isNotEmpty) lines.add('*Obs. Realocação:* ${os.observacaoRealocacao}');
         }
         if (os.activities.trim().isNotEmpty) {
           lines.add('*Atividades:* ${os.activities.trim()}');
@@ -432,6 +686,96 @@ class ReportFormController extends Notifier<ReportFormState> {
     state = ReportFormState(
       date: DateTime.now(),
       customCollaborators: oldCustomCollaborators,
+    );
+    _autosave();
+  }
+
+  void fillMechanicalMockData() {
+    state = state.copyWith(
+      date: DateTime.now(),
+      shift: 'T1',
+      team: 'A',
+      observations: 'Turno operado em ritmo normal. Equipamentos testados e liberados para a equipe de operação.',
+      operators: [
+        const OperatorState(name: 'Adonis Evaristo Sousa dos Santos', registration: '99300182'),
+        const OperatorState(name: 'Gabriel Alves Queiroz Lopes', registration: '99300456'),
+      ],
+      workOrders: [
+        const WorkOrderState(
+          id: 'os-1',
+          number: 'OM-001',
+          location: 'E22 - 01',
+          maintenanceType: 'Inspeção',
+          equipmentType: 'Bomba',
+          tagVal: 'BAEI3072',
+          tagDesc: 'BOMBA MULTIESTAGIO EQUIPE EQ4-125-100-24',
+          activities: 'Realizada inspeção visual, teste de pressão e verificação de gaxetas. Sem anormalidades.',
+          startTime: '08:00',
+          endTime: '10:30',
+          hasStoppage: true,
+          stoppageStartTime: '08:15',
+          stoppageEndTime: '09:00',
+          pressure: '12.5',
+          horometer: '45210',
+          tasks: {
+            'oleo': 'sim',
+            'troca-oleo': 'nao',
+            'gaxeta': 'sim',
+            'ajuste-gaxeta': 'sim',
+            'lubr-bomba': 'sim',
+            'agua-refrig': 'ok',
+          },
+          status: 'Concluído',
+          isFinalized: true,
+        ),
+        const WorkOrderState(
+          id: 'os-2',
+          number: 'OM-002',
+          location: 'HL',
+          maintenanceType: 'Preditiva',
+          datasulOm: 'DS-99482',
+          equipmentType: 'Motor',
+          tagVal: 'BAEI3079',
+          tagDesc: 'BOMBA FLUTUANTE WEIR',
+          activities: 'Análise de vibração e medição de temperatura de rolamentos.',
+          startTime: '11:00',
+          endTime: '12:15',
+          hasStoppage: false,
+          vibrationSpeed: '4.2',
+          vibrationGe: '1.8',
+          vibrationTemp: '68.5',
+          tasks: {
+            'predTarefas': 'vibracao',
+          },
+          status: 'Liberado',
+          isFinalized: true,
+        ),
+        const WorkOrderState(
+          id: 'os-3',
+          number: 'OM-003',
+          location: 'Oficina Infra',
+          maintenanceType: 'Corretiva',
+          equipmentType: 'Exaustor',
+          tagVal: 'VEPI3003',
+          tagDesc: 'VENTILADOR AXIAL VENTILAÇÃO PRIMÁRIA 300CV',
+          cause: 'Desgaste prematuro de rolamentos',
+          symptom: 'Ruído excessivo e vibração elevada',
+          intervention: 'Substituição completa de rolamento e rebalanceamento do rotor.',
+          activities: 'Montagem e teste em bancada concluídos com sucesso.',
+          startTime: '13:30',
+          endTime: '17:00',
+          hasStoppage: true,
+          stoppageStartTime: '13:30',
+          stoppageEndTime: '17:00',
+          tasks: {
+            'lubr-exaust': 'sim',
+            'torque-paraf': 'sim',
+          },
+          status: 'Bombeamento Parado',
+          isFinalized: false,
+        ),
+      ],
+      osCounter: 3,
     );
     _autosave();
   }
@@ -607,6 +951,7 @@ class ReportFormController extends Notifier<ReportFormState> {
     _autosave();
   }
 
+
   // ─── Photo Management ──────────────────────────────────────────────────
 
   /// Adiciona o caminho de uma foto a uma OS específica.
@@ -644,6 +989,7 @@ class ReportFormController extends Notifier<ReportFormState> {
       date: state.date,
       shift: state.shift,
       team: state.team,
+      type: state.type,
       globalEquipment: state.globalEquipment,
       globalLocation: state.globalLocation,
       fuelLevel: state.fuelLevel,
@@ -669,16 +1015,44 @@ class ReportFormController extends Notifier<ReportFormState> {
               number: os.number,
               location: os.location,
               maintenanceType: os.maintenanceType,
+              maintenanceTypeOutro: os.maintenanceTypeOutro,
+              equipmentType: os.equipmentType,
+              equipmentOutro: os.equipmentOutro,
+              datasulOm: os.datasulOm,
+              tagVal: os.tagVal,
+              tagDesc: os.tagDesc,
+              tagOutro: os.tagOutro,
               cause: os.cause,
+              causeOutro: os.causeOutro,
+              symptom: os.symptom,
+              intervention: os.intervention,
               activities: os.activities,
               materialsUsed: os.materialsUsed,
               quantityMeters: os.quantityMeters,
               quantityPieces: os.quantityPieces,
               startTime: os.startTime,
               endTime: os.endTime,
+              hasStoppage: os.hasStoppage,
+              stoppageStartTime: os.stoppageStartTime,
+              stoppageEndTime: os.stoppageEndTime,
+              pressure: os.pressure,
+              horometer: os.horometer,
+              vibrationSpeed: os.vibrationSpeed,
+              vibrationGe: os.vibrationGe,
+              vibrationTemp: os.vibrationTemp,
+              predOtherDesc: os.predOtherDesc,
+              tasks: os.tasks,
+              isFinalized: os.isFinalized,
               status: os.status,
               osStatus: os.osStatus,
               photoPaths: os.photoPaths,
+              distanciaDuto: os.distanciaDuto,
+              distanciaPonteira: os.distanciaPonteira,
+              necessitaRecuperar: os.necessitaRecuperar,
+              frenteDestino: os.frenteDestino,
+              localOrigem: os.localOrigem,
+              localDestino: os.localDestino,
+              observacaoRealocacao: os.observacaoRealocacao,
             ),
           )
           .toList(),
@@ -699,25 +1073,55 @@ class ReportFormController extends Notifier<ReportFormState> {
             number: e.number,
             location: e.location,
             maintenanceType: e.maintenanceType,
+            maintenanceTypeOutro: e.maintenanceTypeOutro,
+            equipmentType: e.equipmentType,
+            equipmentOutro: e.equipmentOutro,
+            datasulOm: e.datasulOm,
+            tagVal: e.tagVal,
+            tagDesc: e.tagDesc,
+            tagOutro: e.tagOutro,
             cause: e.cause,
+            causeOutro: e.causeOutro,
+            symptom: e.symptom,
+            intervention: e.intervention,
             activities: e.activities,
             materialsUsed: e.materialsUsed,
             quantityMeters: e.quantityMeters,
             quantityPieces: e.quantityPieces,
             startTime: e.startTime,
             endTime: e.endTime,
+            hasStoppage: e.hasStoppage,
+            stoppageStartTime: e.stoppageStartTime,
+            stoppageEndTime: e.stoppageEndTime,
+            pressure: e.pressure,
+            horometer: e.horometer,
+            vibrationSpeed: e.vibrationSpeed,
+            vibrationGe: e.vibrationGe,
+            vibrationTemp: e.vibrationTemp,
+            predOtherDesc: e.predOtherDesc,
+            tasks: e.tasks,
+            isFinalized: e.isFinalized,
             status: e.status,
             osStatus: e.osStatus,
             photoPaths: e.photoPaths,
+            distanciaDuto: e.distanciaDuto,
+            distanciaPonteira: e.distanciaPonteira,
+            necessitaRecuperar: e.necessitaRecuperar,
+            frenteDestino: e.frenteDestino,
+            localOrigem: e.localOrigem,
+            localDestino: e.localDestino,
+            observacaoRealocacao: e.observacaoRealocacao,
           ),
         )
         .toList();
+
 
     return ReportFormState(
       uuid: entity.uuid,
       date: entity.date,
       shift: entity.shift,
       team: entity.team,
+      type: entity.type,
       globalEquipment: entity.globalEquipment,
       globalLocation: entity.globalLocation,
       fuelLevel: entity.fuelLevel,

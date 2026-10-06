@@ -29,32 +29,89 @@ class WorkOrderState {
   final String number;
   final String location;
   final String maintenanceType;
+  final String maintenanceTypeOutro;
+  final String equipmentType;
+  final String equipmentOutro;
+  final String datasulOm;
+  final String tagVal;
+  final String tagDesc;
+  final String tagOutro;
   final String cause;
+  final String causeOutro;
+  final String symptom;
+  final String intervention;
   final String activities;
   final List<String> materialsUsed;
   final String quantityMeters;
   final String quantityPieces;
   final String startTime;
   final String endTime;
+  final bool hasStoppage;
+  final String stoppageStartTime;
+  final String stoppageEndTime;
+  final String pressure;
+  final String horometer;
+  final String vibrationSpeed;
+  final String vibrationGe;
+  final String vibrationTemp;
+  final String predOtherDesc;
+  final Map<String, String> tasks;
+  final bool isFinalized;
   final String status;
   final String osStatus;
   final List<String> photoPaths;
+  final String distanciaDuto;
+  final String distanciaPonteira;
+  // Campos de Recuo / Realocação
+  final String? necessitaRecuperar;
+  final String frenteDestino;
+  final String localOrigem;
+  final String localDestino;
+  final String observacaoRealocacao;
 
   const WorkOrderState({
     required this.id,
     required this.number,
     required this.location,
     this.maintenanceType = '',
+    this.maintenanceTypeOutro = '',
+    this.equipmentType = '',
+    this.equipmentOutro = '',
+    this.datasulOm = '',
+    this.tagVal = '',
+    this.tagDesc = '',
+    this.tagOutro = '',
     this.cause = '',
+    this.causeOutro = '',
+    this.symptom = '',
+    this.intervention = '',
     this.activities = '',
     this.materialsUsed = const [],
     this.quantityMeters = '',
     this.quantityPieces = '',
     this.startTime = '',
     this.endTime = '',
+    this.hasStoppage = false,
+    this.stoppageStartTime = '',
+    this.stoppageEndTime = '',
+    this.pressure = '',
+    this.horometer = '',
+    this.vibrationSpeed = '',
+    this.vibrationGe = '',
+    this.vibrationTemp = '',
+    this.predOtherDesc = '',
+    this.tasks = const {},
+    this.isFinalized = false,
     this.status = '',
     this.osStatus = 'Rascunho',
     this.photoPaths = const [],
+    this.distanciaDuto = '',
+    this.distanciaPonteira = '',
+    this.necessitaRecuperar,
+    this.frenteDestino = '',
+    this.localOrigem = '',
+    this.localDestino = '',
+    this.observacaoRealocacao = '',
   });
 
   // Calcula a duracao em minutos
@@ -92,35 +149,94 @@ class WorkOrderState {
     String? number,
     String? location,
     String? maintenanceType,
+    String? maintenanceTypeOutro,
+    String? equipmentType,
+    String? equipmentOutro,
+    String? datasulOm,
+    String? tagVal,
+    String? tagDesc,
+    String? tagOutro,
     String? cause,
+    String? causeOutro,
+    String? symptom,
+    String? intervention,
     String? activities,
     List<String>? materialsUsed,
     String? quantityMeters,
     String? quantityPieces,
     String? startTime,
     String? endTime,
+    bool? hasStoppage,
+    String? stoppageStartTime,
+    String? stoppageEndTime,
+    String? pressure,
+    String? horometer,
+    String? vibrationSpeed,
+    String? vibrationGe,
+    String? vibrationTemp,
+    String? predOtherDesc,
+    Map<String, String>? tasks,
+    bool? isFinalized,
     String? status,
     String? osStatus,
     List<String>? photoPaths,
+    String? distanciaDuto,
+    String? distanciaPonteira,
+    Object? necessitaRecuperar = _kWoUnset,
+    String? frenteDestino,
+    String? localOrigem,
+    String? localDestino,
+    String? observacaoRealocacao,
   }) {
     return WorkOrderState(
       id: id ?? this.id,
       number: number ?? this.number,
       location: location ?? this.location,
       maintenanceType: maintenanceType ?? this.maintenanceType,
+      maintenanceTypeOutro: maintenanceTypeOutro ?? this.maintenanceTypeOutro,
+      equipmentType: equipmentType ?? this.equipmentType,
+      equipmentOutro: equipmentOutro ?? this.equipmentOutro,
+      datasulOm: datasulOm ?? this.datasulOm,
+      tagVal: tagVal ?? this.tagVal,
+      tagDesc: tagDesc ?? this.tagDesc,
+      tagOutro: tagOutro ?? this.tagOutro,
       cause: cause ?? this.cause,
+      causeOutro: causeOutro ?? this.causeOutro,
+      symptom: symptom ?? this.symptom,
+      intervention: intervention ?? this.intervention,
       activities: activities ?? this.activities,
       materialsUsed: materialsUsed ?? this.materialsUsed,
       quantityMeters: quantityMeters ?? this.quantityMeters,
       quantityPieces: quantityPieces ?? this.quantityPieces,
       startTime: startTime ?? this.startTime,
       endTime: endTime ?? this.endTime,
+      hasStoppage: hasStoppage ?? this.hasStoppage,
+      stoppageStartTime: stoppageStartTime ?? this.stoppageStartTime,
+      stoppageEndTime: stoppageEndTime ?? this.stoppageEndTime,
+      pressure: pressure ?? this.pressure,
+      horometer: horometer ?? this.horometer,
+      vibrationSpeed: vibrationSpeed ?? this.vibrationSpeed,
+      vibrationGe: vibrationGe ?? this.vibrationGe,
+      vibrationTemp: vibrationTemp ?? this.vibrationTemp,
+      predOtherDesc: predOtherDesc ?? this.predOtherDesc,
+      tasks: tasks ?? this.tasks,
+      isFinalized: isFinalized ?? this.isFinalized,
       status: status ?? this.status,
       osStatus: osStatus ?? this.osStatus,
       photoPaths: photoPaths ?? this.photoPaths,
+      distanciaDuto: distanciaDuto ?? this.distanciaDuto,
+      distanciaPonteira: distanciaPonteira ?? this.distanciaPonteira,
+      necessitaRecuperar: identical(necessitaRecuperar, _kWoUnset) ? this.necessitaRecuperar : necessitaRecuperar as String?,
+      frenteDestino: frenteDestino ?? this.frenteDestino,
+      localOrigem: localOrigem ?? this.localOrigem,
+      localDestino: localDestino ?? this.localDestino,
+      observacaoRealocacao: observacaoRealocacao ?? this.observacaoRealocacao,
     );
   }
 }
+
+const _kWoUnset = Object();
+
 
 /// Status do autosave exibido no header.
 enum AutosaveStatus { idle, saving, saved, error }
@@ -133,6 +249,8 @@ class ReportFormState {
   final List<OperatorState> operators;
   final String shift;
   final String team;
+  /// Tipo do relatório: 'Equipagem', 'Mecânica', 'Elétrica', 'Bombeamento'.
+  final String type;
   final List<WorkOrderState> workOrders;
   final String globalEquipment;
   final String globalLocation;
@@ -156,6 +274,7 @@ class ReportFormState {
     this.operators = const [OperatorState(name: '', registration: '')],
     this.shift = 'T1',
     this.team = 'A',
+    this.type = 'Equipagem',
     this.workOrders = const [],
     this.globalEquipment = '',
     this.globalLocation = '',
@@ -178,6 +297,7 @@ class ReportFormState {
     List<OperatorState>? operators,
     String? shift,
     String? team,
+    String? type,
     List<WorkOrderState>? workOrders,
     String? globalEquipment,
     String? globalLocation,
@@ -199,6 +319,7 @@ class ReportFormState {
       operators: operators ?? this.operators,
       shift: shift ?? this.shift,
       team: team ?? this.team,
+      type: type ?? this.type,
       workOrders: workOrders ?? this.workOrders,
       globalEquipment: globalEquipment ?? this.globalEquipment,
       globalLocation: globalLocation ?? this.globalLocation,

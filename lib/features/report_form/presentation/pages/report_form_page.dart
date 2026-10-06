@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/providers/dev_mode_provider.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/theme_provider.dart';
 import '../controllers/report_form_controller.dart';
 import '../widgets/add_colab_dialog.dart';
 import '../widgets/autocomplete_operator.dart';
@@ -13,23 +15,8 @@ import '../../../sync/presentation/widgets/sync_status_badge.dart';
 import '../../../sync/presentation/controllers/sync_controller.dart';
 import '../../../../core/widgets/cmoc_logo.dart';
 
-final devModeProvider = StateProvider<bool>((ref) => false);
-
-class ReportFormPage extends ConsumerStatefulWidget {
+class ReportFormPage extends ConsumerWidget {
   const ReportFormPage({super.key});
-
-  @override
-  ConsumerState<ReportFormPage> createState() => _ReportFormPageState();
-}
-
-class _ReportFormPageState extends ConsumerState<ReportFormPage> {
-  int _logoTapCount = 0;
-  DateTime? _lastTapTime;
-
-  @override
-  void initState() {
-    super.initState();
-  }
 
   void _showNewOSDialog(BuildContext context, ReportFormController controller) {
     final numController = TextEditingController(text: controller.getNextOSNumber());
@@ -58,7 +45,7 @@ class _ReportFormPageState extends ConsumerState<ReportFormPage> {
                 const SizedBox(height: 4),
                 TextFormField(
                   controller: numController,
-                  decoration: const InputDecoration(hintText: 'Ex: OS-003'),
+                  decoration: const InputDecoration(hintText: 'Ex: OS-042'),
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) return 'Número é obrigatório';
                     return null;
@@ -73,7 +60,7 @@ class _ReportFormPageState extends ConsumerState<ReportFormPage> {
                 TextFormField(
                   controller: locController,
                   textCapitalization: TextCapitalization.sentences,
-                  decoration: const InputDecoration(hintText: 'Ex: PT-305'),
+                  decoration: const InputDecoration(hintText: 'Ex: Bomba B-04'),
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) return 'Local é obrigatório';
                     return null;
@@ -119,8 +106,105 @@ class _ReportFormPageState extends ConsumerState<ReportFormPage> {
     );
   }
 
+  void _showCadastrosModal(BuildContext context, ReportFormController controller) {
+    final nameCtrl = TextEditingController();
+    final regCtrl = TextEditingController();
+    final osNumCtrl = TextEditingController();
+    final osLocCtrl = TextEditingController();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (context) {
+        return Padding(
+          padding: EdgeInsets.only(
+            left: 18,
+            right: 18,
+            top: 20,
+            bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2)),
+                ),
+              ),
+              const SizedBox(height: 14),
+              const Text('⚙️ Cadastros e Locais — Equipagem', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF23005B))),
+              const SizedBox(height: 16),
+
+              // 1. Novo Colaborador
+              const Text('👨‍🌾 Novo Colaborador / Equipador', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.accentPurple)),
+              const SizedBox(height: 6),
+              TextField(
+                controller: nameCtrl,
+                decoration: const InputDecoration(labelText: 'Nome Completo', isDense: true),
+              ),
+              TextField(
+                controller: regCtrl,
+                decoration: const InputDecoration(labelText: 'Matrícula', isDense: true),
+              ),
+              const SizedBox(height: 8),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(backgroundColor: AppTheme.accentPurple, foregroundColor: Colors.white),
+                onPressed: () {
+                  final name = nameCtrl.text.trim();
+                  if (name.isNotEmpty) {
+                    controller.registerCustomCollaborator(name, regCtrl.text.trim());
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Colaborador $name cadastrado!')));
+                  }
+                },
+                icon: const Icon(Icons.person_add, size: 16),
+                label: const Text('Salvar Colaborador'),
+              ),
+
+              const SizedBox(height: 16),
+              const Divider(),
+              const SizedBox(height: 8),
+
+              // 2. Nova Ordem de Serviço / Local
+              const Text('📍 Nova Frente de Trabalho / Ordem de Serviço', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF23005B))),
+              const SizedBox(height: 6),
+              TextField(
+                controller: osNumCtrl,
+                decoration: const InputDecoration(labelText: 'Nº da OS (Ex: OS-099)', isDense: true),
+              ),
+              TextField(
+                controller: osLocCtrl,
+                decoration: const InputDecoration(labelText: 'Local / Frente (Ex: Subterrânea K-10)', isDense: true),
+              ),
+              const SizedBox(height: 8),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF23005B), foregroundColor: Colors.white),
+                onPressed: () {
+                  final num = osNumCtrl.text.trim();
+                  final loc = osLocCtrl.text.trim();
+                  if (num.isNotEmpty && loc.isNotEmpty) {
+                    controller.addWorkOrder(loc, num);
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Ordem de Serviço $num adicionada!')));
+                  }
+                },
+                icon: const Icon(Icons.add_location, size: 16),
+                label: const Text('Adicionar Ordem de Serviço'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(reportFormControllerProvider);
     final syncState = ref.watch(syncControllerProvider);
     final controller = ref.read(reportFormControllerProvider.notifier);
@@ -134,47 +218,42 @@ class _ReportFormPageState extends ConsumerState<ReportFormPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: GestureDetector(
-          onTap: () {
-            final now = DateTime.now();
-            if (_lastTapTime == null || now.difference(_lastTapTime!) > const Duration(seconds: 2)) {
-              _logoTapCount = 1;
-            } else {
-              _logoTapCount++;
-            }
-            _lastTapTime = now;
-            
-            if (_logoTapCount == 5) {
-              final currentDev = ref.read(devModeProvider);
-              ref.read(devModeProvider.notifier).state = !currentDev;
-              _logoTapCount = 0;
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    !currentDev 
-                        ? '🚀 Modo Desenvolvedor Ativado!' 
-                        : '🔒 Modo Desenvolvedor Desativado!'
-                  ),
-                  backgroundColor: !currentDev ? AppTheme.cmocGreen : AppTheme.accentBlue,
-                  duration: const Duration(seconds: 2),
-                ),
-              );
-            }
-          },
-          child: const CmocLogo(showSubtitle: true),
-        ),
+        title: const CmocLogo(showSubtitle: true),
         actions: [
           const SyncStatusBadge(),
           const SizedBox(width: 4),
+          Consumer(
+            builder: (context, ref, _) {
+              final themeMode = ref.watch(themeModeProvider);
+              final isDark = themeMode == ThemeMode.dark;
+              return IconButton(
+                icon: Icon(
+                  isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+                  color: isDark ? Colors.amber : AppTheme.primaryPurple,
+                ),
+                tooltip: isDark ? 'Modo Claro' : 'Modo Escuro CMOC',
+                onPressed: () {
+                  ref.read(themeModeProvider.notifier).state =
+                      isDark ? ThemeMode.light : ThemeMode.dark;
+                },
+              );
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            tooltip: 'Cadastros e Locais',
+            onPressed: () => _showCadastrosModal(context, controller),
+          ),
           if (ref.watch(devModeProvider))
             IconButton(
-              icon: const Icon(Icons.bolt, color: AppTheme.accentPurple),
-              tooltip: 'Preencher Automático (Testes)',
+              icon: const Icon(Icons.bolt, color: Colors.amber),
+              tooltip: 'Preencher Automático (Modo Dev)',
               onPressed: () {
                 controller.fillMockData();
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text('Formulário preenchido com dados de teste!'),
+                    content: Text('⚡ Formulário preenchido com dados de teste!'),
+                    backgroundColor: AppTheme.primaryPurple,
                     duration: Duration(seconds: 2),
                   ),
                 );
@@ -233,24 +312,20 @@ class _ReportFormPageState extends ConsumerState<ReportFormPage> {
                             children: [
                               // Campo Data
                               ListTile(
-                                title: Text(
+                                title: const Text(
                                   'DATA',
                                   style: TextStyle(
                                     fontFamily: 'monospace',
                                     fontSize: 10,
                                     fontWeight: FontWeight.bold,
-                                    color: AppTheme.accent(context),
+                                    color: AppTheme.accentPurple,
                                   ),
                                 ),
                                 subtitle: Text(
                                   '${state.date.day.toString().padLeft(2, '0')}/${state.date.month.toString().padLeft(2, '0')}/${state.date.year}',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                    color: AppTheme.textPrimary(context),
-                                  ),
+                                  style: const TextStyle(fontSize: 16, color: AppTheme.textDark),
                                 ),
-                                trailing: Icon(Icons.calendar_month, color: AppTheme.primary(context)),
+                                trailing: const Icon(Icons.calendar_month),
                                 onTap: () async {
                                   final DateTime? picked = await showDatePicker(
                                     context: context,
@@ -319,16 +394,16 @@ class _ReportFormPageState extends ConsumerState<ReportFormPage> {
                                               height: 48,
                                               alignment: Alignment.center,
                                               decoration: BoxDecoration(
-                                                color: AppTheme.primary(context).withValues(alpha: 0.12),
+                                                color: AppTheme.primaryPurple.withValues(alpha: 0.08),
                                                 borderRadius: BorderRadius.circular(8),
-                                                border: Border.all(color: AppTheme.border(context)),
+                                                border: Border.all(color: AppTheme.borderLight),
                                               ),
                                               child: Text(
                                                 op.registration.isEmpty ? 'Matrícula' : op.registration,
-                                                style: TextStyle(
+                                                style: const TextStyle(
                                                   fontFamily: 'monospace',
                                                   fontWeight: FontWeight.bold,
-                                                  color: AppTheme.primary(context),
+                                                  color: AppTheme.primaryPurple,
                                                   fontSize: 13,
                                                 ),
                                               ),
@@ -355,7 +430,7 @@ class _ReportFormPageState extends ConsumerState<ReportFormPage> {
                                   child: OutlinedButton(
                                     onPressed: () => _showAddColabDialog(context, controller),
                                     style: OutlinedButton.styleFrom(
-                                      side: BorderSide(color: AppTheme.border(context)),
+                                      side: const BorderSide(color: AppTheme.borderLight),
                                     ),
                                     child: const Text('➕ Cadastrar Colaborador'),
                                   ),
@@ -373,13 +448,13 @@ class _ReportFormPageState extends ConsumerState<ReportFormPage> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
+                              const Text(
                                 'TURNO',
                                 style: TextStyle(
                                   fontFamily: 'monospace',
                                   fontSize: 10,
                                   fontWeight: FontWeight.bold,
-                                  color: AppTheme.accent(context),
+                                  color: AppTheme.accentPurple,
                                 ),
                               ),
                               const SizedBox(height: 6),
@@ -390,13 +465,13 @@ class _ReportFormPageState extends ConsumerState<ReportFormPage> {
                                 labelBuilder: (s) => s,
                               ),
                               const SizedBox(height: 16),
-                              Text(
+                              const Text(
                                 'TURMA',
                                 style: TextStyle(
                                   fontFamily: 'monospace',
                                   fontSize: 10,
                                   fontWeight: FontWeight.bold,
-                                  color: AppTheme.accent(context),
+                                  color: AppTheme.accentPurple,
                                 ),
                               ),
                               const SizedBox(height: 6),
@@ -471,15 +546,9 @@ class _ReportFormPageState extends ConsumerState<ReportFormPage> {
                               ),
                               const SizedBox(height: 4),
                               DropdownButtonFormField<String>(
-                                initialValue: (state.globalEquipment.isEmpty || !AppConstants.equipOptions.contains(state.globalEquipment))
-                                    ? (state.globalEquipment.isNotEmpty ? state.globalEquipment : null)
-                                    : state.globalEquipment,
+                                initialValue: state.globalEquipment.isEmpty ? null : state.globalEquipment,
                                 decoration: const InputDecoration(hintText: '— Selecione —'),
-                                items: (state.globalEquipment.isNotEmpty && !AppConstants.equipOptions.contains(state.globalEquipment)
-                                        ? [...AppConstants.equipOptions, state.globalEquipment]
-                                        : AppConstants.equipOptions)
-                                    .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                                    .toList(),
+                                items: AppConstants.equipOptions.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
                                 onChanged: (val) => controller.setGlobalEquipment(val ?? ''),
                               ),
                               const SizedBox(height: 12),
@@ -491,7 +560,7 @@ class _ReportFormPageState extends ConsumerState<ReportFormPage> {
                               const SizedBox(height: 4),
                               TextFormField(
                                 initialValue: state.globalLocation,
-                                decoration: const InputDecoration(hintText: 'Ex: Corpo E, Frente ER4AC09...'),
+                                decoration: const InputDecoration(hintText: 'Ex: Galeria Norte, Poço 3...'),
                                 onChanged: controller.setGlobalLocation,
                               ),
                               const SizedBox(height: 12),
@@ -520,15 +589,37 @@ class _ReportFormPageState extends ConsumerState<ReportFormPage> {
                               ),
                               const SizedBox(height: 12),
 
-                              const Text(
-                                'MATERIAIS DISPONÍVEIS',
-                                style: TextStyle(fontFamily: 'monospace', fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.accentPurple),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Text(
+                                    'MATERIAIS DISPONÍVEIS *',
+                                    style: TextStyle(fontFamily: 'monospace', fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.accentPurple),
+                                  ),
+                                  InkWell(
+                                    onTap: () => controller.setAvailableMaterials('N/A'),
+                                    borderRadius: BorderRadius.circular(4),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey.shade200,
+                                        borderRadius: BorderRadius.circular(4),
+                                        border: Border.all(color: Colors.grey.shade400),
+                                      ),
+                                      child: const Text(
+                                        'N/A',
+                                        style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.black87),
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                               const SizedBox(height: 4),
                               TextFormField(
+                                key: ValueKey('mat_${state.availableMaterials}'),
                                 initialValue: state.availableMaterials,
                                 maxLines: 2,
-                                decoration: const InputDecoration(hintText: 'Liste os materiais disponíveis...'),
+                                decoration: const InputDecoration(hintText: 'Liste os materiais disponíveis ou clique em N/A...'),
                                 onChanged: controller.setAvailableMaterials,
                               ),
                             ],
@@ -544,17 +635,40 @@ class _ReportFormPageState extends ConsumerState<ReportFormPage> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              const Text(
-                                'OBSERVAÇÕES / PENDÊNCIAS',
-                                style: TextStyle(fontFamily: 'monospace', fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.accentPurple),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Text(
+                                    'OBSERVAÇÕES / PENDÊNCIAS *',
+                                    style: TextStyle(fontFamily: 'monospace', fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.accentPurple),
+                                  ),
+                                  InkWell(
+                                    onTap: () => controller.setObservations('N/A'),
+                                    borderRadius: BorderRadius.circular(4),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey.shade200,
+                                        borderRadius: BorderRadius.circular(4),
+                                        border: Border.all(color: Colors.grey.shade400),
+                                      ),
+                                      child: const Text(
+                                        'N/A',
+                                        style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.black87),
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                               const SizedBox(height: 4),
                               TextFormField(
+                                key: ValueKey('obs_${state.observations}'),
                                 initialValue: state.observations,
                                 maxLines: 4,
-                                decoration: const InputDecoration(hintText: 'Registre observações gerais, pendências...'),
+                                decoration: const InputDecoration(hintText: 'Registre observações gerais ou clique em N/A se não houver pendências...'),
                                 onChanged: controller.setObservations,
                               ),
+
                             ],
                           ),
                         ),
@@ -564,24 +678,9 @@ class _ReportFormPageState extends ConsumerState<ReportFormPage> {
                       // BOTOES DE ACAO DO RELATORIO
                       ElevatedButton.icon(
                         onPressed: () async {
-                          final success = await controller.submitReport();
-                          if (success) {
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('✅ Relatório finalizado e enviado para sincronização!'),
-                                  backgroundColor: AppTheme.cmocGreen,
-                                  duration: Duration(seconds: 2),
-                                ),
-                              );
-                              showDialog(
-                                context: context,
-                                builder: (context) => WhatsappPreviewDialog(
-                                  formattedText: controller.generateWhatsAppText(),
-                                ),
-                              );
-                            }
-                          } else {
+                          // 1. Validar
+                          final errors = controller.validateForm();
+                          if (errors.isNotEmpty) {
                             if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
@@ -590,6 +689,26 @@ class _ReportFormPageState extends ConsumerState<ReportFormPage> {
                                 ),
                               );
                             }
+                            return;
+                          }
+
+                          // 2. Gera o texto ANTES de qualquer limpeza (offline, instantâneo)
+                          final whatsappText = controller.generateWhatsAppText();
+
+                          // 3. Salva local + dispara sync em background (não bloqueia)
+                          await controller.saveLocallyAndTriggerSync();
+
+                          // 4. Limpa o formulário imediatamente
+                          await controller.resetForm();
+
+                          // 5. Abre o preview
+                          if (context.mounted) {
+                            showDialog(
+                              context: context,
+                              builder: (context) => WhatsappPreviewDialog(
+                                formattedText: whatsappText,
+                              ),
+                            );
                           }
                         },
                         style: ElevatedButton.styleFrom(
@@ -626,6 +745,13 @@ class _ReportFormPageState extends ConsumerState<ReportFormPage> {
                         },
                         icon: const Icon(Icons.add),
                         label: const Text('Novo relatório'),
+                      ),
+                      const SizedBox(height: 24),
+                      const Center(
+                        child: Text(
+                          '| Dev by WP & EF',
+                          style: TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.w500),
+                        ),
                       ),
                       const SizedBox(height: 100), // margem inferior para o painel de validacao
                     ],
@@ -695,7 +821,7 @@ class _ReportFormPageState extends ConsumerState<ReportFormPage> {
                                   Expanded(
                                     child: Text(
                                       state.validationErrors[index],
-                                      style: TextStyle(fontSize: 13, color: AppTheme.textPrimary(context)),
+                                      style: const TextStyle(fontSize: 13, color: AppTheme.textDark),
                                     ),
                                   ),
                                 ],

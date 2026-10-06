@@ -1,229 +1,290 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:crypto/crypto.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
 
-class UpdateInfo {
-  final String version;
-  final int buildNumber;
-  final String apkUrl;
-  final String sha256;
-  final String changelog;
-  final bool isMandatory;
+class AppReleaseInfo {
+  final String latestVersion;
+  final int latestBuildNumber;
+  final String downloadUrl;
+  final String releaseNotes;
+  final bool forceUpdate;
+  final String currentVersion;
+  final int currentBuildNumber;
+  final bool isUpdateAvailable;
 
-  UpdateInfo({
-    required this.version,
-    required this.buildNumber,
-    required this.apkUrl,
-    required this.sha256,
-    required this.changelog,
-    required this.isMandatory,
+  const AppReleaseInfo({
+    required this.latestVersion,
+    required this.latestBuildNumber,
+    required this.downloadUrl,
+    required this.releaseNotes,
+    required this.forceUpdate,
+    required this.currentVersion,
+    required this.currentBuildNumber,
+    required this.isUpdateAvailable,
   });
-
-  factory UpdateInfo.fromMap(Map<String, dynamic> map) {
-    return UpdateInfo(
-      version: map['version'] as String? ?? '1.0.0',
-      buildNumber: map['build_number'] as int? ?? 0,
-      apkUrl: map['apk_url'] as String? ?? '',
-      sha256: map['sha256'] as String? ?? '',
-      changelog: map['changelog'] as String? ?? '',
-      isMandatory: map['is_mandatory'] as bool? ?? false,
-    );
-  }
 }
 
 class AppUpdateService {
-  static const MethodChannel _channel = MethodChannel('com.cmoc.relatorio/app_update');
-  final FirebaseFirestore? _firestoreInstance;
+  static final AppUpdateService _instance = AppUpdateService._internal();
+  factory AppUpdateService() => _instance;
+  AppUpdateService._internal();
 
-  AppUpdateService({FirebaseFirestore? firestore})
-      : _firestoreInstance = firestore;
+  static const MethodChannel _channel = MethodChannel('com.cmoc.relatorio/app_updater');
 
-  FirebaseFirestore get _firestore => _firestoreInstance ?? FirebaseFirestore.instance;
+  // Repositório padrão no GitHub
+  static const String githubOwner = 'EnzoFirmo14';
+  static const String githubRepo = 'relatorio-CMOC-app';
 
-  /// Verifica se há atualizações disponíveis comparando os metadados locais com os remotos.
-  Future<UpdateInfo?> checkForUpdate() async {
-    // Apenas Android necessita do fluxo de atualização manual de APK
-    if (kIsWeb || !Platform.isAndroid) return null;
+  /// Obter informações da versão atual do app instalada
+  Future<PackageInfo> getPackageInfo() async {
+    return await PackageInfo.fromPlatform();
+  }
+
+  /// Verifica se há uma nova versão disponível (Firestore -> fallback GitHub Releases)
+  Future<AppReleaseInfo?> checkForUpdate() async {
+    try {
+      final packageInfo = await getPackageInfo();
+      final currentVersion = packageInfo.version;
+      final currentBuildNumber = int.tryParse(packageInfo.buildNumber) ?? 1;
+
+      // 1. Tentar buscar pelo Firebase Firestore primeiro
+      final firestoreInfo = await _checkFirestoreVersion(currentVersion, currentBuildNumber);
+      if (firestoreInfo != null) {
+        return firestoreInfo;
+      }
+
+      // 2. Fallback: Buscar direto pela API do GitHub Releases
+      return await _checkGitHubReleases(currentVersion, currentBuildNumber);
+    } catch (e) {
+      debugPrint('[AppUpdateService] Erro ao checar atualizações: $e');
+      return null;
+    }
+  }
+
+  /// Checagem via Firestore
+  Future<AppReleaseInfo?> _checkFirestoreVersion(String currentVersion, int currentBuildNumber) async {
+    if (Firebase.apps.isEmpty) return null;
 
     try {
-      final docSnap = await _firestore.collection('version_control').doc('latest').get();
-      if (!docSnap.exists || docSnap.data() == null) {
-        debugPrint('[AppUpdateService] Documento version_control/latest não encontrado no Firestore.');
-        return null;
-      }
+      final doc = await FirebaseFirestore.instance.collection('cmoc_cadastros').doc('app_version').get();
+      if (!doc.exists || doc.data() == null) return null;
 
-      final updateInfo = UpdateInfo.fromMap(docSnap.data()!);
-      if (updateInfo.apkUrl.isEmpty) {
-        debugPrint('[AppUpdateService] URL do APK vazia nas configurações.');
-        return null;
-      }
+      final data = doc.data()!;
+      final latestVersion = (data['latest_version'] ?? data['version'] ?? '').toString().trim();
+      final latestBuildNumber = (data['build_number'] ?? data['buildNumber'] ?? 0) is int
+          ? (data['build_number'] ?? data['buildNumber'] ?? 0) as int
+          : int.tryParse(data['build_number']?.toString() ?? '0') ?? 0;
+      final downloadUrl = (data['download_url'] ?? data['url'] ?? '').toString().trim();
+      final releaseNotes = (data['release_notes'] ?? data['notes'] ?? 'Melhorias gerais e correções de estabilidade.').toString().trim();
+      final forceUpdate = data['force_update'] == true;
 
-      final packageInfo = await PackageInfo.fromPlatform();
-      final currentVersion = packageInfo.version;
-      final currentBuild = int.tryParse(packageInfo.buildNumber) ?? 0;
+      if (latestVersion.isEmpty && latestBuildNumber == 0) return null;
 
-      final shouldUpdateApp = shouldUpdate(
-        current: currentVersion,
-        latest: updateInfo.version,
-        currentBuild: currentBuild,
-        latestBuild: updateInfo.buildNumber,
+      final isAvailable = _isVersionGreater(
+        latestVersion: latestVersion,
+        latestBuild: latestBuildNumber,
+        currentVersion: currentVersion,
+        currentBuild: currentBuildNumber,
       );
 
-      if (shouldUpdateApp) {
-        debugPrint('[AppUpdateService] Nova versão encontrada: ${updateInfo.version}+${updateInfo.buildNumber}');
-        return updateInfo;
-      }
-      
-      debugPrint('[AppUpdateService] O app está atualizado (Local: $currentVersion+$currentBuild)');
-      return null;
+      return AppReleaseInfo(
+        latestVersion: latestVersion.isNotEmpty ? latestVersion : 'v$latestBuildNumber',
+        latestBuildNumber: latestBuildNumber,
+        downloadUrl: downloadUrl,
+        releaseNotes: releaseNotes,
+        forceUpdate: forceUpdate,
+        currentVersion: currentVersion,
+        currentBuildNumber: currentBuildNumber,
+        isUpdateAvailable: isAvailable,
+      );
     } catch (e) {
-      debugPrint('[AppUpdateService] Erro ao verificar versão: $e');
+      debugPrint('[AppUpdateService] Consulta Firestore app_version falhou: $e');
       return null;
     }
   }
 
-  /// Lógica de comparação semântica de versões (SemVer)
-  bool shouldUpdate({
-    required String current,
-    required String latest,
-    required int currentBuild,
+  /// Checagem via GitHub Releases API
+  Future<AppReleaseInfo?> _checkGitHubReleases(String currentVersion, int currentBuildNumber) async {
+    try {
+      final url = Uri.parse('https://api.github.com/repos/$githubOwner/$githubRepo/releases/latest');
+      final response = await http.get(url, headers: {
+        'Accept': 'application/vnd.github.v3+json',
+      }).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode != 200) {
+        debugPrint('[AppUpdateService] GitHub Releases API status: ${response.statusCode}');
+        return null;
+      }
+
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      final rawTag = (data['tag_name'] ?? '').toString().trim();
+      final cleanTag = rawTag.startsWith('v') ? rawTag.substring(1) : rawTag;
+      final releaseNotes = (data['body'] ?? 'Novas melhorias e correções disponíveis.').toString().trim();
+
+      // Procurar o link do arquivo .apk nos assets da release
+      String downloadUrl = '';
+      final assets = data['assets'] as List<dynamic>? ?? [];
+      for (final asset in assets) {
+        final name = (asset['name'] ?? '').toString().toLowerCase();
+        if (name.endsWith('.apk')) {
+          downloadUrl = (asset['browser_download_url'] ?? '').toString();
+          break;
+        }
+      }
+
+      // Se não encontrou asset .apk específico, usa o link da release
+      if (downloadUrl.isEmpty && assets.isNotEmpty) {
+        downloadUrl = (assets.first['browser_download_url'] ?? '').toString();
+      }
+
+      // Parse versão e build da tag (ex: "1.0.1" ou "1.0.1+2")
+      int remoteBuild = 0;
+      String remoteVer = cleanTag;
+      if (cleanTag.contains('+')) {
+        final parts = cleanTag.split('+');
+        remoteVer = parts[0];
+        remoteBuild = int.tryParse(parts[1]) ?? 0;
+      }
+
+      final isAvailable = _isVersionGreater(
+        latestVersion: remoteVer,
+        latestBuild: remoteBuild,
+        currentVersion: currentVersion,
+        currentBuild: currentBuildNumber,
+      );
+
+      return AppReleaseInfo(
+        latestVersion: rawTag.isNotEmpty ? rawTag : 'v$remoteVer',
+        latestBuildNumber: remoteBuild,
+        downloadUrl: downloadUrl,
+        releaseNotes: releaseNotes.isNotEmpty ? releaseNotes : 'Melhorias de desempenho e correções de estabilidade.',
+        forceUpdate: false,
+        currentVersion: currentVersion,
+        currentBuildNumber: currentBuildNumber,
+        isUpdateAvailable: isAvailable,
+      );
+    } catch (e) {
+      debugPrint('[AppUpdateService] Consulta GitHub API falhou: $e');
+      return null;
+    }
+  }
+
+  /// Compara duas versões
+  bool _isVersionGreater({
+    required String latestVersion,
     required int latestBuild,
+    required String currentVersion,
+    required int currentBuild,
   }) {
-    try {
-      final currentParts = current.split('.').map(int.parse).toList();
-      final latestParts = latest.split('.').map(int.parse).toList();
+    if (latestBuild > 0 && currentBuild > 0) {
+      if (latestBuild > currentBuild) return true;
+      if (latestBuild < currentBuild) return false;
+    }
 
-      for (int i = 0; i < 3; i++) {
-        final curr = i < currentParts.length ? currentParts[i] : 0;
-        final lat = i < latestParts.length ? latestParts[i] : 0;
-        if (lat > curr) return true;
-        if (curr > lat) return false;
+    // Comparação semântica (ex: "1.0.1" vs "1.0.0")
+    try {
+      final cleanLatest = latestVersion.replaceAll(RegExp(r'[^0-9.]'), '');
+      final cleanCurrent = currentVersion.replaceAll(RegExp(r'[^0-9.]'), '');
+
+      final latestParts = cleanLatest.split('.').map((e) => int.tryParse(e) ?? 0).toList();
+      final currentParts = cleanCurrent.split('.').map((e) => int.tryParse(e) ?? 0).toList();
+
+      final maxLength = latestParts.length > currentParts.length ? latestParts.length : currentParts.length;
+      while (latestParts.length < maxLength) {
+        latestParts.add(0);
+      }
+      while (currentParts.length < maxLength) {
+        currentParts.add(0);
       }
 
-      // Se as versões forem idênticas (ex: 1.0.0 e 1.0.0), compara pelo número de compilação
-      return latestBuild > currentBuild;
-    } catch (e) {
-      // Fallback em caso de falha de parsing
-      return latest != current || latestBuild > currentBuild;
-    }
+      for (int i = 0; i < maxLength; i++) {
+        if (latestParts[i] > currentParts[i]) return true;
+        if (latestParts[i] < currentParts[i]) return false;
+      }
+    } catch (_) {}
+
+    return false;
   }
 
-  /// Realiza o download seguro do APK reportando o progresso da operação
-  Future<File> downloadApk(String url, {required Function(double progress) onProgress}) async {
-    final client = http.Client();
-    final request = http.Request('GET', Uri.parse(url));
-    final response = await client.send(request);
-
-    if (response.statusCode != 200) {
-      client.close();
-      throw Exception('Falha ao baixar arquivo: HTTP ${response.statusCode}');
+  /// Baixa o APK com notificação de progresso (0.0 a 1.0)
+  Future<File?> downloadApk({
+    required String downloadUrl,
+    required void Function(double progress, int receivedBytes, int totalBytes) onProgress,
+  }) async {
+    if (downloadUrl.isEmpty) {
+      throw Exception('URL de download do APK não informada.');
     }
-
-    final contentLength = response.contentLength ?? 0;
-    int downloadedBytes = 0;
-
-    final tempDir = await getTemporaryDirectory();
-    final apkFile = File('${tempDir.path}/app-update.apk');
-    
-    // Se o arquivo antigo existir, deleta para evitar lixo
-    if (await apkFile.exists()) {
-      await apkFile.delete();
-    }
-
-    final fileSink = apkFile.openWrite();
 
     try {
-      await response.stream.listen(
-        (chunk) {
-          fileSink.add(chunk);
-          downloadedBytes += chunk.length;
-          if (contentLength > 0) {
-            final progress = downloadedBytes / contentLength;
-            onProgress(progress);
-          }
-        },
-        cancelOnError: true,
-      ).asFuture();
-      
-      await fileSink.flush();
-      await fileSink.close();
-      client.close();
-      return apkFile;
-    } catch (e) {
-      await fileSink.close();
-      client.close();
+      final client = http.Client();
+      final request = http.Request('GET', Uri.parse(downloadUrl));
+      final response = await client.send(request);
+
+      if (response.statusCode != 200) {
+        throw Exception('Falha ao iniciar download: HTTP ${response.statusCode}');
+      }
+
+      final totalBytes = response.contentLength ?? 0;
+      int receivedBytes = 0;
+
+      final tempDir = await getTemporaryDirectory();
+      final apkFile = File('${tempDir.path}/app-update-cmoc.apk');
       if (await apkFile.exists()) {
         await apkFile.delete();
       }
-      throw Exception('Erro durante download do APK: $e');
-    }
-  }
 
-  /// Calcula o hash SHA-256 do arquivo baixado e compara com o valor do servidor.
-  /// Se o campo sha256 estiver vazio no Firestore, a validação é ignorada (modo permissivo).
-  Future<bool> validateIntegrity(File file, String expectedSha256) async {
-    try {
-      if (!await file.exists()) return false;
+      final sink = apkFile.openWrite();
 
-      // Se o servidor não tiver hash configurado, permite a instalação sem validar
-      if (expectedSha256.trim().isEmpty) {
-        debugPrint('[AppUpdateService] SHA-256 não configurado no servidor — validação ignorada.');
-        return true;
+      await for (final chunk in response.stream) {
+        sink.add(chunk);
+        receivedBytes += chunk.length;
+        if (totalBytes > 0) {
+          final progress = receivedBytes / totalBytes;
+          onProgress(progress, receivedBytes, totalBytes);
+        } else {
+          onProgress(0.5, receivedBytes, 0);
+        }
       }
 
-      final stream = file.openRead();
-      final hash = await sha256.bind(stream).first;
-      final calculatedSha = hash.toString();
+      await sink.flush();
+      await sink.close();
+      client.close();
 
-      debugPrint('[AppUpdateService] Hash esperado:  $expectedSha256');
-      debugPrint('[AppUpdateService] Hash calculado: $calculatedSha');
-
-      final isValid = calculatedSha.trim().toLowerCase() == expectedSha256.trim().toLowerCase();
-      if (!isValid) {
-        // Avisa no log mas NÃO bloqueia a instalação — hash pode divergir por compressão do GitHub
-        debugPrint('[AppUpdateService] AVISO: hash divergente, mas prosseguindo com a instalação.');
-      }
-      return true;
+      return apkFile;
     } catch (e) {
-      debugPrint('[AppUpdateService] Falha ao calcular integridade do APK: $e');
-      // Em caso de erro de leitura, permite prosseguir para não bloquear o colaborador
-      return true;
+      debugPrint('[AppUpdateService] Erro durante o download do APK: $e');
+      rethrow;
     }
   }
 
-  /// Verifica se o dispositivo possui a permissão de instalar aplicativos desconhecidos
-  Future<bool> checkInstallPermission() async {
-    try {
-      final bool hasPermission = await _channel.invokeMethod('checkInstallPermission');
-      return hasPermission;
-    } on PlatformException catch (e) {
-      debugPrint('[AppUpdateService] Erro ao verificar permissão nativa: $e');
+  /// Instala o APK chamando o instalador nativo do Android
+  Future<bool> installApk(File apkFile) async {
+    if (!Platform.isAndroid) {
+      debugPrint('[AppUpdateService] Instalação direta suportada apenas em Android.');
       return false;
     }
-  }
 
-  /// Redireciona o usuário para as configurações nativas do Android para autorizar instalações
-  Future<void> requestInstallPermission() async {
     try {
-      await _channel.invokeMethod('requestInstallPermission');
-    } on PlatformException catch (e) {
-      debugPrint('[AppUpdateService] Erro ao abrir configurações nativas: $e');
-    }
-  }
+      final canInstall = await _channel.invokeMethod<bool>('canRequestPackageInstalls') ?? false;
+      if (!canInstall) {
+        // Abre as configurações para o usuário permitir instalar apps dessa fonte
+        await _channel.invokeMethod('openInstallPermissionSettings');
+      }
 
-  /// Aciona a Intent de instalação oficial no Android passando o arquivo APK
-  Future<bool> installApk(String filePath) async {
-    try {
-      final bool success = await _channel.invokeMethod('installApk', {'filePath': filePath});
-      return success;
-    } on PlatformException catch (e) {
-      debugPrint('[AppUpdateService] Erro ao instalar APK via MethodChannel: $e');
+      final result = await _channel.invokeMethod<bool>('installApk', {
+        'filePath': apkFile.path,
+      });
+
+      return result ?? false;
+    } catch (e) {
+      debugPrint('[AppUpdateService] Erro ao invocar instalador de APK: $e');
       return false;
     }
   }

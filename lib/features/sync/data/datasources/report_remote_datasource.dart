@@ -1,9 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 
 import '../../../report_form/domain/entities/collaborator_entity.dart';
 import '../../../report_form/domain/entities/report_entity.dart';
 import '../../../report_form/domain/entities/work_order_entity.dart';
+import '../../../report_form/domain/entities/water_level_entity.dart';
+import '../../../report_form/domain/entities/pump_entity.dart';
+import '../../../report_form/domain/entities/material_entity.dart';
 
 abstract class IReportRemoteDataSource {
   Future<void> sendReport(ReportEntity report);
@@ -11,7 +15,8 @@ abstract class IReportRemoteDataSource {
   Future<List<ReportEntity>> fetchAllRemoteReports();
 }
 
-/// Implementação remota via Firebase Firestore com fallback em memória quando offline/não configurado.
+/// Implementação remota via Firebase Firestore com roteamento para as coleções específicas
+/// (`electrical_reports`, `pumping_reports`, `mechanical_reports` e `reports`).
 class ReportFirestoreDataSource implements IReportRemoteDataSource {
   final FirebaseFirestore? _firestore;
   final Map<String, ReportEntity> _inMemoryMockStore = {};
@@ -28,21 +33,44 @@ class ReportFirestoreDataSource implements IReportRemoteDataSource {
 
   FirebaseFirestore get _db => _firestore ?? FirebaseFirestore.instance;
 
+  String _getCollectionName(String type) {
+    switch (type.trim().toLowerCase()) {
+      case 'elétrica':
+      case 'eletrica':
+      case 'electrical':
+        return 'electrical_reports';
+      case 'bombeamento':
+      case 'pumping':
+      case 'drenagem & bombeamento':
+        return 'pumping_reports';
+      case 'mecânica':
+      case 'mecanica':
+      case 'mechanical':
+        return 'mechanical_reports';
+      case 'equipagem':
+      default:
+        return 'reports';
+    }
+  }
+
   @override
   Future<void> sendReport(ReportEntity report) async {
     if (!_isFirebaseAvailable) {
-      // Fallback para mock store quando o Firebase não está configurado localmente
+      debugPrint(
+        'CRITICAL WARNING: Firebase is NOT available! Falling back to in-memory mock store for sendReport.',
+      );
       _inMemoryMockStore[report.uuid] = report;
       await Future.delayed(const Duration(milliseconds: 200));
       return;
     }
 
     try {
-      final docRef = _db.collection('reports').doc(report.uuid);
+      final collectionName = _getCollectionName(report.type);
+      final docRef = _db.collection(collectionName).doc(report.uuid);
       final jsonPayload = _reportToJson(report);
       await docRef.set(jsonPayload, SetOptions(merge: true));
     } catch (e) {
-      throw Exception('Falha ao enviar relatório para o Firestore: $e');
+      throw Exception('Falha ao enviar relatório para o Firestore ($e)');
     }
   }
 
@@ -53,11 +81,19 @@ class ReportFirestoreDataSource implements IReportRemoteDataSource {
     }
 
     try {
-      final docSnap = await _db.collection('reports').doc(uuid).get();
-      if (!docSnap.exists || docSnap.data() == null) {
-        return null;
+      final collections = [
+        'reports',
+        'electrical_reports',
+        'pumping_reports',
+        'mechanical_reports',
+      ];
+      for (final col in collections) {
+        final docSnap = await _db.collection(col).doc(uuid).get();
+        if (docSnap.exists && docSnap.data() != null) {
+          return _jsonToReport(docSnap.data()!);
+        }
       }
-      return _jsonToReport(docSnap.data()!);
+      return null;
     } catch (e) {
       throw Exception('Falha ao buscar relatório remoto: $e');
     }
@@ -70,8 +106,18 @@ class ReportFirestoreDataSource implements IReportRemoteDataSource {
     }
 
     try {
-      final querySnap = await _db.collection('reports').get();
-      return querySnap.docs.map((doc) => _jsonToReport(doc.data())).toList();
+      final List<ReportEntity> all = [];
+      final collections = [
+        'reports',
+        'electrical_reports',
+        'pumping_reports',
+        'mechanical_reports',
+      ];
+      for (final col in collections) {
+        final querySnap = await _db.collection(col).get();
+        all.addAll(querySnap.docs.map((doc) => _jsonToReport(doc.data())));
+      }
+      return all;
     } catch (e) {
       throw Exception('Falha ao buscar todos os relatórios remotos: $e');
     }
@@ -80,92 +126,331 @@ class ReportFirestoreDataSource implements IReportRemoteDataSource {
   // ─── JSON Mappers ──────────────────────────────────────────────────────────
 
   Map<String, dynamic> _reportToJson(ReportEntity report) {
+    final leaderName = report.operators.isNotEmpty
+        ? report.operators.first.name
+        : '';
+    final memberNames = report.operators
+        .map((o) => o.name)
+        .where((n) => n.isNotEmpty)
+        .toList();
+
     return {
       'uuid': report.uuid,
+      'id': report.uuid,
       'date': report.date.toIso8601String(),
       'shift': report.shift,
       'team': report.team,
+      'type': report.type,
+      'leader': leaderName,
+      'members': memberNames,
+      'location': report.globalLocation.isNotEmpty
+          ? report.globalLocation
+          : (report.workOrders.isNotEmpty
+                ? report.workOrders.first.location
+                : ''),
       'globalEquipment': report.globalEquipment,
       'globalLocation': report.globalLocation,
       'fuelLevel': report.fuelLevel,
       'availableMaterials': report.availableMaterials,
       'observations': report.observations,
+      'distanciaTomada': _extractDistance(
+        report.observations,
+        'Distância até a face TOMADA',
+      ),
+      'distanciaComunicacao': _extractDistance(
+        report.observations,
+        'Distância até a face COMUNICAÇÃO',
+      ),
       'syncStatus': 'synced',
       'createdAt': report.createdAt.toIso8601String(),
       'updatedAt': report.updatedAt.toIso8601String(),
       'operators': report.operators
-          .map((o) => {
-                'id': o.id,
-                'registration': o.registration,
-                'name': o.name,
-              })
+          .map(
+            (o) => {'id': o.id, 'registration': o.registration, 'name': o.name},
+          )
           .toList(),
       'workOrders': report.workOrders
-          .map((os) => {
-                'id': os.id,
-                'number': os.number,
-                'location': os.location,
-                'maintenanceType': os.maintenanceType,
-                'cause': os.cause,
-                'activities': os.activities,
-                'materialsUsed': os.materialsUsed,
-                'quantityMeters': os.quantityMeters,
-                'quantityPieces': os.quantityPieces,
-                'startTime': os.startTime,
-                'endTime': os.endTime,
-                'status': os.status,
-                'osStatus': os.osStatus,
-                'photoPaths': os.photoPaths,
-              })
+          .map(
+            (os) => {
+              'id': os.id,
+              'number': os.number,
+              'location': os.location,
+              'maintenanceType': os.maintenanceType,
+              'maintenanceTypeOutro': os.maintenanceTypeOutro,
+              'equipmentType': os.equipmentType,
+              'equipmentOutro': os.equipmentOutro,
+              'datasulOm': os.datasulOm,
+              'tagVal': os.tagVal,
+              'tagDesc': os.tagDesc,
+              'tagOutro': os.tagOutro,
+              'cause': os.cause,
+              'causeOutro': os.causeOutro,
+              'symptom': os.symptom,
+              'intervention': os.intervention,
+              'activities': os.activities,
+              'materialsUsed': os.materialsUsed,
+              'quantityMeters': os.quantityMeters,
+              'quantityPieces': os.quantityPieces,
+              'callTime': os.callTime,
+              'startTime': os.startTime,
+              'endTime': os.endTime,
+              'hasStoppage': os.hasStoppage,
+              'stoppageStartTime': os.stoppageStartTime,
+              'stoppageEndTime': os.stoppageEndTime,
+              'pressure': os.pressure,
+              'horometer': os.horometer,
+              'vibrationSpeed': os.vibrationSpeed,
+              'vibrationGe': os.vibrationGe,
+              'vibrationTemp': os.vibrationTemp,
+              'predOtherDesc': os.predOtherDesc,
+              'tasks': os.tasks,
+              'isFinalized': os.isFinalized,
+              'status': os.status,
+              'osStatus': os.osStatus,
+              'photoPaths': os.photoPaths,
+              'distanciaTomada': os.distanciaTomada,
+              'distanciaComunicacao': os.distanciaComunicacao,
+              'distanciaTomadaFace': os.distanciaTomada,
+              'distanciaComunicacaoFace': os.distanciaComunicacao,
+              'distanciaDuto': os.distanciaDuto,
+              'distanciaPonteira': os.distanciaPonteira,
+              'distanciaDutoFace': os.distanciaDuto,
+              'distanciaPonteiraFace': os.distanciaPonteira,
+              'necessitaRecuperar': os.necessitaRecuperar ?? '',
+              'frenteDestino': os.frenteDestino,
+              'localOrigem': os.localOrigem,
+              'localDestino': os.localDestino,
+              'observacaoRealocacao': os.observacaoRealocacao,
+            },
+          )
+          .toList(),
+      'activities': report.workOrders
+          .map(
+            (os) => {
+              'description': os.activities,
+              'serviceType': os.maintenanceType,
+              'equipment': report.globalEquipment,
+              'location': os.location,
+              'status': os.status.isNotEmpty ? os.status : 'Concluído',
+              'startTime': os.startTime,
+              'endTime': os.endTime,
+            },
+          )
+          .toList(),
+      'waterLevels': report.waterLevels
+          .map(
+            (wl) => {
+              'pointId': wl.pointId,
+              'location': wl.location,
+              'level': wl.level,
+              'abastec': wl.abastec,
+              'abastecMotivo': wl.abastecMotivo,
+              'vaz': wl.vaz,
+              'vazLocal': wl.vazLocal,
+              'trend': wl.trend,
+              'observations': wl.observations,
+            },
+          )
+          .toList(),
+      'pumps': report.pumps
+          .map(
+            (p) => {
+              'name': p.name,
+              'metragem': p.metragem,
+              'bombaStatus': p.bombaStatus,
+              'limpeza': p.limpeza,
+              'ocorrencias': p.ocorrencias,
+            },
+          )
+          .toList(),
+      'materialsUsedList': report.materialsUsed
+          .map((m) => {'name': m.name, 'quantity': m.quantity})
           .toList(),
     };
   }
 
+  String _extractDistance(String observations, String label) {
+    for (final line in observations.split('\n')) {
+      if (line.startsWith('$label:')) {
+        return line.substring(label.length + 1).trim();
+      }
+    }
+    return '';
+  }
+
   ReportEntity _jsonToReport(Map<String, dynamic> json) {
+    final observations = json['observations']?.toString() ?? '';
+    final observationsWithDistances = observations.isNotEmpty
+        ? observations
+        : [
+            if (json['distanciaTomada']?.toString().isNotEmpty ?? false)
+              'Distância até a face TOMADA: ${json['distanciaTomada']}',
+            if (json['distanciaComunicacao']?.toString().isNotEmpty ?? false)
+              'Distância até a face COMUNICAÇÃO: ${json['distanciaComunicacao']}',
+          ].join('\n');
+
     return ReportEntity(
-      uuid: json['uuid'] as String? ?? '',
-      date: DateTime.tryParse(json['date'] as String? ?? '') ?? DateTime.now(),
-      shift: json['shift'] as String? ?? '',
-      team: json['team'] as String? ?? '',
-      globalEquipment: json['globalEquipment'] as String? ?? '',
-      globalLocation: json['globalLocation'] as String? ?? '',
+      uuid: json['uuid']?.toString() ?? json['id']?.toString() ?? '',
+      date: DateTime.tryParse(json['date']?.toString() ?? '') ?? DateTime.now(),
+      shift: json['shift']?.toString() ?? '',
+      team: json['team']?.toString() ?? '',
+      globalEquipment: json['globalEquipment']?.toString() ?? '',
+      globalLocation:
+          json['globalLocation']?.toString() ??
+          json['location']?.toString() ??
+          '',
       fuelLevel: (json['fuelLevel'] as num?)?.toDouble() ?? 0.0,
-      availableMaterials: json['availableMaterials'] as String? ?? '',
-      observations: json['observations'] as String? ?? '',
+      availableMaterials: json['availableMaterials']?.toString() ?? '',
+      observations: observationsWithDistances,
+      type: json['type']?.toString() ?? 'Equipagem',
       syncStatus: ReportSyncStatus.synced,
       createdAt:
-          DateTime.tryParse(json['createdAt'] as String? ?? '') ?? DateTime.now(),
+          DateTime.tryParse(json['createdAt']?.toString() ?? '') ??
+          DateTime.now(),
       updatedAt:
-          DateTime.tryParse(json['updatedAt'] as String? ?? '') ?? DateTime.now(),
-      operators: (json['operators'] as List<dynamic>?)
-              ?.map((o) => CollaboratorEntity(
-                    id: o['id'] as String? ?? '',
-                    registration: o['registration'] as String? ?? '',
-                    name: o['name'] as String? ?? '',
-                  ))
-              .toList() ??
-          [],
-      workOrders: (json['workOrders'] as List<dynamic>?)
-              ?.map((os) => WorkOrderEntity(
-                    id: os['id'] as String? ?? '',
-                    number: os['number'] as String? ?? '',
-                    location: os['location'] as String? ?? '',
-                    maintenanceType: os['maintenanceType'] as String? ?? '',
-                    cause: os['cause'] as String? ?? '',
-                    activities: os['activities'] as String? ?? '',
-                    materialsUsed:
-                        List<String>.from(os['materialsUsed'] as List? ?? []),
-                    quantityMeters: os['quantityMeters'] as String? ?? '',
-                    quantityPieces: os['quantityPieces'] as String? ?? '',
-                    startTime: os['startTime'] as String? ?? '',
-                    endTime: os['endTime'] as String? ?? '',
-                    status: os['status'] as String? ?? '',
-                    osStatus: os['osStatus'] as String? ?? '',
-                    photoPaths:
-                        List<String>.from(os['photoPaths'] as List? ?? []),
-                  ))
-              .toList() ??
-          [],
+          DateTime.tryParse(json['updatedAt']?.toString() ?? '') ??
+          DateTime.now(),
+      operators: _parseOperators(json['operators']),
+      workOrders: _parseWorkOrders(json['workOrders']),
+      waterLevels: _parseWaterLevels(json['waterLevels']),
+      pumps: _parsePumps(json['pumps']),
+      materialsUsed: _parseMaterials(json['materialsUsedList']),
     );
+  }
+
+  List<CollaboratorEntity> _parseOperators(dynamic data) {
+    if (data is! List) return [];
+    try {
+      return data.map((o) {
+        if (o is! Map)
+          return const CollaboratorEntity(id: '', registration: '', name: '');
+        return CollaboratorEntity(
+          id: o['id']?.toString() ?? '',
+          registration: o['registration']?.toString() ?? '',
+          name: o['name']?.toString() ?? '',
+        );
+      }).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  List<WorkOrderEntity> _parseWorkOrders(dynamic data) {
+    if (data is! List) return [];
+    try {
+      return data.map((os) {
+        if (os is! Map)
+          return const WorkOrderEntity(id: '', number: '', location: '');
+
+        final rawMats = os['materialsUsed'];
+        List<String> matsList = [];
+        if (rawMats is List) {
+          matsList = rawMats.map((m) => m?.toString() ?? '').toList();
+        } else if (rawMats is String && rawMats.isNotEmpty) {
+          matsList = [rawMats];
+        }
+
+        final rawPhotos = os['photoPaths'];
+        List<String> photosList = [];
+        if (rawPhotos is List) {
+          photosList = rawPhotos.map((p) => p?.toString() ?? '').toList();
+        } else if (rawPhotos is String && rawPhotos.isNotEmpty) {
+          photosList = [rawPhotos];
+        }
+
+        return WorkOrderEntity(
+          id: os['id']?.toString() ?? '',
+          number: os['number']?.toString() ?? '',
+          location: os['location']?.toString() ?? '',
+          maintenanceType: os['maintenanceType']?.toString() ?? '',
+          cause: os['cause']?.toString() ?? '',
+          causeOutro: os['causeOutro']?.toString() ?? '',
+          activities: os['activities']?.toString() ?? '',
+          materialsUsed: matsList,
+          quantityMeters: os['quantityMeters']?.toString() ?? '',
+          quantityPieces: os['quantityPieces']?.toString() ?? '',
+          callTime: os['callTime']?.toString() ?? '',
+          startTime: os['startTime']?.toString() ?? '',
+          endTime: os['endTime']?.toString() ?? '',
+          status: os['status']?.toString() ?? '',
+          osStatus: os['osStatus']?.toString() ?? '',
+          photoPaths: photosList,
+          distanciaTomada: (os['distanciaTomada'] ?? os['distanciaTomadaFace'] ?? '').toString(),
+          distanciaComunicacao: (os['distanciaComunicacao'] ?? os['distanciaComunicacaoFace'] ?? '').toString(),
+          distanciaDuto: (os['distanciaDuto'] ?? os['distanciaDutoFace'] ?? '').toString(),
+          distanciaPonteira: (os['distanciaPonteira'] ?? os['distanciaPonteiraFace'] ?? '').toString(),
+          necessitaRecuperar: (os['necessitaRecuperar'] as String?)?.isEmpty == true ? null : os['necessitaRecuperar']?.toString(),
+          frenteDestino: os['frenteDestino']?.toString() ?? '',
+          localOrigem: os['localOrigem']?.toString() ?? '',
+          localDestino: os['localDestino']?.toString() ?? '',
+          observacaoRealocacao: os['observacaoRealocacao']?.toString() ?? '',
+        );
+      }).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  List<WaterLevelEntity> _parseWaterLevels(dynamic data) {
+    if (data is! List) return [];
+    try {
+      return data.map((wl) {
+        if (wl is! Map)
+          return const WaterLevelEntity(pointId: '', location: '', level: '');
+        return WaterLevelEntity(
+          pointId: wl['pointId']?.toString() ?? '',
+          location: wl['location']?.toString() ?? '',
+          level: wl['level']?.toString() ?? '',
+          abastec: wl['abastec']?.toString() == 'true',
+          abastecMotivo: wl['abastecMotivo']?.toString() ?? '',
+          vaz: wl['vaz']?.toString() == 'true',
+          vazLocal: wl['vazLocal']?.toString() ?? '',
+          trend: wl['trend']?.toString() ?? '',
+          observations: wl['observations']?.toString() ?? '',
+        );
+      }).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  List<PumpEntity> _parsePumps(dynamic data) {
+    if (data is! List) return [];
+    try {
+      return data.map((p) {
+        if (p is! Map)
+          return const PumpEntity(
+            name: '',
+            metragem: '',
+            bombaStatus: '',
+            limpeza: '',
+            ocorrencias: '',
+          );
+        return PumpEntity(
+          name: p['name']?.toString() ?? '',
+          metragem: p['metragem']?.toString() ?? '',
+          bombaStatus: p['bombaStatus']?.toString() ?? '',
+          limpeza: p['limpeza']?.toString() ?? '',
+          ocorrencias: p['ocorrencias']?.toString() ?? '',
+        );
+      }).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  List<MaterialEntity> _parseMaterials(dynamic data) {
+    if (data is! List) return [];
+    try {
+      return data.map((m) {
+        if (m is! Map) return const MaterialEntity(name: '');
+        return MaterialEntity(
+          name: m['name']?.toString() ?? '',
+          quantity: m['quantity']?.toString() ?? '',
+        );
+      }).toList();
+    } catch (_) {
+      return [];
+    }
   }
 }

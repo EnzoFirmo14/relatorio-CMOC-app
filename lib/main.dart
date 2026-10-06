@@ -2,10 +2,12 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:workmanager/workmanager.dart';
 import 'core/navigation/app_routes.dart';
 import 'core/services/isar_service.dart';
 import 'core/theme/app_theme.dart';
+import 'core/theme/theme_provider.dart';
 import 'core/services/connectivity_service.dart';
 import 'core/services/cloudinary_service.dart';
 import 'features/sync/domain/services/sync_service.dart';
@@ -20,18 +22,21 @@ void callbackDispatcher() {
   Workmanager().executeTask((taskName, inputData) async {
     try {
       WidgetsFlutterBinding.ensureInitialized();
+      try {
+        await dotenv.load(fileName: '.env');
+      } catch (_) {}
 
-      // Inicializa o Firebase no isolate em segundo plano
-      await Firebase.initializeApp(
-        options: DefaultFirebaseOptions.currentPlatform,
-      );
+      // Inicializa o Firebase no isolate em segundo plano caso não exista
+      if (Firebase.apps.isEmpty) {
+        await Firebase.initializeApp(
+          options: DefaultFirebaseOptions.currentPlatform,
+        );
+      }
 
-      // Inicializa o Isar no isolate em segundo plano
-      await IsarService.instance.init();
+      final isarService = IsarService.instance;
+      await isarService.init();
 
-      // Cria as dependências de sincronização manualmente
-      final isar = IsarService.instance.isar;
-      final localDataSource = ReportLocalDataSource(isar);
+      final localDataSource = ReportLocalDataSource(isarService.isar);
       final localRepository = ReportRepositoryImpl(localDataSource);
       final remoteDataSource = ReportFirestoreDataSource();
       final connectivityService = ConnectivityService();
@@ -58,21 +63,32 @@ void callbackDispatcher() {
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Inicializa o banco local Isar antes de construir qualquer widget.
-  await IsarService.instance.init();
-
-  // Inicializa o Firebase
+  // Carrega variáveis de ambiente do .env
   try {
-    debugPrint('Plataforma Web? $kIsWeb');
-    debugPrint('Firebase Options Web apiKey: ${DefaultFirebaseOptions.web.apiKey}');
-    final options = DefaultFirebaseOptions.currentPlatform;
-    debugPrint('Current Platform Options: $options');
-    await Firebase.initializeApp(
-      options: options,
-    );
+    await dotenv.load(fileName: '.env');
+  } catch (e) {
+    debugPrint('Aviso: Não foi possível carregar o arquivo .env: $e');
+  }
+
+  // Inicializa o banco local Isar antes de construir qualquer widget.
+  try {
+    await IsarService.instance.init();
+  } catch (e) {
+    debugPrint('[main] Erro ao inicializar IsarService: $e');
+  }
+
+  // Inicializa o Firebase se não estiver inicializado
+  try {
+    if (Firebase.apps.isEmpty) {
+      final options = DefaultFirebaseOptions.currentPlatform;
+      await Firebase.initializeApp(
+        options: options,
+      );
+    }
   } catch (e) {
     debugPrint('Firebase init fallback: $e');
   }
+
 
   // Inicializa o Workmanager para rodar tarefas em segundo plano (apenas Mobile)
   if (!kIsWeb) {
@@ -111,12 +127,13 @@ class MyApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     // Eagerly initialize SyncController on app startup
     ref.watch(syncControllerProvider);
+    final themeMode = ref.watch(themeModeProvider);
 
     return MaterialApp(
       title: 'InfraLog CMOC (beta)',
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
-      themeMode: ThemeMode.system,
+      themeMode: themeMode,
       initialRoute: AppRoutes.initial,
       onGenerateRoute: AppRoutes.onGenerateRoute,
       debugShowCheckedModeBanner: false,

@@ -29,7 +29,9 @@ class WhatsAppExportService {
 
     buffer.writeln('📝 *ORDENS DE SERVIÇO:*');
     for (final os in report.workOrders) {
-      buffer.writeln('📌 *OS ${os.number}* — ${os.location} (${os.startTime} às ${os.endTime})');
+      buffer.writeln('📌 *OS ${os.number}* — ${os.location}');
+      buffer.writeln('Chamado: ${os.callTime.isNotEmpty ? os.callTime : '--:--'}');
+      buffer.writeln('Registro: ${os.startTime} às ${os.endTime}');
       buffer.writeln('Descrição: ${os.activities}');
       if (os.materialsUsed.isNotEmpty) {
         buffer.writeln('Materiais: ${os.materialsUsed.join(", ")}');

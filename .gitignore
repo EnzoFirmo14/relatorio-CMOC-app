@@ -48,17 +48,23 @@ app.*.map.json
 *.isar
 *.isar-lck
 /isar.dll
+*.dll
 
 # Local temporary analysis files
 /analyze_output.txt
 
-# Sensitive configuration files
+# Node and web / Environment
+node_modules/
 .env
+.env.*
+!.env.example
+env
+
+# Sensitive Firebase configuration files
 google-services.json
 **/google-services.json
-GoogleService-Info.plist
 **/GoogleService-Info.plist
 
-# Keystore de producao - NUNCA versionar
-android/app/*.keystore
-android/app/*.jks
+# Generated Android Registrant
+android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java
+

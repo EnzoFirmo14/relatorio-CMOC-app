@@ -1,6 +1,9 @@
 import 'package:isar_community/isar.dart';
 import '../../domain/entities/collaborator_entity.dart';
 import '../../domain/entities/report_entity.dart';
+import '../../domain/entities/water_level_entity.dart';
+import '../../domain/entities/pump_entity.dart';
+import '../../domain/entities/material_entity.dart';
 import 'work_order_model.dart';
 
 part 'report_model.g.dart';
@@ -14,8 +17,6 @@ enum ReportModelSyncStatus {
 }
 
 /// Modelo embutido para colaboradores/executantes dentro do ReportModel.
-/// Como cada relatório tem poucos executantes (até ~6), usamos embedded
-/// para evitar a complexidade de links do Isar.
 @embedded
 class EmbeddedCollaboratorModel {
   EmbeddedCollaboratorModel();
@@ -43,6 +44,99 @@ class EmbeddedCollaboratorModel {
   }
 }
 
+@embedded
+class EmbeddedWaterLevelModel {
+  EmbeddedWaterLevelModel();
+
+  late String pointId;
+  late String location;
+  late String level;
+  bool? abastec;
+  late String abastecMotivo;
+  bool? vaz;
+  late String vazLocal;
+  late String trend;
+  late String observations;
+
+  factory EmbeddedWaterLevelModel.fromEntity(WaterLevelEntity entity) {
+    return EmbeddedWaterLevelModel()
+      ..pointId = entity.pointId
+      ..location = entity.location
+      ..level = entity.level
+      ..abastec = entity.abastec
+      ..abastecMotivo = entity.abastecMotivo
+      ..vaz = entity.vaz
+      ..vazLocal = entity.vazLocal
+      ..trend = entity.trend
+      ..observations = entity.observations;
+  }
+
+  WaterLevelEntity toEntity() {
+    return WaterLevelEntity(
+      pointId: pointId,
+      location: location,
+      level: level,
+      abastec: abastec,
+      abastecMotivo: abastecMotivo,
+      vaz: vaz,
+      vazLocal: vazLocal,
+      trend: trend,
+      observations: observations,
+    );
+  }
+}
+
+@embedded
+class EmbeddedPumpModel {
+  EmbeddedPumpModel();
+
+  late String name;
+  late String metragem;
+  late String bombaStatus;
+  late String limpeza;
+  late String ocorrencias;
+
+  factory EmbeddedPumpModel.fromEntity(PumpEntity entity) {
+    return EmbeddedPumpModel()
+      ..name = entity.name
+      ..metragem = entity.metragem
+      ..bombaStatus = entity.bombaStatus
+      ..limpeza = entity.limpeza
+      ..ocorrencias = entity.ocorrencias;
+  }
+
+  PumpEntity toEntity() {
+    return PumpEntity(
+      name: name,
+      metragem: metragem,
+      bombaStatus: bombaStatus,
+      limpeza: limpeza,
+      ocorrencias: ocorrencias,
+    );
+  }
+}
+
+@embedded
+class EmbeddedMaterialModel {
+  EmbeddedMaterialModel();
+
+  late String name;
+  late String quantity;
+
+  factory EmbeddedMaterialModel.fromEntity(MaterialEntity entity) {
+    return EmbeddedMaterialModel()
+      ..name = entity.name
+      ..quantity = entity.quantity;
+  }
+
+  MaterialEntity toEntity() {
+    return MaterialEntity(
+      name: name,
+      quantity: quantity,
+    );
+  }
+}
+
 /// Coleção principal do Isar para o relatório completo.
 @collection
 class ReportModel {
@@ -63,13 +157,18 @@ class ReportModel {
   late String observations;
 
   @Enumerated(EnumType.name)
-  late ReportModelSyncStatus syncStatus;
+  ReportModelSyncStatus syncStatus = ReportModelSyncStatus.draft;
 
-  late DateTime createdAt;
+  String type = 'Equipagem';
+
+  DateTime createdAt = DateTime.now();
   late DateTime updatedAt;
 
   late List<EmbeddedCollaboratorModel> operators;
   late List<WorkOrderModel> workOrders;
+  late List<EmbeddedWaterLevelModel> waterLevels;
+  late List<EmbeddedPumpModel> pumps;
+  late List<EmbeddedMaterialModel> materialsUsed;
 
   // ─── Converters ───────────────────────────────────────────────────────────
 
@@ -84,6 +183,7 @@ class ReportModel {
       ..fuelLevel = entity.fuelLevel
       ..availableMaterials = entity.availableMaterials
       ..observations = entity.observations
+      ..type = entity.type
       ..syncStatus = _entityStatusToModel(entity.syncStatus)
       ..createdAt = entity.createdAt
       ..updatedAt = entity.updatedAt
@@ -92,6 +192,15 @@ class ReportModel {
           .toList()
       ..workOrders = entity.workOrders
           .map(WorkOrderModel.fromEntity)
+          .toList()
+      ..waterLevels = entity.waterLevels
+          .map(EmbeddedWaterLevelModel.fromEntity)
+          .toList()
+      ..pumps = entity.pumps
+          .map(EmbeddedPumpModel.fromEntity)
+          .toList()
+      ..materialsUsed = entity.materialsUsed
+          .map(EmbeddedMaterialModel.fromEntity)
           .toList();
   }
 
@@ -106,11 +215,15 @@ class ReportModel {
       fuelLevel: fuelLevel,
       availableMaterials: availableMaterials,
       observations: observations,
+      type: type,
       syncStatus: _modelStatusToEntity(syncStatus),
       createdAt: createdAt,
       updatedAt: updatedAt,
       operators: operators.map((o) => o.toEntity()).toList(),
       workOrders: workOrders.map((w) => w.toEntity()).toList(),
+      waterLevels: waterLevels.map((w) => w.toEntity()).toList(),
+      pumps: pumps.map((p) => p.toEntity()).toList(),
+      materialsUsed: materialsUsed.map((m) => m.toEntity()).toList(),
     );
   }
 
