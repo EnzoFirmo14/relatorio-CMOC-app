@@ -47,6 +47,8 @@ class WorkOrderModel {
   late List<String> photoPaths;
   late String distanciaTomada;
   late String distanciaComunicacao;
+  late String distanciaDuto;
+  late String distanciaPonteira;
   late String necessitaRecuperar;
   late String frenteDestino;
   late String localOrigem;
@@ -95,6 +97,8 @@ class WorkOrderModel {
       ..photoPaths = List<String>.from(entity.photoPaths)
       ..distanciaTomada = entity.distanciaTomada
       ..distanciaComunicacao = entity.distanciaComunicacao
+      ..distanciaDuto = entity.distanciaDuto
+      ..distanciaPonteira = entity.distanciaPonteira
       ..necessitaRecuperar = entity.necessitaRecuperar ?? ''
       ..frenteDestino = entity.frenteDestino
       ..localOrigem = entity.localOrigem
@@ -152,6 +156,8 @@ class WorkOrderModel {
       photoPaths: List<String>.from(photoPaths),
       distanciaTomada: distanciaTomada,
       distanciaComunicacao: distanciaComunicacao,
+      distanciaDuto: distanciaDuto,
+      distanciaPonteira: distanciaPonteira,
       necessitaRecuperar: necessitaRecuperar.isEmpty ? null : necessitaRecuperar,
       frenteDestino: frenteDestino,
       localOrigem: localOrigem,

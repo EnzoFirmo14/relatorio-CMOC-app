@@ -41,6 +41,8 @@ class WorkOrderEntity {
   final List<String> photoPaths;
   final String distanciaTomada;
   final String distanciaComunicacao;
+  final String distanciaDuto;
+  final String distanciaPonteira;
   // Campos de Recuo / Realocação
   final String? necessitaRecuperar; // 'Sim', 'Não', ou null
   final String frenteDestino;
@@ -87,6 +89,8 @@ class WorkOrderEntity {
     this.photoPaths = const [],
     this.distanciaTomada = '',
     this.distanciaComunicacao = '',
+    this.distanciaDuto = '',
+    this.distanciaPonteira = '',
     this.necessitaRecuperar,
     this.frenteDestino = '',
     this.localOrigem = '',
@@ -133,6 +137,8 @@ class WorkOrderEntity {
     List<String>? photoPaths,
     String? distanciaTomada,
     String? distanciaComunicacao,
+    String? distanciaDuto,
+    String? distanciaPonteira,
     Object? necessitaRecuperar = _kUnset,
     String? frenteDestino,
     String? localOrigem,
@@ -178,6 +184,8 @@ class WorkOrderEntity {
       photoPaths: photoPaths ?? this.photoPaths,
       distanciaTomada: distanciaTomada ?? this.distanciaTomada,
       distanciaComunicacao: distanciaComunicacao ?? this.distanciaComunicacao,
+      distanciaDuto: distanciaDuto ?? this.distanciaDuto,
+      distanciaPonteira: distanciaPonteira ?? this.distanciaPonteira,
       necessitaRecuperar: identical(necessitaRecuperar, _kUnset) ? this.necessitaRecuperar : necessitaRecuperar as String?,
       frenteDestino: frenteDestino ?? this.frenteDestino,
       localOrigem: localOrigem ?? this.localOrigem,

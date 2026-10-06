@@ -1930,17 +1930,18 @@ class _PumpingReportFormPageState extends ConsumerState<PumpingReportFormPage> {
     );
   }
 
-  /// Componente ergonômico de metragem para ambiente subterrâneo com luvas
+  /// Componente de metragem com barra deslizante (Slider de 5 em 5m) e feedback inteligente
   Widget _buildMetragemInput(PumpingTheme theme, RampaModel r, DetalheRampa d) {
-    final currentVal = d.metragem ?? 0;
-    const presets = [0.0, 10.0, 20.0, 30.0, 40.0, 50.0, 75.0, 100.0];
+    final currentVal = (d.metragem ?? 0.0).clamp(0.0, 100.0);
+    final isCritico = currentVal <= r.critico;
+    final isAtencao = !isCritico && currentVal <= (r.critico + 10.0);
+    final Color statusColor = isCritico
+        ? theme.critico
+        : (isAtencao ? theme.alerta : const Color(0xFF74BE45));
 
-    void updateMetragem(double newVal) {
-      setState(() {
-        d.metragem = newVal.clamp(0.0, 100.0);
-        _salvarEstado();
-      });
-    }
+    final String statusText = isCritico
+        ? (currentVal == 0 ? 'Água no Ponto Zero (Crítico)' : 'Nível Crítico (≤ ${r.critico.toInt()}m)')
+        : (isAtencao ? 'Faixa de Atenção (Próximo ao Limite)' : 'Nível Normal / Seguro');
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1948,167 +1949,154 @@ class _PumpingReportFormPageState extends ConsumerState<PumpingReportFormPage> {
         _buildLabel(theme, 'Metragem da água até o ponto zero:'),
         const SizedBox(height: 6),
 
-        // 1. Pílulas de Acesso Rápido (Toque fácil e instantâneo com luva)
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          physics: const BouncingScrollPhysics(),
+        // 1. Display Central de Leitura com Status Dinâmico
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: statusColor.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: statusColor.withValues(alpha: 0.4), width: 1.2),
+          ),
           child: Row(
-            children: presets.map((p) {
-              final isSelected = d.metragem == p;
-              return Padding(
-                padding: const EdgeInsets.only(right: 6),
-                child: Material(
-                  color: isSelected
-                      ? theme.agua
-                      : (theme.isDark ? theme.fundo.withValues(alpha: 0.8) : Colors.black.withValues(alpha: 0.05)),
-                  borderRadius: BorderRadius.circular(16),
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(16),
-                    onTap: () => updateMetragem(p),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 7),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: isSelected
-                              ? theme.agua
-                              : (theme.isDark ? Colors.white24 : Colors.black12),
-                          width: isSelected ? 1.5 : 1,
-                        ),
-                      ),
-                      child: Text(
-                        '${p.toInt()}m',
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        '${currentVal.toInt()}',
                         style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                          color: isSelected
-                              ? Colors.black
-                              : (theme.isDark ? Colors.white : Colors.black87),
+                          fontSize: 24,
+                          fontWeight: FontWeight.w900,
+                          color: statusColor,
+                          letterSpacing: 0.5,
                         ),
                       ),
+                      const SizedBox(width: 4),
+                      Text(
+                        'metros',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: statusColor.withValues(alpha: 0.9),
+                        ),
+                      ),
+                    ],
+                  ),
+                  Text(
+                    statusText,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: statusColor,
                     ),
                   ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: statusColor.withValues(alpha: 0.2),
+                  shape: BoxShape.circle,
                 ),
-              );
-            }).toList(),
+                child: Icon(
+                  isCritico
+                      ? Icons.warning_rounded
+                      : (isAtencao ? Icons.info_outline_rounded : Icons.check_circle_rounded),
+                  color: statusColor,
+                  size: 22,
+                ),
+              ),
+            ],
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
 
-        // 2. Stepper Industrial Multissalto com Botões Grandes
-        Row(
-          children: [
-            // Botão -5
-            _buildStepperButton(
-              theme: theme,
-              label: '-5',
-              onTap: () => updateMetragem(currentVal - 5),
+        // 2. Barra de Arrasto (Slider com divisões de 5 em 5m: 0, 5, 10... 100)
+        SliderTheme(
+          data: SliderTheme.of(context).copyWith(
+            activeTrackColor: statusColor,
+            inactiveTrackColor: theme.isDark ? Colors.white24 : Colors.black12,
+            trackHeight: 6.0,
+            thumbColor: statusColor,
+            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10.0, elevation: 3),
+            overlayColor: statusColor.withValues(alpha: 0.2),
+            overlayShape: const RoundSliderOverlayShape(overlayRadius: 20.0),
+            valueIndicatorShape: const RectangularSliderValueIndicatorShape(),
+            valueIndicatorColor: statusColor,
+            valueIndicatorTextStyle: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 13,
             ),
-            const SizedBox(width: 4),
-            // Botão -1
-            _buildStepperButton(
-              theme: theme,
-              label: '-1',
-              isPrimary: true,
-              onTap: () => updateMetragem(currentVal - 1),
-            ),
-            const SizedBox(width: 6),
-
-            // Display Central com digitação direta estável (não fecha o teclado ao digitar/apagar)
-            Expanded(
-              child: _MetragemInputWidget(
-                key: ValueKey('metragem_${r.id}'),
-                theme: theme,
-                rampa: r,
-                detalhe: d,
-                onChanged: (val) {
-                  d.metragem = val;
-                  _salvarEstado();
-                },
-              ),
-            ),
-
-
-
-
-            const SizedBox(width: 6),
-            // Botão +1
-            _buildStepperButton(
-              theme: theme,
-              label: '+1',
-              isPrimary: true,
-              onTap: () => updateMetragem(currentVal + 1),
-            ),
-            const SizedBox(width: 4),
-            // Botão +5
-            _buildStepperButton(
-              theme: theme,
-              label: '+5',
-              onTap: () => updateMetragem(currentVal + 5),
-            ),
-          ],
+          ),
+          child: Slider(
+            value: currentVal,
+            min: 0.0,
+            max: 100.0,
+            divisions: 20,
+            label: '${currentVal.toInt()}m',
+            onChanged: (newVal) {
+              setState(() {
+                d.metragem = newVal;
+                _salvarEstado();
+              });
+            },
+          ),
         ),
-        const SizedBox(height: 5),
 
-        // 3. Escala Visual de Referência com badges
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text('ponto zero (0 m)', style: TextStyle(fontSize: 10, color: theme.isDark ? Colors.white60 : Colors.black54)),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: theme.critico.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(4),
+        // 3. Escala Visual de Referência com Ponto Zero, Crítico e 100m
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                '0 m (Ponto Zero)',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  color: theme.isDark ? Colors.white60 : Colors.black54,
+                ),
               ),
-              child: Text(
-                'crítico ≤ ${r.critico.toInt()} m',
-                style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: theme.critico),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: theme.critico.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(color: theme.critico.withValues(alpha: 0.3)),
+                ),
+                child: Text(
+                  'crítico ≤ ${r.critico.toInt()} m',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: theme.critico,
+                  ),
+                ),
               ),
-            ),
-            Text('100 m', style: TextStyle(fontSize: 10, color: theme.isDark ? Colors.white60 : Colors.black54)),
-          ],
+              Text(
+                '50 m',
+                style: TextStyle(
+                  fontSize: 10,
+                  color: theme.isDark ? Colors.white38 : Colors.black38,
+                ),
+              ),
+              Text(
+                '100 m',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  color: theme.isDark ? Colors.white60 : Colors.black54,
+                ),
+              ),
+            ],
+          ),
         ),
         const SizedBox(height: 8),
       ],
-    );
-  }
-
-  Widget _buildStepperButton({
-    required PumpingTheme theme,
-    required String label,
-    required VoidCallback onTap,
-    bool isPrimary = false,
-  }) {
-    return Material(
-      color: isPrimary
-          ? (theme.isDark ? const Color(0xFF23005B) : const Color(0xFF5C3FA3))
-          : theme.fundo,
-      borderRadius: BorderRadius.circular(8),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(8),
-        onTap: onTap,
-        child: Container(
-          width: isPrimary ? 48 : 42,
-          height: 48,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: isPrimary ? theme.agua : (theme.isDark ? Colors.white24 : Colors.black12),
-              width: isPrimary ? 1.2 : 1,
-            ),
-          ),
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: isPrimary ? 16 : 14,
-              fontWeight: FontWeight.bold,
-              color: isPrimary ? Colors.white : (theme.isDark ? Colors.white : Colors.black87),
-            ),
-          ),
-        ),
-      ),
     );
   }
 
@@ -3032,105 +3020,6 @@ class _PumpingReportFormPageState extends ConsumerState<PumpingReportFormPage> {
         text,
         style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: theme.isDark ? Colors.white70 : Colors.black54),
       ),
-    );
-  }
-}
-
-/// Widget com controller isolado para permitir digitação fluida sem fechar o teclado
-class _MetragemInputWidget extends StatefulWidget {
-  final PumpingTheme theme;
-  final RampaModel rampa;
-  final DetalheRampa detalhe;
-  final ValueChanged<double> onChanged;
-
-  const _MetragemInputWidget({
-    super.key,
-    required this.theme,
-    required this.rampa,
-    required this.detalhe,
-    required this.onChanged,
-  });
-
-  @override
-  State<_MetragemInputWidget> createState() => _MetragemInputWidgetState();
-}
-
-class _MetragemInputWidgetState extends State<_MetragemInputWidget> {
-  late TextEditingController _controller;
-  late FocusNode _focusNode;
-
-  @override
-  void initState() {
-    super.initState();
-    final val = widget.detalhe.metragem;
-    _controller = TextEditingController(text: val != null ? '${val.toInt()}' : '0');
-    _focusNode = FocusNode();
-  }
-
-  @override
-  void didUpdateWidget(covariant _MetragemInputWidget oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    // Só sincroniza o texto se o usuário NÃO estiver digitando no campo
-    if (!_focusNode.hasFocus) {
-      final val = widget.detalhe.metragem;
-      final newText = val != null ? '${val.toInt()}' : '0';
-      if (_controller.text != newText) {
-        _controller.text = newText;
-      }
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    _focusNode.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final currentVal = widget.detalhe.metragem ?? 0;
-    final isCritico = currentVal <= widget.rampa.critico;
-
-    return TextFormField(
-      controller: _controller,
-      focusNode: _focusNode,
-      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-      textAlign: TextAlign.center,
-      style: TextStyle(
-        fontSize: 22,
-        fontWeight: FontWeight.w900,
-        letterSpacing: 0.5,
-        color: isCritico ? widget.theme.critico : widget.theme.agua,
-      ),
-      decoration: InputDecoration(
-        hintText: '0',
-        hintStyle: TextStyle(
-          color: (isCritico ? widget.theme.critico : widget.theme.agua).withValues(alpha: 0.4),
-        ),
-        suffixText: 'm',
-        suffixStyle: TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.bold,
-          color: isCritico ? widget.theme.critico : widget.theme.agua,
-        ),
-        isDense: true,
-        filled: false,
-        contentPadding: EdgeInsets.zero,
-        border: InputBorder.none,
-        enabledBorder: InputBorder.none,
-        focusedBorder: InputBorder.none,
-        disabledBorder: InputBorder.none,
-      ),
-      onChanged: (val) {
-        final clean = val.replaceAll(',', '.');
-        final parsed = double.tryParse(clean);
-        if (parsed != null && parsed >= 0 && parsed <= 100) {
-          widget.onChanged(parsed);
-        } else if (clean.isEmpty) {
-          widget.onChanged(0);
-        }
-      },
     );
   }
 }

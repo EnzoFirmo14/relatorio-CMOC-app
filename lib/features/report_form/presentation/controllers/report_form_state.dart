@@ -60,6 +60,8 @@ class WorkOrderState {
   final String status;
   final String osStatus;
   final List<String> photoPaths;
+  final String distanciaDuto;
+  final String distanciaPonteira;
   // Campos de Recuo / Realocação
   final String? necessitaRecuperar;
   final String frenteDestino;
@@ -103,6 +105,8 @@ class WorkOrderState {
     this.status = '',
     this.osStatus = 'Rascunho',
     this.photoPaths = const [],
+    this.distanciaDuto = '',
+    this.distanciaPonteira = '',
     this.necessitaRecuperar,
     this.frenteDestino = '',
     this.localOrigem = '',
@@ -172,6 +176,8 @@ class WorkOrderState {
     String? status,
     String? osStatus,
     List<String>? photoPaths,
+    String? distanciaDuto,
+    String? distanciaPonteira,
     Object? necessitaRecuperar = _kWoUnset,
     String? frenteDestino,
     String? localOrigem,
@@ -214,6 +220,8 @@ class WorkOrderState {
       status: status ?? this.status,
       osStatus: osStatus ?? this.osStatus,
       photoPaths: photoPaths ?? this.photoPaths,
+      distanciaDuto: distanciaDuto ?? this.distanciaDuto,
+      distanciaPonteira: distanciaPonteira ?? this.distanciaPonteira,
       necessitaRecuperar: identical(necessitaRecuperar, _kWoUnset) ? this.necessitaRecuperar : necessitaRecuperar as String?,
       frenteDestino: frenteDestino ?? this.frenteDestino,
       localOrigem: localOrigem ?? this.localOrigem,

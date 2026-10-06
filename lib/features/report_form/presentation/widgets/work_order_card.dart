@@ -270,6 +270,78 @@ class WorkOrderCard extends StatelessWidget {
                 ],
                 const SizedBox(height: 12),
 
+                // Campos específicos de Avanço (Distâncias da Face)
+                if (os.maintenanceType == 'Avanço') ...[
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryPurple.withValues(alpha: 0.04),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: AppTheme.primaryPurple.withValues(alpha: 0.2)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const Row(
+                          children: [
+                            Icon(Icons.straighten, size: 16, color: AppTheme.primaryPurple),
+                            SizedBox(width: 6),
+                            Text(
+                              'DISTÂNCIAS DA FACE',
+                              style: TextStyle(
+                                fontFamily: 'monospace',
+                                fontSize: 10.0,
+                                fontWeight: FontWeight.w700,
+                                color: AppTheme.primaryPurple,
+                                letterSpacing: 1.0,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        const Text(
+                          'DISTÂNCIA DO DUTO ATÉ A FACE',
+                          style: TextStyle(
+                            fontFamily: 'monospace',
+                            fontSize: 9,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.textFaint,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        TextFormField(
+                          initialValue: os.distanciaDuto,
+                          decoration: const InputDecoration(
+                            hintText: 'Ex: 15 m',
+                            isDense: true,
+                          ),
+                          onChanged: (val) => onUpdate(os.copyWith(distanciaDuto: val)),
+                        ),
+                        const SizedBox(height: 10),
+                        const Text(
+                          'DISTÂNCIA DA PONTEIRA ATÉ A FACE',
+                          style: TextStyle(
+                            fontFamily: 'monospace',
+                            fontSize: 9,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.textFaint,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        TextFormField(
+                          initialValue: os.distanciaPonteira,
+                          decoration: const InputDecoration(
+                            hintText: 'Ex: 5 m',
+                            isDense: true,
+                          ),
+                          onChanged: (val) => onUpdate(os.copyWith(distanciaPonteira: val)),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+
                 // Campos específicos de Recuo / Realocação
                 if (os.maintenanceType == 'Recuo' || os.maintenanceType == 'Realocação') ...[
                   const Text(

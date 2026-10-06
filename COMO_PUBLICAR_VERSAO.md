@@ -24,7 +24,7 @@ graph TD
 Abra o arquivo [pubspec.yaml](file:///c:/Codes/Projetos/relatorio-CMOC-app/pubspec.yaml) e modifique a linha `version:`:
 
 ```yaml
-version: 1.0.5+5
+version: 1.0.6+6
 ```
 
 **Regras de Versionamento:**
@@ -52,16 +52,16 @@ Antes de gerar o build de produção, certifique-se de que as chaves de assinatu
 Execute no terminal da raiz do projeto:
 
 ```bash
-flutter build apk --release --build-name=1.0.5 --build-number=5
+flutter build apk --release --build-name=1.0.6 --build-number=6
 ```
-*(Substitua `1.0.5` e `5` pela versão e build number configurados no `pubspec.yaml`)*
+*(Substitua `1.0.6` e `6` pela versão e build number configurados no `pubspec.yaml`)*
 
 #### Validar o `versionCode` gravado no APK:
 ```powershell
 $aapt = Get-ChildItem "$env:LOCALAPPDATA\Android\Sdk\build-tools" -Filter "aapt.exe" -Recurse | Sort-Object LastWriteTime -Descending | Select-Object -First 1 -ExpandProperty FullName
 & $aapt dump badging "build\app\outputs\flutter-apk\app-release.apk" | Select-String "versionCode"
 ```
-O resultado deve confirmar `versionCode='5'` (ou o número da build atual).
+O resultado deve confirmar `versionCode='6'` (ou o número da build atual).
 
 * O APK gerado estará em: `build\app\outputs\flutter-apk\app-release.apk`
 * *(Caso necessite de App Bundle para Play Store: `flutter build appbundle --release` gerado em `build\app\outputs\bundle\release\app-release.aab`)*
@@ -71,12 +71,12 @@ O resultado deve confirmar `versionCode='5'` (ou o número da build atual).
 ### Passo 4: Hospedar o APK no GitHub Releases
 1. Acesse o repositório no GitHub: **[relatorio-CMOC-app](https://github.com/EnzoFirmo14/relatorio-CMOC-app)**.
 2. Na barra lateral direita, clique em **Releases** > **Draft a new release** (ou *Create a new release*).
-3. Defina a **Tag** (ex: `v1.0.5`) e o **Título** (ex: `Release v1.0.5`).
+3. Defina a **Tag** (ex: `v1.0.6`) e o **Título** (ex: `Release v1.0.6`).
 4. **Arraste e solte o arquivo `app-release.apk`** para a área de anexos binários.
 5. Clique em **Publish release**.
 6. Na lista de assets da release publicada, clique com o **botão direito no `app-release.apk`** e selecione **Copiar endereço do link** (*Copy link address*).
    * Formato esperado:
-     `https://github.com/EnzoFirmo14/relatorio-CMOC-app/releases/download/v1.0.5/app-release.apk`
+     `https://github.com/EnzoFirmo14/relatorio-CMOC-app/releases/download/v1.0.6/app-release.apk`
 
 ---
 
@@ -100,12 +100,12 @@ Preencha/atualize os campos:
 
 | Nome do Campo | Tipo de Dado | Valor Exemplo | Descrição |
 | :--- | :--- | :--- | :--- |
-| **`version`** | `string` | `"1.0.5"` | Versão nominal configurada no `pubspec.yaml` |
-| **`build_number`** | `number` | `5` | Número de build (`versionCode`) após o `+` |
+| **`version`** | `string` | `"1.0.6"` | Versão nominal configurada no `pubspec.yaml` |
+| **`build_number`** | `number` | `6` | Número de build (`versionCode`) após o `+` |
 | **`apk_url`** | `string` | `"https://github.com/.../app-release.apk"` | Link direto do APK gerado no GitHub Releases (Passo 4) |
 | **`sha256`** | `string` | `"68AE355FE8EAF2BF7EFD610..."` | Hash SHA-256 gerado no Passo 5 |
 | **`is_mandatory`** | `boolean` | `true` | Se `true`, exige a atualização imediata |
-| **`changelog`** | `string` | `"Ajustes em Equipagem e Bombeamento"` | Resumo das novidades da versão |
+| **`changelog`** | `string` | `"Slider de 5m em rampas de bombeamento, campos de avanço e reinstalação em equipagem"` | Resumo das novidades da versão |
 
 ---
 
@@ -113,9 +113,9 @@ Preencha/atualize os campos:
 Após publicar no Firebase, registre a versão no repositório:
 
 ```bash
-git add pubspec.yaml COMO_PUBLICAR_VERSAO.md
-git commit -m "chore: release v1.0.5"
-git tag v1.0.5
+git add .
+git commit -m "chore: release v1.0.6"
+git tag v1.0.6
 git push origin main --tags
 ```
 
@@ -141,6 +141,13 @@ Para que as futuras atualizações sejam **100% invisíveis e automáticas** sem
 ---
 
 ## 📜 CHANGELOG
+
+### v1.0.6 (2026-10-06)
+- **Bombeamento (Águas de Fim de Rampa)**: Substituição dos contadores repetitivos por Slider contínuo/discreto com divisões precisas de 5 em 5 metros (0 a 100m).
+- **Bombeamento**: Display central com indicação visual e dinâmica de criticidade (vermelho para crítico, amarelo para atenção, verde para seguro) e régua com marcadores visuais.
+- **Equipagem**: Novo tipo de manutenção "Reinstalação" com motivos "Reinstalação" e "Outros".
+- **Equipagem**: Tipo de manutenção "Avanço" com painel de "Distâncias da Face" ("Distância do duto até a Face" e "Distância da ponteira até a Face").
+- **Equipagem**: Atualização automática na exportação para WhatsApp e sincronização Firestore.
 
 ### v1.0.5 (2026-09-30)
 - **Equipagem**: Adicionada opção "Outros" em Causa/Motivo com campo de texto livre.

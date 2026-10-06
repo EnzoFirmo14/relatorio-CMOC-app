@@ -603,6 +603,11 @@ class ReportFormController extends Notifier<ReportFormState> {
               : os.cause;
           lines.add('*Causa:* $causeText');
         }
+        // Campos específicos de Avanço (Distâncias da Face)
+        if (os.maintenanceType == 'Avanço') {
+          if (os.distanciaDuto.isNotEmpty) lines.add('*Dist. Duto até a face:* ${os.distanciaDuto}');
+          if (os.distanciaPonteira.isNotEmpty) lines.add('*Dist. Ponteira até a face:* ${os.distanciaPonteira}');
+        }
         // Campos de Recuo / Realocação
         if ((os.maintenanceType == 'Recuo' || os.maintenanceType == 'Realocação')) {
           if (os.necessitaRecuperar != null) {
@@ -921,6 +926,8 @@ class ReportFormController extends Notifier<ReportFormState> {
               status: os.status,
               osStatus: os.osStatus,
               photoPaths: os.photoPaths,
+              distanciaDuto: os.distanciaDuto,
+              distanciaPonteira: os.distanciaPonteira,
               necessitaRecuperar: os.necessitaRecuperar,
               frenteDestino: os.frenteDestino,
               localOrigem: os.localOrigem,
@@ -977,6 +984,8 @@ class ReportFormController extends Notifier<ReportFormState> {
             status: e.status,
             osStatus: e.osStatus,
             photoPaths: e.photoPaths,
+            distanciaDuto: e.distanciaDuto,
+            distanciaPonteira: e.distanciaPonteira,
             necessitaRecuperar: e.necessitaRecuperar,
             frenteDestino: e.frenteDestino,
             localOrigem: e.localOrigem,
