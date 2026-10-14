@@ -142,6 +142,14 @@ Para que as futuras atualizações sejam **100% invisíveis e automáticas** sem
 
 ## 📜 CHANGELOG
 
+### v1.0.7 (2026-10-14)
+- **Bombeamento (Águas de Fim de Rampa)**: Digitação direta de metragem com teclado numérico no display, eliminando a trava rígida de 100m.
+- **Bombeamento**: Botões de incremento rápido (-10m, -5m, +5m, +10m, +50m) para operação ergonômica com luvas de proteção.
+- **Bombeamento**: Slider dinâmico que se adapta automaticamente a valores maiores que 100m.
+- **Bombeamento**: Adicionado botão de limpar medição (ícone X).
+- **Bombeamento**: Alerta visual e indicador textual para a faixa de atenção (amarelo) no resumo e no WhatsApp.
+- **Gráfico de Bombeamento**: Escala mínima adaptativa que permite valores acima de 100m.
+
 ### v1.0.6 (2026-10-06)
 - **Bombeamento (Águas de Fim de Rampa)**: Substituição dos contadores repetitivos por Slider contínuo/discreto com divisões precisas de 5 em 5 metros (0 a 100m).
 - **Bombeamento**: Display central com indicação visual e dinâmica de criticidade (vermelho para crítico, amarelo para atenção, verde para seguro) e régua com marcadores visuais.
